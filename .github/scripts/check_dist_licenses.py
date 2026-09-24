@@ -18,9 +18,6 @@ logging.basicConfig(level=logging.INFO, format="%(message)s")
 
 REQUIRED_FILES = ("LICENSE", "third-party-programs.txt")
 
-# Location that PEP 639 reserves for license files inside a wheel.
-CANONICAL_WHEEL_DIR = ".dist-info/licenses/"
-
 
 def _members(dist: Path) -> list[str]:
     """Return the member names stored inside a wheel or an sdist."""
@@ -31,31 +28,35 @@ def _members(dist: Path) -> list[str]:
         return archive.getnames()
 
 
-def _problems(dist: Path, canonical: bool) -> list[str]:
+def _problems(dist: Path) -> list[str]:
     """Report every required file that is missing from dist or stored in the wrong place."""
     members = _members(dist)
-    problems = []
 
-    for filename in REQUIRED_FILES:
-        found = [name for name in members if name.rsplit("/", 1)[-1] == filename]
-        if not found:
-            problems.append(f"missing {filename}")
-        elif canonical and dist.suffix == ".whl" and not any(CANONICAL_WHEEL_DIR in name for name in found):
-            problems.append(f"{filename} is not under <name>{CANONICAL_WHEEL_DIR}")
+    if dist.suffix != ".whl":
+        basenames = {name.rsplit("/", 1)[-1] for name in members}
+        return [f"missing {filename}" for filename in REQUIRED_FILES if filename not in basenames]
 
-    return problems
+    # A wheel carries exactly one .dist-info directory. A second one means some
+    # force-include target has gone stale and no longer spells out the current
+    # name and version.
+    dist_infos = {name.split("/", 1)[0] for name in members if name.split("/", 1)[0].endswith(".dist-info")}
+    if len(dist_infos) != 1:
+        return [f"expected one .dist-info directory, found {sorted(dist_infos)}"]
+
+    # Directory that PEP 639 reserves for license files inside a wheel.
+    licenses = f"{dist_infos.pop()}/licenses/"
+    return [f"missing {licenses}{filename}" for filename in REQUIRED_FILES if f"{licenses}{filename}" not in members]
 
 
 def main() -> int:
     """Inspect every distribution given on the command line."""
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("dists", nargs="+", type=Path, help="wheel or sdist files to inspect")
-    parser.add_argument("--canonical", action="store_true", help="also require the PEP 639 location in wheels")
     args = parser.parse_args()
 
     failed = False
     for dist in sorted(args.dists):
-        problems = _problems(dist, args.canonical)
+        problems = _problems(dist)
         failed = failed or bool(problems)
         for problem in problems:
             logger.error("FAIL  %s: %s", dist.name, problem)

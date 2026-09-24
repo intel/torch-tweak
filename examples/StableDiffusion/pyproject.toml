@@ -9,7 +9,6 @@ dynamic = ["version"]
 description = "Torch Tweak Stable Diffusion example"
 readme = "README.md"
 license = "Apache-2.0"
-license-files = ["LICENSE", "third-party-programs.txt"]
 requires-python = ">=3.10"
 
 dependencies = [
@@ -67,20 +66,19 @@ inference = "stable_diffusion.inference:main"
 benchmark-hybrid = "stable_diffusion.benchmark_hybrid:main"
 
 [build-system]
-requires = ["setuptools>=83.0.0", "setuptools_scm[toml]>=10.2.0", "wheel>=0.47.0"]
-build-backend = "setuptools.build_meta"
+requires = ["hatchling>=1.27.0"]
+build-backend = "hatchling.build"
 
-[tool.setuptools]
-include-package-data = true
+[tool.hatch.build.targets.wheel]
+packages = ["stable_diffusion"]
 
-[tool.setuptools_scm]
-root = "../.."
-local_scheme = "no-local-version"
-fallback_version = "0.4.0"
-
-[tool.setuptools.packages.find]
-namespaces = false
-include = ["stable_diffusion"]
-
-[tool.setuptools.package-data]
-stable_diffusion = ["**/*"]
+# LICENSE and third-party-programs.txt are kept only at the repository root and
+# pulled in at build time, so distributions must be built with `uv build --wheel`.
+#
+# The target directory below has to spell out name and version, because hatchling
+# does not expand placeholders here. Update it whenever either one changes: a stale
+# name silently produces a second .dist-info directory, which the packaging workflow
+# rejects.
+[tool.hatch.build.targets.wheel.force-include]
+"../../LICENSE" = "torch_tweak_stable_diffusion_example-0.1.0.dist-info/licenses/LICENSE"
+"../../third-party-programs.txt" = "torch_tweak_stable_diffusion_example-0.1.0.dist-info/licenses/third-party-programs.txt"

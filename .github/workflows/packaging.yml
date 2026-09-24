@@ -13,8 +13,6 @@ on:
       - "LICENSE"
       - "third-party-programs.txt"
       - "pyproject.toml"
-      - "examples/*/LICENSE"
-      - "examples/*/third-party-programs.txt"
       - "examples/*/pyproject.toml"
       - ".github/scripts/check_dist_licenses.py"
       - ".github/workflows/packaging.yml"
@@ -39,7 +37,7 @@ jobs:
       - name: Checkout Torch Tweak repository
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          # setuptools_scm derives the core package version from the git history.
+          # The core package version is derived from the git history.
           fetch-depth: 0
 
       - name: Set up Python
@@ -50,24 +48,16 @@ jobs:
       - name: Install uv
         run: python3 -m pip install uv
 
-      # Each example keeps its own copy of the two files, so they must stay
-      # byte-for-byte identical to the ones at the repository root.
-      - name: Verify example license copies are up to date
-        run: |
-          for example in examples/*/pyproject.toml; do
-            dir="$(dirname "${example}")"
-            diff -q LICENSE "${dir}/LICENSE"
-            diff -q third-party-programs.txt "${dir}/third-party-programs.txt"
-          done
-
       - name: Build core distributions
         run: uv build --out-dir dist/core
 
-      - name: Build example distributions
+      # Examples are wheel-only: they pull the license files from the repository
+      # root at build time, which an sdist-based build cannot reach.
+      - name: Build example wheels
         run: |
           for example in examples/*/pyproject.toml; do
-            uv build "$(dirname "${example}")" --out-dir dist/examples
+            uv build --wheel "$(dirname "${example}")" --out-dir dist/examples
           done
 
       - name: Verify license files in all distributions
-        run: python3 .github/scripts/check_dist_licenses.py --canonical dist/core/* dist/examples/*
+        run: python3 .github/scripts/check_dist_licenses.py dist/core/* dist/examples/*.whl
