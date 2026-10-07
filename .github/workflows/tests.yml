@@ -29,6 +29,25 @@ jobs:
     name: Lint
     uses: ./.github/workflows/lint.yml
 
+  # Runs static code analysis
+  codeql:
+    name: CodeQL
+    needs: lint
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Torch Tweak repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@2892aa5e19bbd11bc0cff5427e3b750a04d9e3c2 # v4.38.2
+        with:
+          languages: python
+
+      - name: Perform analysis
+        uses: github/codeql-action/analyze@2892aa5e19bbd11bc0cff5427e3b750a04d9e3c2 # v4.38.2
+
   tests:
     name: Tests
     needs: lint
