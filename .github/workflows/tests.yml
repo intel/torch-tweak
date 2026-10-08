@@ -71,6 +71,7 @@ jobs:
             build-essential \
             clinfo \
             git \
+            hwinfo \
             intel-gsc \
             intel-media-va-driver-non-free \
             intel-metrics-discovery \
@@ -140,3 +141,7 @@ jobs:
           uv run inference --prompt "query: What is the capital city of France?"
           cd -
           echo "::endgroup::"
+
+      - name: Debug CI platform information
+        if: ${{ always() }}
+        run: ./torch-tweak/.github/scripts/get_system_info.sh
