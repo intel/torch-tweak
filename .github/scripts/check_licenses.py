@@ -51,8 +51,10 @@ import re
 import shutil
 import subprocess  # nosec B404 - subprocess is used only with fixed git argv and shell=False.
 import sys
+from collections.abc import Callable
 from datetime import date
 from pathlib import Path
+from typing import NamedTuple
 
 logger = logging.getLogger(Path(__file__).stem)
 logging.basicConfig(level=logging.INFO, format="%(message)s")
@@ -115,8 +117,12 @@ _HTML_COMMENT_SUFFIXES: frozenset[str] = frozenset({".md", ".html"})
 _HASH_COMMENT_SUFFIXES: frozenset[str] = frozenset({".yaml", ".yml", ".toml", ".ini", ".cfg"})
 
 
+def _suffix(filepath: str) -> str:
+    return Path(filepath).suffix.lower()
+
+
 def _is_skipped(filepath: str) -> bool:
-    if Path(filepath).suffix.lower() in _SKIP_SUFFIXES:
+    if _suffix(filepath) in _SKIP_SUFFIXES:
         return True
     normalized = filepath.replace("\\", "/")
     if normalized in _SKIP_EXACT_PATHS:
@@ -125,36 +131,21 @@ def _is_skipped(filepath: str) -> bool:
 
 
 def _uses_html_comments(filepath: str) -> bool:
-    return Path(filepath).suffix.lower() in _HTML_COMMENT_SUFFIXES
-
-
-def _uses_hash_comments(filepath: str) -> bool:
-    """True for non-Python files that use ``#`` comment syntax (YAML, TOML, INI, …)."""
-    p = Path(filepath)
-    return p.suffix.lower() in _HASH_COMMENT_SUFFIXES
+    return _suffix(filepath) in _HTML_COMMENT_SUFFIXES
 
 
 def _is_python(filepath: str) -> bool:
-    return Path(filepath).suffix.lower() == ".py"
+    return _suffix(filepath) == ".py"
 
 
-def _python_header_autofix_applies(filepath: str, *, require_file: bool = False) -> bool:
-    path = Path(filepath)
-    if not _is_python(filepath) or _is_skipped(filepath) or _uses_html_comments(filepath):
-        return False
-    return path.is_file() if require_file else True
+def _is_notebook(filepath: str) -> bool:
+    return _suffix(filepath) == ".ipynb"
 
 
-def _comment_prefix(filepath: str) -> str:
-    return "" if _uses_html_comments(filepath) else "# "
-
-
-def _intel_copyright_hint(filepath: str) -> str:
-    return f"{_comment_prefix(filepath)}{_INTEL_COPYRIGHT_BODY}"
-
-
-def _intel_modification_hint(filepath: str) -> str:
-    return f"{_comment_prefix(filepath)}{_INTEL_MODIFICATION_BODY}"
+def _intel_hint(filepath: str, body: str) -> str:
+    """*body* in the comment syntax a user would paste into *filepath*."""
+    prefix = "" if _uses_html_comments(filepath) else "# "
+    return f"{prefix}{body}"
 
 
 def _upstream_copyright_lines(text: str) -> list[str]:
@@ -188,7 +179,7 @@ def _run_git(
     )  # nosec B603
 
 
-def _resolve_ref(ref: str) -> str:
+def _resolve_git_ref(ref: str) -> str:
     """Return the git ref string to pass to git commands.
 
     A branch/tag name is prefixed with ``origin/`` so it resolves against the
@@ -198,13 +189,13 @@ def _resolve_ref(ref: str) -> str:
     return ref if _SHA_RE.match(ref) else f"origin/{ref}"
 
 
-def _git_show(ref: str, filepath: str) -> str | None:
+def _file_at_git_ref(ref: str, filepath: str) -> str | None:
     """Return file content at *ref*, or None if the path does not exist there."""
     result = _run_git(["show", f"{ref}:{filepath}"])
     return result.stdout if result.returncode == 0 else None
 
 
-def _head_content(filepath: str) -> str | None:
+def _read_worktree_text(filepath: str) -> str | None:
     path = Path(filepath)
     if not path.is_file():
         return None
@@ -214,14 +205,22 @@ def _head_content(filepath: str) -> str | None:
         return None
 
 
-def _changed_files(base_ref: str) -> list[tuple[str, str, str]]:
-    """Return [(status, source_path, dest_path), …] for changed files.
+class ChangedFile(NamedTuple):
+    """One path from ``git diff --name-status`` (status, source, dest)."""
+
+    status: str
+    source: str
+    path: str
+
+
+def _changed_files(base_ref: str) -> list[ChangedFile]:
+    """Return the files changed by the PR.
 
     Status is the single-character git diff status: A, M, D, R, C, …
-    For non-rename/copy entries, source_path == dest_path.
+    For non-rename/copy entries, ``source == path``.
     """
-    result = _run_git(["diff", "--name-status", f"{_resolve_ref(base_ref)}...HEAD"], check=True)
-    entries: list[tuple[str, str, str]] = []
+    result = _run_git(["diff", "--name-status", f"{_resolve_git_ref(base_ref)}...HEAD"], check=True)
+    entries: list[ChangedFile] = []
     for line in result.stdout.splitlines():
         line = line.strip()
         if not line:
@@ -231,13 +230,13 @@ def _changed_files(base_ref: str) -> list[tuple[str, str, str]]:
             continue
         status = parts[0][0]  # first char: A / M / D / R / C …
         if status in ("R", "C") and len(parts) >= 3:
-            entries.append((status, parts[1], parts[2]))
+            entries.append(ChangedFile(status, parts[1], parts[2]))
         else:
-            entries.append((status, parts[1], parts[1]))
+            entries.append(ChangedFile(status, parts[1], parts[1]))
     return entries
 
 
-def _git_show_at_baseline(filepath: str) -> str | None:
+def _file_at_baseline(filepath: str) -> str | None:
     """Return file content at UPSTREAM_BASELINE_SHA, following directory renames.
 
     Tries the current path first.  When not found (e.g. a parent directory was
@@ -247,7 +246,7 @@ def _git_show_at_baseline(filepath: str) -> str | None:
 
     Returns ``None`` when the file was modified or is brand-new.
     """
-    content = _git_show(UPSTREAM_BASELINE_SHA, filepath)
+    content = _file_at_git_ref(UPSTREAM_BASELINE_SHA, filepath)
     if content is not None:
         return content
 
@@ -269,12 +268,12 @@ def _git_show_at_baseline(filepath: str) -> str | None:
             continue
         obj_info = tab_parts[0].split()
         if len(obj_info) >= 3 and obj_info[2] == blob_hash:
-            return _git_show(UPSTREAM_BASELINE_SHA, tab_parts[1])
+            return _file_at_git_ref(UPSTREAM_BASELINE_SHA, tab_parts[1])
     return None
 
 
 def _baseline_upstream_lines(filepath: str) -> list[str]:
-    return _upstream_copyright_lines(_git_show_at_baseline(filepath) or "")
+    return _upstream_copyright_lines(_file_at_baseline(filepath) or "")
 
 
 def _file_is_upstream_derived(filepath: str, head: str) -> bool:
@@ -284,7 +283,7 @@ def _file_is_upstream_derived(filepath: str, head: str) -> bool:
     the upstream baseline.  Pure renames and verbatim upstream copies return False
     so that ``--all-files`` pre-commit runs do not add incorrect Intel attribution.
     """
-    baseline = _git_show_at_baseline(filepath)
+    baseline = _file_at_baseline(filepath)
     if not baseline:
         return bool(_UPSTREAM_COPYRIGHT_RE.search(head))
     if not _upstream_copyright_lines(baseline):
@@ -293,18 +292,18 @@ def _file_is_upstream_derived(filepath: str, head: str) -> bool:
 
 
 # ---------------------------------------------------------------------------
-# Python header normalization (shared by check and --fix)
+# Python header normalization
 # ---------------------------------------------------------------------------
 
 
-def _cpy_head_prefix(content: str) -> str:
+def _cpy_head_text(content: str) -> str:
     """Leading text within the first ``_CPY_HEAD_BYTES`` UTF-8 octets (matches ruff CPY001 scope)."""
     return content.encode("utf-8")[:_CPY_HEAD_BYTES].decode("utf-8", errors="ignore")
 
 
-def _cpy_head_line_prefix(lines: list[str]) -> list[str]:
+def _cpy_head_lines(lines: list[str]) -> list[str]:
     """Leading lines of ``lines`` that lie inside the CPY head byte window."""
-    return _cpy_head_prefix("".join(lines)).splitlines(keepends=True)
+    return _cpy_head_text("".join(lines)).splitlines(keepends=True)
 
 
 def _insert_lines(lines: list[str], index: int, to_insert: list[str]) -> list[str]:
@@ -312,7 +311,7 @@ def _insert_lines(lines: list[str], index: int, to_insert: list[str]) -> list[st
     return lines[:index] + block + lines[index:]
 
 
-def _python_header_insert_index(lines: list[str]) -> int:
+def _prologue_end(lines: list[str]) -> int:
     """Index after shebang and optional PEP 263 encoding cookie (headers follow)."""
     index = 0
     if index < len(lines) and lines[index].startswith("#!"):
@@ -323,9 +322,9 @@ def _python_header_insert_index(lines: list[str]) -> int:
 
 
 def _derived_intel_insert_index(lines: list[str]) -> int:
-    start = _python_header_insert_index(lines)
+    start = _prologue_end(lines)
     insert_after_upstream = start
-    for i, line in enumerate(_cpy_head_line_prefix(lines)):
+    for i, line in enumerate(_cpy_head_lines(lines)):
         if i < start:
             continue
         stripped = line.strip()
@@ -344,11 +343,11 @@ def _add_intel_copyright_line(lines: list[str], head: str, *, derived: bool) -> 
         return lines
     if derived:
         return _insert_lines(lines, _derived_intel_insert_index(lines), [_INTEL_COPYRIGHT_LINE_PY])
-    return _insert_lines(lines, _python_header_insert_index(lines), [_INTEL_COPYRIGHT_LINE_PY])
+    return _insert_lines(lines, _prologue_end(lines), [_INTEL_COPYRIGHT_LINE_PY])
 
 
 def _insert_intel_modification_notice(lines: list[str]) -> list[str]:
-    scan = _cpy_head_line_prefix(lines)
+    scan = _cpy_head_lines(lines)
     if _INTEL_MODIFICATION_RE.search("".join(scan)):
         return lines
     for i, line in enumerate(scan):
@@ -358,32 +357,22 @@ def _insert_intel_modification_notice(lines: list[str]) -> list[str]:
         if insert_at < len(lines) and lines[insert_at].strip() == "":
             insert_at += 1
         return _insert_lines(lines, insert_at, [_INTEL_MODIFICATION_LINE_PY])
-    return _insert_lines(lines, _python_header_insert_index(lines), [_INTEL_MODIFICATION_LINE_PY, ""])
-
-
-_HEADER_FIX_MSG = (
-    "  License header is not canonical.\n"
-    "  Run: python3 .github/scripts/check_licenses.py --fix <file>\n"
-    "  Or commit again after pre-commit (fix-copyright-headers hook)."
-)
+    return _insert_lines(lines, _prologue_end(lines), [_INTEL_MODIFICATION_LINE_PY, ""])
 
 
 def _normalize_python_headers(filepath: str, content: str) -> str:
     """Return *content* after applying all automatic Python header fixes (Rules 2-3 / CPY001)."""
-    if not _python_header_autofix_applies(filepath):
-        return content
-
     lines = content.splitlines(keepends=True)
     upstream_from_baseline = _baseline_upstream_lines(filepath)
     derived = _file_is_upstream_derived(filepath, content)
 
-    head_stripped = {ln.strip() for ln in _cpy_head_line_prefix(lines)}
+    head_stripped = {ln.strip() for ln in _cpy_head_lines(lines)}
     missing_upstream = [ln for ln in upstream_from_baseline if ln.strip() not in head_stripped]
     # Restore baseline upstream lines when the working tree lost them (Rule 1 retention).
     if missing_upstream:
-        lines = _insert_lines(lines, _python_header_insert_index(lines), missing_upstream)
+        lines = _insert_lines(lines, _prologue_end(lines), missing_upstream)
 
-    head = _cpy_head_prefix("".join(lines))
+    head = _cpy_head_text("".join(lines))
 
     has_upstream_copyright = bool(_UPSTREAM_COPYRIGHT_RE.search(head))
     if derived or not has_upstream_copyright:
@@ -394,29 +383,9 @@ def _normalize_python_headers(filepath: str, content: str) -> str:
     return "".join(lines)
 
 
-def _check_python_header_via_fixup(filepath: str) -> list[str]:
-    content = _head_content(filepath)
-    if content is None or _normalize_python_headers(filepath, content) == content:
-        return []
-    return [_HEADER_FIX_MSG]
-
-
-def fix_python_copyright_header(filepath: str) -> bool:
-    """Rewrite Python SPDX copyright headers in *filepath* in place when needed.
-
-    Applies ``_normalize_python_headers`` and writes UTF-8 with LF newlines.
-    Returns True when the file on disk was updated.
-    """
-    if not _python_header_autofix_applies(filepath, require_file=True):
-        return False
-
-    path = Path(filepath)
-    content = path.read_text(encoding="utf-8", errors="replace")
-    new_content = _normalize_python_headers(filepath, content)
-    if new_content == content:
-        return False
-    path.write_text(new_content, encoding="utf-8", newline="\n")
-    return True
+# ---------------------------------------------------------------------------
+# HTML-comment header normalization (.md, .html)
+# ---------------------------------------------------------------------------
 
 
 def _html_new_file_header(content: str, has_intel_copyright: bool) -> str:
@@ -488,9 +457,6 @@ def _html_insert_in_block(
 
 def _normalize_html_headers(filepath: str, content: str) -> str:
     """Normalize SPDX copyright headers in HTML-comment files (.md, .html)."""
-    if not _uses_html_comments(filepath) or _is_skipped(filepath):
-        return content
-
     has_upstream = bool(_UPSTREAM_COPYRIGHT_RE.search(content))
     has_intel_copyright = bool(_INTEL_COPYRIGHT_RE.search(content))
     has_intel_modification = bool(_INTEL_MODIFICATION_RE.search(content))
@@ -515,6 +481,11 @@ def _normalize_html_headers(filepath: str, content: str) -> str:
     return _html_insert_in_block(lines, has_intel_copyright, has_intel_modification, block_start, block_end)
 
 
+# ---------------------------------------------------------------------------
+# Hash-comment header normalization (YAML, TOML, INI, CFG)
+# ---------------------------------------------------------------------------
+
+
 def _normalize_hash_headers(filepath: str, content: str) -> str:
     """Normalize ``#``-comment SPDX headers for YAML/TOML/INI files.
 
@@ -522,9 +493,6 @@ def _normalize_hash_headers(filepath: str, content: str) -> str:
     Upstream-derived:  inserts Intel copyright after the last upstream line and
                        the modification notice after ``SPDX-License-Identifier``.
     """
-    if not _uses_hash_comments(filepath) or _is_skipped(filepath):
-        return content
-
     has_upstream = bool(_UPSTREAM_COPYRIGHT_RE.search(content))
     has_intel_copyright = bool(_INTEL_COPYRIGHT_RE.search(content))
     has_intel_modification = bool(_INTEL_MODIFICATION_RE.search(content))
@@ -561,41 +529,51 @@ def _normalize_hash_headers(filepath: str, content: str) -> str:
     return "".join(lines)
 
 
-def _check_hash_header_via_fixup(filepath: str) -> list[str]:
-    content = _head_content(filepath)
-    if content is None or _normalize_hash_headers(filepath, content) == content:
+# ---------------------------------------------------------------------------
+# Header dispatch (shared by check and --fix)
+# ---------------------------------------------------------------------------
+
+_NORMALIZERS: dict[str, Callable[[str, str], str]] = {
+    ".py": _normalize_python_headers,
+    **dict.fromkeys(_HTML_COMMENT_SUFFIXES, _normalize_html_headers),
+    **dict.fromkeys(_HASH_COMMENT_SUFFIXES, _normalize_hash_headers),
+}
+
+_HEADER_FIX_MSG = (
+    "  License header is not canonical.\n"
+    "  Run: python3 .github/scripts/check_licenses.py --fix <file>\n"
+    "  Or commit again after pre-commit (fix-copyright-headers hook)."
+)
+
+
+def _normalizer_for(filepath: str) -> Callable[[str, str], str] | None:
+    """Header normalizer for *filepath*, or ``None`` when the file is exempt or unsupported."""
+    if _is_skipped(filepath):
+        return None
+    return _NORMALIZERS.get(_suffix(filepath))
+
+
+def normalize_header(filepath: str, content: str) -> str:
+    """Return *content* with the canonical SPDX header for *filepath*'s file type."""
+    normalizer = _normalizer_for(filepath)
+    return normalizer(filepath, content) if normalizer else content
+
+
+def check_header(filepath: str) -> list[str]:
+    """Report a violation when ``--fix`` would change the header of *filepath*."""
+    content = _read_worktree_text(filepath)
+    if content is None or normalize_header(filepath, content) == content:
         return []
     return [_HEADER_FIX_MSG]
 
 
-def fix_hash_comment_copyright_header(filepath: str) -> bool:
-    """Rewrite ``#``-comment SPDX headers in *filepath* in place when needed."""
+def fix_header(filepath: str) -> bool:
+    """Rewrite the header of *filepath* in place (UTF-8, LF); return True when the file changed."""
     path = Path(filepath)
-    if not _uses_hash_comments(filepath) or _is_skipped(filepath) or not path.is_file():
+    if _normalizer_for(filepath) is None or not path.is_file():
         return False
     content = path.read_text(encoding="utf-8", errors="replace")
-    new_content = _normalize_hash_headers(filepath, content)
-    if new_content == content:
-        return False
-    path.write_text(new_content, encoding="utf-8", newline="\n")
-    return True
-
-
-def _check_nonpython_header_via_fixup(filepath: str) -> list[str]:
-    content = _head_content(filepath)
-    if content is None or _normalize_html_headers(filepath, content) == content:
-        return []
-    return [_HEADER_FIX_MSG]
-
-
-def fix_nonpython_copyright_header(filepath: str) -> bool:
-    """Rewrite HTML-comment SPDX copyright headers in *filepath* in place when needed."""
-    path = Path(filepath)
-    if not _uses_html_comments(filepath) or _is_skipped(filepath) or not path.is_file():
-        return False
-
-    content = path.read_text(encoding="utf-8", errors="replace")
-    new_content = _normalize_html_headers(filepath, content)
+    new_content = normalize_header(filepath, content)
     if new_content == content:
         return False
     path.write_text(new_content, encoding="utf-8", newline="\n")
@@ -610,9 +588,9 @@ def fix_nonpython_copyright_header(filepath: str) -> bool:
 def _check_non_python_upstream_attribution(filepath: str, head: str) -> list[str]:
     errors: list[str] = []
     if not _INTEL_COPYRIGHT_RE.search(head):
-        errors.append(f"  Missing Intel copyright line.\n  Add: {_intel_copyright_hint(filepath)}")
+        errors.append(f"  Missing Intel copyright line.\n  Add: {_intel_hint(filepath, _INTEL_COPYRIGHT_BODY)}")
     if not _INTEL_MODIFICATION_RE.search(head):
-        errors.append(f"  Missing Intel modification notice.\n  Add: {_intel_modification_hint(filepath)}")
+        errors.append(f"  Missing Intel modification notice.\n  Add: {_intel_hint(filepath, _INTEL_MODIFICATION_BODY)}")
     return errors
 
 
@@ -627,14 +605,12 @@ def _upstream_lines_in_original(
     Fall back to origin/<base_ref> for files added after the baseline commit.
     """
     baseline_path = original_filepath or filepath
-    original = _git_show(UPSTREAM_BASELINE_SHA, baseline_path) or _git_show(_resolve_ref(base_ref), filepath)
+    original = _file_at_git_ref(UPSTREAM_BASELINE_SHA, baseline_path) or _file_at_git_ref(
+        _resolve_git_ref(base_ref), filepath
+    )
     if original is None:
         return None
     return _upstream_copyright_lines(original)
-
-
-def _is_notebook(filepath: str) -> bool:
-    return Path(filepath).suffix.lower() == ".ipynb"
 
 
 def _notebook_preamble(content: str) -> str:
@@ -672,7 +648,7 @@ def _check_notebook(
     original_filepath: str | None = None,
 ) -> list[str]:
     """Check the copyright header in the first Markdown cell of a notebook."""
-    head = _head_content(filepath)
+    head = _read_worktree_text(filepath)
     if head is None:
         return []
     preamble = _notebook_preamble(head)
@@ -680,8 +656,8 @@ def _check_notebook(
         has_upstream = _UPSTREAM_COPYRIGHT_RE.search(preamble) is not None
         return _notebook_intel_errors(preamble, modification=has_upstream)
 
-    original = _git_show(UPSTREAM_BASELINE_SHA, original_filepath or filepath) or _git_show(
-        _resolve_ref(base_ref), filepath
+    original = _file_at_git_ref(UPSTREAM_BASELINE_SHA, original_filepath or filepath) or _file_at_git_ref(
+        _resolve_git_ref(base_ref), filepath
     )
     if original is None:
         return []
@@ -716,7 +692,7 @@ def _check_modified(
     if _is_skipped(filepath):
         return []
 
-    head = _head_content(filepath)
+    head = _read_worktree_text(filepath)
     if head is None:
         return []
 
@@ -726,7 +702,7 @@ def _check_modified(
 
     # No upstream copyright in original - not an upstream file, nothing to enforce.
     if not upstream_in_original:
-        return _check_python_header_via_fixup(filepath) if _is_python(filepath) else []
+        return check_header(filepath) if _is_python(filepath) else []
 
     errors: list[str] = []
     head_lines_stripped = {ln.strip() for ln in head.splitlines()}
@@ -739,7 +715,7 @@ def _check_modified(
             )
 
     if _is_python(filepath):
-        errors.extend(_check_python_header_via_fixup(filepath))
+        errors.extend(check_header(filepath))
         return errors
 
     return errors + _check_non_python_upstream_attribution(filepath, head)
@@ -754,23 +730,10 @@ def _check_added(filepath: str) -> list[str]:
     """
     if _is_notebook(filepath):
         return _check_notebook(filepath, added=True)
-
-    if _is_skipped(filepath):
-        return []
-
-    if _is_python(filepath):
-        return _check_python_header_via_fixup(filepath)
-
-    if _uses_html_comments(filepath):
-        return _check_nonpython_header_via_fixup(filepath)
-
-    if _uses_hash_comments(filepath):
-        return _check_hash_header_via_fixup(filepath)
-
-    return []
+    return check_header(filepath)
 
 
-def _check_license_file(changed_files: list[tuple[str, str, str]]) -> list[str]:
+def _check_license_file(changed_files: list[ChangedFile]) -> list[str]:
     """Check that the root LICENSE file has not been modified or deleted."""
     errors: list[str] = []
 
@@ -778,26 +741,14 @@ def _check_license_file(changed_files: list[tuple[str, str, str]]) -> list[str]:
         errors.append("  Root LICENSE file is missing from the repository.")
         return errors
 
-    for status, source_path, filepath in changed_files:
-        if status in ("M", "D") and filepath == "LICENSE":
-            verb = "modified" if status == "M" else "deleted"
+    for item in changed_files:
+        if item.status in ("M", "D") and item.path == "LICENSE":
+            verb = "modified" if item.status == "M" else "deleted"
             errors.append(f"  Root LICENSE file has been {verb} in this PR. It must remain intact.")
-        elif status in ("R", "C") and source_path == "LICENSE":
+        elif item.status in ("R", "C") and item.source == "LICENSE":
             errors.append("  Root LICENSE file has been renamed in this PR. It must remain intact.")
 
     return errors
-
-
-# ---------------------------------------------------------------------------
-# GHA annotation helpers
-# ---------------------------------------------------------------------------
-
-
-def _annotate_error(filepath: str, message: str) -> None:
-    """Emit a GitHub Actions error annotation for *filepath* when running in CI."""
-    # Strip leading whitespace / rule tags for the inline annotation title.
-    title = message.strip().splitlines()[0].lstrip()
-    sys.stdout.write(f"::error file={filepath}::{title}\n")
 
 
 # ---------------------------------------------------------------------------
@@ -806,33 +757,34 @@ def _annotate_error(filepath: str, message: str) -> None:
 
 
 def _collect_violations(
-    changed: list[tuple[str, str, str]],
+    changed: list[ChangedFile],
     base_ref: str,
 ) -> dict[str, list[str]]:
     """Return a mapping of filepath → error list for every file that fails checks."""
     violations: dict[str, list[str]] = {}
-    for status, source_path, filepath in changed:
-        if status == "M":
-            errs = _check_modified(filepath, base_ref)
-        elif status == "A":
-            errs = _check_added(filepath)
-        elif status in ("R", "C"):
-            errs = _check_modified(filepath, base_ref, original_filepath=source_path)
+    for item in changed:
+        if item.status == "M":
+            errs = _check_modified(item.path, base_ref)
+        elif item.status == "A":
+            errs = _check_added(item.path)
+        elif item.status in ("R", "C"):
+            errs = _check_modified(item.path, base_ref, original_filepath=item.source)
         else:
             continue
         if errs:
-            violations[filepath] = errs
+            violations[item.path] = errs
     return violations
 
 
 def _report_violations(violations: dict[str, list[str]]) -> None:
-    """Log all violations and emit GHA annotations."""
+    """Log all violations and emit GitHub Actions error annotations."""
     logger.error("FAILED - license violations found:\n")
     for filepath, errs in violations.items():
         logger.error("  %s", filepath)
         for err in errs:
             logger.error("%s", err)
-            _annotate_error(filepath, err)
+            title = err.strip().splitlines()[0]
+            sys.stdout.write(f"::error file={filepath}::{title}\n")
         logger.error("")
     logger.error("Files with violations: %d", len(violations))
 
@@ -841,7 +793,7 @@ def run_check() -> int:
     """Run license compliance checks and return an exit code."""
     base_ref = os.environ.get("TORCH_TWEAK_LICENSE_CHECKER_BASE_REF", "main")
 
-    logger.info("License compliance check  |  PR diff base: %s", _resolve_ref(base_ref))
+    logger.info("License compliance check  |  PR diff base: %s", _resolve_git_ref(base_ref))
     logger.info("                          |  upstream baseline: %s", UPSTREAM_BASELINE_SHA)
     logger.info("=" * 60)
 
@@ -871,12 +823,7 @@ def run_fix(filenames: list[str]) -> int:
         return 0
     changed = False
     for filepath in filenames:
-        fixed = (
-            fix_python_copyright_header(filepath)
-            or fix_nonpython_copyright_header(filepath)
-            or fix_hash_comment_copyright_header(filepath)
-        )
-        if fixed:
+        if fix_header(filepath):
             sys.stderr.write(f"Fixed copyright header: {filepath}\n")
             changed = True
     return 1 if changed else 0
@@ -884,7 +831,7 @@ def run_fix(filenames: list[str]) -> int:
 
 def _build_arg_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
-        description="License compliance checker (CI) and Python copyright header auto-fix (pre-commit).",
+        description="License compliance checker (CI) and copyright header auto-fix (pre-commit).",
     )
     parser.add_argument(
         "--fix",
