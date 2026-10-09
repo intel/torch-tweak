@@ -42,9 +42,6 @@ jobs:
         --device=/dev/dri
       volumes:
         - ${{ github.workspace }}:${{ github.workspace }}
-      credentials:
-        username: ${{ secrets.GH_BB_DOCKER_USERNAME }}
-        password: ${{ secrets.GH_BB_DOCKER_TOKEN }}
 
     steps:
       - name: Checkout Torch Tweak repository
@@ -124,12 +121,14 @@ jobs:
 
           echo "::group::llm"
           cd examples/LLM
-          uv run pip install \
+          . ../../.venv/bin/activate
+          pip install \
             --index-url https://download.pytorch.org/whl/xpu \
             --extra-index-url https://pypi.org/simple \
             .
           tune --model_id microsoft/Phi-3-mini-4k-instruct
           benchmark --model_id microsoft/Phi-3-mini-4k-instruct --sequence_lengths "128,1024"
+          deactivate
           cd -
           echo "::endgroup::"
 

@@ -30,9 +30,6 @@ jobs:
         --device=/dev/dri
       volumes:
         - ${{ github.workspace }}:${{ github.workspace }}
-      credentials:
-        username: ${{ secrets.GH_BB_DOCKER_USERNAME }}
-        password: ${{ secrets.GH_BB_DOCKER_TOKEN }}
 
     steps:
       - name: Checkout Torch Tweak repository
