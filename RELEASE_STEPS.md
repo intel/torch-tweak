@@ -36,7 +36,7 @@ Prepare changes for the release:
     on a machine without access to github's tags
   - Rebuild Torch Tweak and all examples to update uv.lock files as well
 - Update `version` and `date-released` in `CITATION.cff`
-- Once all changes are done, build locally (and/or verify changes on CI), including:
+- Once all changes are done, [build locally](CONTRIBUTING.md#building-packages) (and/or verify changes on CI), including:
   - Verify if scanners/linters/checkers passed
   - Verify if version is set properly
 - Commit these changes and tag the release:

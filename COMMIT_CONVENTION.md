@@ -6,7 +6,8 @@ SPDX-License-Identifier: Apache-2.0
 # Commit Message Convention
 
 Commit titles in this repository follow a lightweight variant of
-[Conventional Commits](https://www.conventionalcommits.org/).
+[Conventional Commits](https://www.conventionalcommits.org/). Make sure commit
+message explains problem you're solving and/or fully describes enhancements, with reasoning.
 
 ## Format
 

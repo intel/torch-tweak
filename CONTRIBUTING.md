@@ -32,11 +32,9 @@ the process described in [SECURITY.md](SECURITY.md).
 
 Torch Tweak targets Linux x86_64 with Intel GPUs (XPU). The project uses
 [uv](https://docs.astral.sh/uv/) to manage dependencies and virtual
-environments.
-
-### Stable PyTorch XPU (default)
-
-From the repository root:
+environments. See the [install guide](docs/learn/install.md) for prerequisites and the full
+uv setup, including the optional PyTorch XPU nightly environment. For
+everyday development, run this from the repository root:
 
 ```bash
 uv sync --extra dev
@@ -45,20 +43,6 @@ uv sync --extra dev
 This creates `.venv` with stable PyTorch XPU wheels and all development
 dependencies (for tests, docs, linters). Prefer `uv run ...` over activating the
 virtual environment manually.
-
-### Nightly PyTorch XPU (optional)
-
-Use nightly only when a change requires PyTorch XPU nightly wheels. Keep it
-in a separate virtual environment, and set `UV_PROJECT_ENVIRONMENT` on every
-`uv sync` and `uv run` call:
-
-```bash
-UV_PROJECT_ENVIRONMENT=.venv-nightly uv sync --no-default-groups --group xpu-nightly --extra dev
-UV_PROJECT_ENVIRONMENT=.venv-nightly uv run pytest
-```
-
-Do not combine the `xpu-nightly` and `xpu-stable` groups in a single sync;
-they conflict by design.
 
 ### Adding dependencies
 
@@ -92,10 +76,77 @@ Test markers:
 - `nightly` - long-running tests that run only in the nightly workflow.
 
 Most tests require an Intel GPU. Use `ONEAPI_DEVICE_SELECTOR=level_zero:gpu`
-to select the device, as CI does.
+environment variable to select the device, as CI does.
 
 New features and bug fixes should come with tests. Place them under
 'test/unit' or 'test/functional', respectively.
+
+## Building Packages
+
+### Core library
+
+The `torch-tweak` package is built from the repository root and produces both a
+source distribution and a wheel:
+```shell
+uv build
+```
+`LICENSE` and `third-party-programs.txt` are declared in `license-files` in the
+root `pyproject.toml`, so the build places them in
+`torch_tweak-*.dist-info/licenses/` in the wheel and at the top level of the
+sdist. No extra flags are needed.
+
+### Examples
+
+Each example is a standalone package and is built the same way:
+```shell
+cd examples/ResNet
+uv build
+```
+Every example keeps its own copy of `LICENSE` and `third-party-programs.txt`
+next to its `pyproject.toml`. The copies must stay identical to the files at
+the repository root; the `Packaging` workflow fails if they drift apart.
+Everyday workflows:
+```shell
+uv sync          # installs the example into .venv
+uv run tune      # entry points keep working
+pip install .    # used by CI for examples/LLM
+```
+
+### Building the docs locally
+
+If you already ran `uv sync --extra dev`, the doc dependencies are installed
+and you can skip the first step.
+
+Install only the doc dependencies (the same setup CI uses):
+
+```shell
+uv sync --no-default-groups --extra doc
+```
+
+Build the static site into `./site/`:
+
+```shell
+uv run properdocs build
+```
+
+Start a live-reload server at <http://127.0.0.1:8000>. It rebuilds the site
+whenever you save a file under `docs/`, `torch_tweak/` or `examples/`:
+
+```bash
+uv run properdocs serve
+```
+
+#### How staging works
+
+A few pages of the site come from files outside `docs/`: `ChangeLog.md`,
+`CONTRIBUTING.md`, `LICENSE`, and the READMEs under `examples/`. The
+`scripts/stage_docs.py` ProperDocs hook copies them into `docs/` before every
+build, including live-reload rebuilds, so you never need to copy them
+manually. `LICENSE` is staged as `docs/LICENSE.md`, and `examples/README.md`
+as `docs/examples/examples.md`.
+
+The copies are gitignored and overwritten on every build. Always edit the
+original files, not the copies in `docs/`.
 
 ## Code style
 
@@ -172,8 +223,7 @@ Use your real name and an email address that matches your Git configuration.
 2. Keep pull requests focused on a single change. Split unrelated changes into
    separate pull requests.
 3. Make sure tests, linters and the license check pass locally.
-4. Update documentation in `docs/` and `ChangeLog.md` when the change affects
-   users.
+4. For new features, update documentation in `docs/`, `ChangeLog.md`, and `README.md`.
 5. Open a pull request against `main` with a clear description of the change
    and links to related issues (for example, `Closes #123`), if applicable.
 
