@@ -52,10 +52,15 @@ dependencies = [
 "Tracker" = "https://github.com/intel/torch-tweak/issues"
 
 [project.optional-dependencies]
-xpu = ["torch>=2.13.0"]
+xpu = [
+    "torch>=2.13.0",
+    "fsspec>=2026.6.0", # sec
+]
 test = [
     "datasets>=4.8.5,<6.0.0",
     "diffusers>=0.40.0,<1.0",
+    "fsspec>=2026.6.0", # sec
+    "multidict>=6.9.1", # sec
     "pytest>=9.1.1",
     "pytest-mock",
     "pillow>=12.3.0",
@@ -87,7 +92,9 @@ dev = [
     "pre-commit",
     "pre-commit-uv",
     "pytype",
+    "tornado>=6.5.9", # sec
     "uv>=0.11.26",
+    "virtualenv>=21.7.13", # sec
 ]
 
 [build-system]

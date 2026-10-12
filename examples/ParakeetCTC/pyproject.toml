@@ -25,6 +25,11 @@ override-dependencies = [
     "hydra-core>=1.3.4", #sec
     "lightning>=2.6.6", #sec
 ]
+constraint-dependencies = [
+    "fsspec>=2026.6.0", #sec
+    "multidict>=6.9.1", #sec
+    "werkzeug>=3.1.9", #sec
+]
 
 [tool.uv.sources]
 torch_tweak = { path  = "../../" }
