@@ -87,7 +87,7 @@ dev = [
     "pdbpp >= 0.12.1",
     "pip >= 26.1.2",
     # Keep this pin equal to the ruff-pre-commit rev. Lint fails when they differ.
-    "ruff==0.16.10",
+    "ruff==0.17.0",
     "ipykernel",
     "pre-commit",
     "pre-commit-uv",

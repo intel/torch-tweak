@@ -316,11 +316,10 @@ nvtx = [
 
 [[package]]
 name = "diffusers"
-version = "0.40.0"
+version = "0.41.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "filelock" },
-    { name = "httpx" },
     { name = "huggingface-hub" },
     { name = "importlib-metadata" },
     { name = "numpy", version = "2.2.6", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.11' or (extra == 'group-36-torch-tweak-stable-diffusion-example-xpu-nightly' and extra == 'group-36-torch-tweak-stable-diffusion-example-xpu-stable')" },
@@ -331,9 +330,9 @@ dependencies = [
     { name = "requests" },
     { name = "safetensors" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/59/32/b9c6a198812e2a7d2c2828a850dba384306f9af285eac23e35e89d5b008a/diffusers-0.40.0.tar.gz", hash = "sha256:49f112ce52ff6d332ab68afec01f79a53e6489b42cb69104444c98b4a2f64af8", size = 4886420, upload-time = "2026-08-20T14:30:40.923Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/a8/bc/34a91d366fe8e546637d702403e4d8cd5dbdf705a15fb3725d34a7ab3416/diffusers-0.41.0.tar.gz", hash = "sha256:69dcced7230b6bc0b70b5c6cfdff1aa62da487ab52ae74b642e46b1b9bfacc47", size = 5026281, upload-time = "2026-10-06T06:24:14.884Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/db/df/ffb593ebed2a068d2d6be44261283f39a6b809c0fcdfdcafbd448cbeec77/diffusers-0.40.0-py3-none-any.whl", hash = "sha256:5b5da7c3ddb62152fa4afc577f02e050af688c797375c34fb2d01006da3f3541", size = 5911654, upload-time = "2026-08-20T14:30:38.422Z" },
+    { url = "https://files.pythonhosted.org/packages/fe/c4/5bf8afd1ff3a8d99da7a18b1067ae0b4e2a037c38f3851890a989c511fd3/diffusers-0.41.0-py3-none-any.whl", hash = "sha256:ea8918b7dfd92ce793b6db689a551b8cd25d52c6c0fcd3ade0706a5fd2a25990", size = 6063887, upload-time = "2026-10-06T06:24:12.455Z" },
 ]
 
 [[package]]
@@ -2311,46 +2310,102 @@ wheels = [
 
 [[package]]
 name = "torch"
+version = "2.15.0.dev20260923+xpu"
+source = { registry = "https://download.pytorch.org/whl/nightly/xpu" }
+resolution-markers = [
+    "python_full_version < '3.11'",
+]
+dependencies = [
+    { name = "dpcpp-cpp-rt", version = "2026.1.2", source = { registry = "https://pypi.org/simple" }, marker = "(python_full_version < '3.11' and extra == 'group-36-torch-tweak-stable-diffusion-example-xpu-nightly') or (extra == 'group-36-torch-tweak-stable-diffusion-example-xpu-nightly' and extra == 'group-36-torch-tweak-stable-diffusion-example-xpu-stable')" },
+    { name = "filelock", marker = "(python_full_version < '3.11' and extra == 'group-36-torch-tweak-stable-diffusion-example-xpu-nightly') or (extra == 'group-36-torch-tweak-stable-diffusion-example-xpu-nightly' and extra == 'group-36-torch-tweak-stable-diffusion-example-xpu-stable')" },
+    { name = "fsspec", marker = "(python_full_version < '3.11' and extra == 'group-36-torch-tweak-stable-diffusion-example-xpu-nightly') or (extra == 'group-36-torch-tweak-stable-diffusion-example-xpu-nightly' and extra == 'group-36-torch-tweak-stable-diffusion-example-xpu-stable')" },
+    { name = "impi-rt", marker = "(python_full_version < '3.11' and platform_machine == 'x86_64' and sys_platform == 'linux' and extra == 'group-36-torch-tweak-stable-diffusion-example-xpu-nightly') or (python_full_version >= '3.11' and extra == 'group-36-torch-tweak-stable-diffusion-example-xpu-nightly' and extra == 'group-36-torch-tweak-stable-diffusion-example-xpu-stable') or (platform_machine != 'x86_64' and extra == 'group-36-torch-tweak-stable-diffusion-example-xpu-nightly' and extra == 'group-36-torch-tweak-stable-diffusion-example-xpu-stable') or (sys_platform != 'linux' and extra == 'group-36-torch-tweak-stable-diffusion-example-xpu-nightly' and extra == 'group-36-torch-tweak-stable-diffusion-example-xpu-stable')" },
+    { name = "intel-cmplr-lib-rt", version = "2026.1.2", source = { registry = "https://pypi.org/simple" }, marker = "(python_full_version < '3.11' and extra == 'group-36-torch-tweak-stable-diffusion-example-xpu-nightly') or (extra == 'group-36-torch-tweak-stable-diffusion-example-xpu-nightly' and extra == 'group-36-torch-tweak-stable-diffusion-example-xpu-stable')" },
+    { name = "intel-cmplr-lib-ur", version = "2026.1.2", source = { registry = "https://pypi.org/simple" }, marker = "(python_full_version < '3.11' and extra == 'group-36-torch-tweak-stable-diffusion-example-xpu-nightly') or (extra == 'group-36-torch-tweak-stable-diffusion-example-xpu-nightly' and extra == 'group-36-torch-tweak-stable-diffusion-example-xpu-stable')" },
+    { name = "intel-cmplr-lic-rt", version = "2026.1.2", source = { registry = "https://pypi.org/simple" }, marker = "(python_full_version < '3.11' and extra == 'group-36-torch-tweak-stable-diffusion-example-xpu-nightly') or (extra == 'group-36-torch-tweak-stable-diffusion-example-xpu-nightly' and extra == 'group-36-torch-tweak-stable-diffusion-example-xpu-stable')" },
+    { name = "intel-opencl-rt", version = "2026.1.2", source = { registry = "https://pypi.org/simple" }, marker = "(python_full_version < '3.11' and extra == 'group-36-torch-tweak-stable-diffusion-example-xpu-nightly') or (extra == 'group-36-torch-tweak-stable-diffusion-example-xpu-nightly' and extra == 'group-36-torch-tweak-stable-diffusion-example-xpu-stable')" },
+    { name = "intel-openmp", version = "2026.1.2", source = { registry = "https://pypi.org/simple" }, marker = "(python_full_version < '3.11' and extra == 'group-36-torch-tweak-stable-diffusion-example-xpu-nightly') or (extra == 'group-36-torch-tweak-stable-diffusion-example-xpu-nightly' and extra == 'group-36-torch-tweak-stable-diffusion-example-xpu-stable')" },
+    { name = "intel-pti", version = "1.1.0", source = { registry = "https://pypi.org/simple" }, marker = "(python_full_version < '3.11' and extra == 'group-36-torch-tweak-stable-diffusion-example-xpu-nightly') or (extra == 'group-36-torch-tweak-stable-diffusion-example-xpu-nightly' and extra == 'group-36-torch-tweak-stable-diffusion-example-xpu-stable')" },
+    { name = "intel-sycl-rt", version = "2026.1.2", source = { registry = "https://pypi.org/simple" }, marker = "(python_full_version < '3.11' and extra == 'group-36-torch-tweak-stable-diffusion-example-xpu-nightly') or (extra == 'group-36-torch-tweak-stable-diffusion-example-xpu-nightly' and extra == 'group-36-torch-tweak-stable-diffusion-example-xpu-stable')" },
+    { name = "jinja2", marker = "(python_full_version < '3.11' and extra == 'group-36-torch-tweak-stable-diffusion-example-xpu-nightly') or (extra == 'group-36-torch-tweak-stable-diffusion-example-xpu-nightly' and extra == 'group-36-torch-tweak-stable-diffusion-example-xpu-stable')" },
+    { name = "mkl", marker = "(python_full_version < '3.11' and extra == 'group-36-torch-tweak-stable-diffusion-example-xpu-nightly') or (extra == 'group-36-torch-tweak-stable-diffusion-example-xpu-nightly' and extra == 'group-36-torch-tweak-stable-diffusion-example-xpu-stable')" },
+    { name = "networkx", version = "3.4.2", source = { registry = "https://pypi.org/simple" }, marker = "(python_full_version < '3.11' and extra == 'group-36-torch-tweak-stable-diffusion-example-xpu-nightly') or (extra == 'group-36-torch-tweak-stable-diffusion-example-xpu-nightly' and extra == 'group-36-torch-tweak-stable-diffusion-example-xpu-stable')" },
+    { name = "oneccl", version = "2022.1.2", source = { registry = "https://pypi.org/simple" }, marker = "(python_full_version < '3.11' and platform_machine == 'x86_64' and sys_platform == 'linux' and extra == 'group-36-torch-tweak-stable-diffusion-example-xpu-nightly') or (python_full_version >= '3.11' and extra == 'group-36-torch-tweak-stable-diffusion-example-xpu-nightly' and extra == 'group-36-torch-tweak-stable-diffusion-example-xpu-stable') or (platform_machine != 'x86_64' and extra == 'group-36-torch-tweak-stable-diffusion-example-xpu-nightly' and extra == 'group-36-torch-tweak-stable-diffusion-example-xpu-stable') or (sys_platform != 'linux' and extra == 'group-36-torch-tweak-stable-diffusion-example-xpu-nightly' and extra == 'group-36-torch-tweak-stable-diffusion-example-xpu-stable')" },
+    { name = "oneccl-devel", version = "2022.1.2", source = { registry = "https://pypi.org/simple" }, marker = "(python_full_version < '3.11' and platform_machine == 'x86_64' and sys_platform == 'linux' and extra == 'group-36-torch-tweak-stable-diffusion-example-xpu-nightly') or (python_full_version >= '3.11' and extra == 'group-36-torch-tweak-stable-diffusion-example-xpu-nightly' and extra == 'group-36-torch-tweak-stable-diffusion-example-xpu-stable') or (platform_machine != 'x86_64' and extra == 'group-36-torch-tweak-stable-diffusion-example-xpu-nightly' and extra == 'group-36-torch-tweak-stable-diffusion-example-xpu-stable') or (sys_platform != 'linux' and extra == 'group-36-torch-tweak-stable-diffusion-example-xpu-nightly' and extra == 'group-36-torch-tweak-stable-diffusion-example-xpu-stable')" },
+    { name = "onemkl-license", marker = "(python_full_version < '3.11' and extra == 'group-36-torch-tweak-stable-diffusion-example-xpu-nightly') or (extra == 'group-36-torch-tweak-stable-diffusion-example-xpu-nightly' and extra == 'group-36-torch-tweak-stable-diffusion-example-xpu-stable')" },
+    { name = "onemkl-sycl-blas", marker = "(python_full_version < '3.11' and extra == 'group-36-torch-tweak-stable-diffusion-example-xpu-nightly') or (extra == 'group-36-torch-tweak-stable-diffusion-example-xpu-nightly' and extra == 'group-36-torch-tweak-stable-diffusion-example-xpu-stable')" },
+    { name = "onemkl-sycl-dft", marker = "(python_full_version < '3.11' and extra == 'group-36-torch-tweak-stable-diffusion-example-xpu-nightly') or (extra == 'group-36-torch-tweak-stable-diffusion-example-xpu-nightly' and extra == 'group-36-torch-tweak-stable-diffusion-example-xpu-stable')" },
+    { name = "onemkl-sycl-lapack", marker = "(python_full_version < '3.11' and extra == 'group-36-torch-tweak-stable-diffusion-example-xpu-nightly') or (extra == 'group-36-torch-tweak-stable-diffusion-example-xpu-nightly' and extra == 'group-36-torch-tweak-stable-diffusion-example-xpu-stable')" },
+    { name = "onemkl-sycl-rng", marker = "(python_full_version < '3.11' and extra == 'group-36-torch-tweak-stable-diffusion-example-xpu-nightly') or (extra == 'group-36-torch-tweak-stable-diffusion-example-xpu-nightly' and extra == 'group-36-torch-tweak-stable-diffusion-example-xpu-stable')" },
+    { name = "onemkl-sycl-sparse", marker = "(python_full_version < '3.11' and extra == 'group-36-torch-tweak-stable-diffusion-example-xpu-nightly') or (extra == 'group-36-torch-tweak-stable-diffusion-example-xpu-nightly' and extra == 'group-36-torch-tweak-stable-diffusion-example-xpu-stable')" },
+    { name = "pyzes", marker = "(python_full_version < '3.11' and platform_machine == 'x86_64' and sys_platform == 'linux' and extra == 'group-36-torch-tweak-stable-diffusion-example-xpu-nightly') or (python_full_version >= '3.11' and extra == 'group-36-torch-tweak-stable-diffusion-example-xpu-nightly' and extra == 'group-36-torch-tweak-stable-diffusion-example-xpu-stable') or (platform_machine != 'x86_64' and extra == 'group-36-torch-tweak-stable-diffusion-example-xpu-nightly' and extra == 'group-36-torch-tweak-stable-diffusion-example-xpu-stable') or (sys_platform != 'linux' and extra == 'group-36-torch-tweak-stable-diffusion-example-xpu-nightly' and extra == 'group-36-torch-tweak-stable-diffusion-example-xpu-stable')" },
+    { name = "setuptools", marker = "(python_full_version < '3.11' and extra == 'group-36-torch-tweak-stable-diffusion-example-xpu-nightly') or (extra == 'group-36-torch-tweak-stable-diffusion-example-xpu-nightly' and extra == 'group-36-torch-tweak-stable-diffusion-example-xpu-stable')" },
+    { name = "sympy", marker = "(python_full_version < '3.11' and extra == 'group-36-torch-tweak-stable-diffusion-example-xpu-nightly') or (extra == 'group-36-torch-tweak-stable-diffusion-example-xpu-nightly' and extra == 'group-36-torch-tweak-stable-diffusion-example-xpu-stable')" },
+    { name = "tbb", marker = "(python_full_version < '3.11' and extra == 'group-36-torch-tweak-stable-diffusion-example-xpu-nightly') or (extra == 'group-36-torch-tweak-stable-diffusion-example-xpu-nightly' and extra == 'group-36-torch-tweak-stable-diffusion-example-xpu-stable')" },
+    { name = "tcmlib", marker = "(python_full_version < '3.11' and extra == 'group-36-torch-tweak-stable-diffusion-example-xpu-nightly') or (extra == 'group-36-torch-tweak-stable-diffusion-example-xpu-nightly' and extra == 'group-36-torch-tweak-stable-diffusion-example-xpu-stable')" },
+    { name = "triton-xpu", version = "3.8.0+git1e2d42a0", source = { registry = "https://download.pytorch.org/whl/nightly/xpu" }, marker = "(python_full_version < '3.11' and extra == 'group-36-torch-tweak-stable-diffusion-example-xpu-nightly') or (extra == 'group-36-torch-tweak-stable-diffusion-example-xpu-nightly' and extra == 'group-36-torch-tweak-stable-diffusion-example-xpu-stable')" },
+    { name = "typing-extensions", marker = "(python_full_version < '3.11' and extra == 'group-36-torch-tweak-stable-diffusion-example-xpu-nightly') or (extra == 'group-36-torch-tweak-stable-diffusion-example-xpu-nightly' and extra == 'group-36-torch-tweak-stable-diffusion-example-xpu-stable')" },
+    { name = "umf", marker = "(python_full_version < '3.11' and extra == 'group-36-torch-tweak-stable-diffusion-example-xpu-nightly') or (extra == 'group-36-torch-tweak-stable-diffusion-example-xpu-nightly' and extra == 'group-36-torch-tweak-stable-diffusion-example-xpu-stable')" },
+]
+wheels = [
+    { url = "https://download-r2.pytorch.org/whl/nightly/xpu/torch-2.15.0.dev20260923%2Bxpu-cp310-cp310-manylinux_2_28_x86_64.whl", upload-time = "2026-09-23T10:28:54Z" },
+    { url = "https://download-r2.pytorch.org/whl/nightly/xpu/torch-2.15.0.dev20260923%2Bxpu-cp310-cp310-win_amd64.whl", upload-time = "2026-09-23T14:02:01Z" },
+    { url = "https://download-r2.pytorch.org/whl/nightly/xpu/torch-2.15.0.dev20260923%2Bxpu-cp311-cp311-manylinux_2_28_x86_64.whl", upload-time = "2026-09-23T10:29:46Z" },
+    { url = "https://download-r2.pytorch.org/whl/nightly/xpu/torch-2.15.0.dev20260923%2Bxpu-cp311-cp311-win_amd64.whl", upload-time = "2026-09-23T14:01:47Z" },
+    { url = "https://download-r2.pytorch.org/whl/nightly/xpu/torch-2.15.0.dev20260923%2Bxpu-cp312-cp312-manylinux_2_28_x86_64.whl", upload-time = "2026-09-23T10:28:38Z" },
+    { url = "https://download-r2.pytorch.org/whl/nightly/xpu/torch-2.15.0.dev20260923%2Bxpu-cp312-cp312-win_amd64.whl", upload-time = "2026-09-23T14:02:07Z" },
+    { url = "https://download-r2.pytorch.org/whl/nightly/xpu/torch-2.15.0.dev20260923%2Bxpu-cp313-cp313-manylinux_2_28_x86_64.whl", upload-time = "2026-09-23T10:28:47Z" },
+    { url = "https://download-r2.pytorch.org/whl/nightly/xpu/torch-2.15.0.dev20260923%2Bxpu-cp313-cp313-win_amd64.whl", upload-time = "2026-09-23T14:02:18Z" },
+    { url = "https://download-r2.pytorch.org/whl/nightly/xpu/torch-2.15.0.dev20260923%2Bxpu-cp314-cp314-manylinux_2_28_x86_64.whl", upload-time = "2026-09-23T10:28:50Z" },
+    { url = "https://download-r2.pytorch.org/whl/nightly/xpu/torch-2.15.0.dev20260923%2Bxpu-cp314-cp314-win_amd64.whl", upload-time = "2026-09-23T14:01:52Z" },
+    { url = "https://download-r2.pytorch.org/whl/nightly/xpu/torch-2.15.0.dev20260923%2Bxpu-cp314-cp314t-manylinux_2_28_x86_64.whl", upload-time = "2026-09-23T10:28:16Z" },
+    { url = "https://download-r2.pytorch.org/whl/nightly/xpu/torch-2.15.0.dev20260923%2Bxpu-cp314-cp314t-win_amd64.whl", upload-time = "2026-09-23T14:01:52Z" },
+    { url = "https://download-r2.pytorch.org/whl/nightly/xpu/torch-2.15.0.dev20260923%2Bxpu-cp315-cp315-manylinux_2_28_x86_64.whl", upload-time = "2026-09-23T10:28:25Z" },
+    { url = "https://download-r2.pytorch.org/whl/nightly/xpu/torch-2.15.0.dev20260923%2Bxpu-cp315-cp315-win_amd64.whl", upload-time = "2026-09-23T14:02:01Z" },
+    { url = "https://download-r2.pytorch.org/whl/nightly/xpu/torch-2.15.0.dev20260923%2Bxpu-cp315-cp315t-manylinux_2_28_x86_64.whl", upload-time = "2026-09-23T10:28:29Z" },
+    { url = "https://download-r2.pytorch.org/whl/nightly/xpu/torch-2.15.0.dev20260923%2Bxpu-cp315-cp315t-win_amd64.whl", upload-time = "2026-09-23T14:01:47Z" },
+]
+
+[[package]]
+name = "torch"
 version = "2.15.0.dev20261005+xpu"
 source = { registry = "https://download.pytorch.org/whl/nightly/xpu" }
 resolution-markers = [
     "python_full_version >= '3.12'",
     "python_full_version == '3.11.*'",
-    "python_full_version < '3.11'",
 ]
 dependencies = [
-    { name = "dpcpp-cpp-rt", version = "2026.1.2", source = { registry = "https://pypi.org/simple" }, marker = "extra == 'group-36-torch-tweak-stable-diffusion-example-xpu-nightly'" },
-    { name = "filelock", marker = "extra == 'group-36-torch-tweak-stable-diffusion-example-xpu-nightly'" },
-    { name = "fsspec", marker = "extra == 'group-36-torch-tweak-stable-diffusion-example-xpu-nightly'" },
-    { name = "impi-rt", marker = "(platform_machine == 'x86_64' and sys_platform == 'linux' and extra == 'group-36-torch-tweak-stable-diffusion-example-xpu-nightly') or (platform_machine != 'x86_64' and extra == 'group-36-torch-tweak-stable-diffusion-example-xpu-nightly' and extra == 'group-36-torch-tweak-stable-diffusion-example-xpu-stable') or (sys_platform != 'linux' and extra == 'group-36-torch-tweak-stable-diffusion-example-xpu-nightly' and extra == 'group-36-torch-tweak-stable-diffusion-example-xpu-stable')" },
-    { name = "intel-cmplr-lib-rt", version = "2026.1.2", source = { registry = "https://pypi.org/simple" }, marker = "extra == 'group-36-torch-tweak-stable-diffusion-example-xpu-nightly'" },
-    { name = "intel-cmplr-lib-ur", version = "2026.1.2", source = { registry = "https://pypi.org/simple" }, marker = "extra == 'group-36-torch-tweak-stable-diffusion-example-xpu-nightly'" },
-    { name = "intel-cmplr-lic-rt", version = "2026.1.2", source = { registry = "https://pypi.org/simple" }, marker = "extra == 'group-36-torch-tweak-stable-diffusion-example-xpu-nightly'" },
-    { name = "intel-opencl-rt", version = "2026.1.2", source = { registry = "https://pypi.org/simple" }, marker = "extra == 'group-36-torch-tweak-stable-diffusion-example-xpu-nightly'" },
-    { name = "intel-openmp", version = "2026.1.2", source = { registry = "https://pypi.org/simple" }, marker = "extra == 'group-36-torch-tweak-stable-diffusion-example-xpu-nightly'" },
-    { name = "intel-pti", version = "1.1.0", source = { registry = "https://pypi.org/simple" }, marker = "extra == 'group-36-torch-tweak-stable-diffusion-example-xpu-nightly'" },
-    { name = "intel-sycl-rt", version = "2026.1.2", source = { registry = "https://pypi.org/simple" }, marker = "extra == 'group-36-torch-tweak-stable-diffusion-example-xpu-nightly'" },
-    { name = "jinja2", marker = "extra == 'group-36-torch-tweak-stable-diffusion-example-xpu-nightly'" },
-    { name = "mkl", marker = "extra == 'group-36-torch-tweak-stable-diffusion-example-xpu-nightly'" },
-    { name = "networkx", version = "3.4.2", source = { registry = "https://pypi.org/simple" }, marker = "(python_full_version < '3.11' and extra == 'group-36-torch-tweak-stable-diffusion-example-xpu-nightly') or (extra == 'group-36-torch-tweak-stable-diffusion-example-xpu-nightly' and extra == 'group-36-torch-tweak-stable-diffusion-example-xpu-stable')" },
+    { name = "dpcpp-cpp-rt", version = "2026.1.2", source = { registry = "https://pypi.org/simple" }, marker = "(python_full_version >= '3.11' and extra == 'group-36-torch-tweak-stable-diffusion-example-xpu-nightly') or (extra == 'group-36-torch-tweak-stable-diffusion-example-xpu-nightly' and extra == 'group-36-torch-tweak-stable-diffusion-example-xpu-stable')" },
+    { name = "filelock", marker = "(python_full_version >= '3.11' and extra == 'group-36-torch-tweak-stable-diffusion-example-xpu-nightly') or (extra == 'group-36-torch-tweak-stable-diffusion-example-xpu-nightly' and extra == 'group-36-torch-tweak-stable-diffusion-example-xpu-stable')" },
+    { name = "fsspec", marker = "(python_full_version >= '3.11' and extra == 'group-36-torch-tweak-stable-diffusion-example-xpu-nightly') or (extra == 'group-36-torch-tweak-stable-diffusion-example-xpu-nightly' and extra == 'group-36-torch-tweak-stable-diffusion-example-xpu-stable')" },
+    { name = "impi-rt", marker = "(python_full_version >= '3.11' and platform_machine == 'x86_64' and sys_platform == 'linux' and extra == 'group-36-torch-tweak-stable-diffusion-example-xpu-nightly') or (python_full_version < '3.11' and extra == 'group-36-torch-tweak-stable-diffusion-example-xpu-nightly' and extra == 'group-36-torch-tweak-stable-diffusion-example-xpu-stable') or (platform_machine != 'x86_64' and extra == 'group-36-torch-tweak-stable-diffusion-example-xpu-nightly' and extra == 'group-36-torch-tweak-stable-diffusion-example-xpu-stable') or (sys_platform != 'linux' and extra == 'group-36-torch-tweak-stable-diffusion-example-xpu-nightly' and extra == 'group-36-torch-tweak-stable-diffusion-example-xpu-stable')" },
+    { name = "intel-cmplr-lib-rt", version = "2026.1.2", source = { registry = "https://pypi.org/simple" }, marker = "(python_full_version >= '3.11' and extra == 'group-36-torch-tweak-stable-diffusion-example-xpu-nightly') or (extra == 'group-36-torch-tweak-stable-diffusion-example-xpu-nightly' and extra == 'group-36-torch-tweak-stable-diffusion-example-xpu-stable')" },
+    { name = "intel-cmplr-lib-ur", version = "2026.1.2", source = { registry = "https://pypi.org/simple" }, marker = "(python_full_version >= '3.11' and extra == 'group-36-torch-tweak-stable-diffusion-example-xpu-nightly') or (extra == 'group-36-torch-tweak-stable-diffusion-example-xpu-nightly' and extra == 'group-36-torch-tweak-stable-diffusion-example-xpu-stable')" },
+    { name = "intel-cmplr-lic-rt", version = "2026.1.2", source = { registry = "https://pypi.org/simple" }, marker = "(python_full_version >= '3.11' and extra == 'group-36-torch-tweak-stable-diffusion-example-xpu-nightly') or (extra == 'group-36-torch-tweak-stable-diffusion-example-xpu-nightly' and extra == 'group-36-torch-tweak-stable-diffusion-example-xpu-stable')" },
+    { name = "intel-opencl-rt", version = "2026.1.2", source = { registry = "https://pypi.org/simple" }, marker = "(python_full_version >= '3.11' and extra == 'group-36-torch-tweak-stable-diffusion-example-xpu-nightly') or (extra == 'group-36-torch-tweak-stable-diffusion-example-xpu-nightly' and extra == 'group-36-torch-tweak-stable-diffusion-example-xpu-stable')" },
+    { name = "intel-openmp", version = "2026.1.2", source = { registry = "https://pypi.org/simple" }, marker = "(python_full_version >= '3.11' and extra == 'group-36-torch-tweak-stable-diffusion-example-xpu-nightly') or (extra == 'group-36-torch-tweak-stable-diffusion-example-xpu-nightly' and extra == 'group-36-torch-tweak-stable-diffusion-example-xpu-stable')" },
+    { name = "intel-pti", version = "1.1.0", source = { registry = "https://pypi.org/simple" }, marker = "(python_full_version >= '3.11' and extra == 'group-36-torch-tweak-stable-diffusion-example-xpu-nightly') or (extra == 'group-36-torch-tweak-stable-diffusion-example-xpu-nightly' and extra == 'group-36-torch-tweak-stable-diffusion-example-xpu-stable')" },
+    { name = "intel-sycl-rt", version = "2026.1.2", source = { registry = "https://pypi.org/simple" }, marker = "(python_full_version >= '3.11' and extra == 'group-36-torch-tweak-stable-diffusion-example-xpu-nightly') or (extra == 'group-36-torch-tweak-stable-diffusion-example-xpu-nightly' and extra == 'group-36-torch-tweak-stable-diffusion-example-xpu-stable')" },
+    { name = "jinja2", marker = "(python_full_version >= '3.11' and extra == 'group-36-torch-tweak-stable-diffusion-example-xpu-nightly') or (extra == 'group-36-torch-tweak-stable-diffusion-example-xpu-nightly' and extra == 'group-36-torch-tweak-stable-diffusion-example-xpu-stable')" },
+    { name = "mkl", marker = "(python_full_version >= '3.11' and extra == 'group-36-torch-tweak-stable-diffusion-example-xpu-nightly') or (extra == 'group-36-torch-tweak-stable-diffusion-example-xpu-nightly' and extra == 'group-36-torch-tweak-stable-diffusion-example-xpu-stable')" },
     { name = "networkx", version = "3.6.1", source = { registry = "https://pypi.org/simple" }, marker = "(python_full_version == '3.11.*' and extra == 'group-36-torch-tweak-stable-diffusion-example-xpu-nightly') or (extra == 'group-36-torch-tweak-stable-diffusion-example-xpu-nightly' and extra == 'group-36-torch-tweak-stable-diffusion-example-xpu-stable')" },
     { name = "networkx", version = "3.7", source = { registry = "https://pypi.org/simple" }, marker = "(python_full_version >= '3.12' and extra == 'group-36-torch-tweak-stable-diffusion-example-xpu-nightly') or (extra == 'group-36-torch-tweak-stable-diffusion-example-xpu-nightly' and extra == 'group-36-torch-tweak-stable-diffusion-example-xpu-stable')" },
-    { name = "oneccl", version = "2022.1.2", source = { registry = "https://pypi.org/simple" }, marker = "(platform_machine == 'x86_64' and sys_platform == 'linux' and extra == 'group-36-torch-tweak-stable-diffusion-example-xpu-nightly') or (platform_machine != 'x86_64' and extra == 'group-36-torch-tweak-stable-diffusion-example-xpu-nightly' and extra == 'group-36-torch-tweak-stable-diffusion-example-xpu-stable') or (sys_platform != 'linux' and extra == 'group-36-torch-tweak-stable-diffusion-example-xpu-nightly' and extra == 'group-36-torch-tweak-stable-diffusion-example-xpu-stable')" },
-    { name = "oneccl-devel", version = "2022.1.2", source = { registry = "https://pypi.org/simple" }, marker = "(platform_machine == 'x86_64' and sys_platform == 'linux' and extra == 'group-36-torch-tweak-stable-diffusion-example-xpu-nightly') or (platform_machine != 'x86_64' and extra == 'group-36-torch-tweak-stable-diffusion-example-xpu-nightly' and extra == 'group-36-torch-tweak-stable-diffusion-example-xpu-stable') or (sys_platform != 'linux' and extra == 'group-36-torch-tweak-stable-diffusion-example-xpu-nightly' and extra == 'group-36-torch-tweak-stable-diffusion-example-xpu-stable')" },
-    { name = "onemkl-license", marker = "extra == 'group-36-torch-tweak-stable-diffusion-example-xpu-nightly'" },
-    { name = "onemkl-sycl-blas", marker = "extra == 'group-36-torch-tweak-stable-diffusion-example-xpu-nightly'" },
-    { name = "onemkl-sycl-dft", marker = "extra == 'group-36-torch-tweak-stable-diffusion-example-xpu-nightly'" },
-    { name = "onemkl-sycl-lapack", marker = "extra == 'group-36-torch-tweak-stable-diffusion-example-xpu-nightly'" },
-    { name = "onemkl-sycl-rng", marker = "extra == 'group-36-torch-tweak-stable-diffusion-example-xpu-nightly'" },
-    { name = "onemkl-sycl-sparse", marker = "extra == 'group-36-torch-tweak-stable-diffusion-example-xpu-nightly'" },
-    { name = "pyzes", marker = "(platform_machine == 'x86_64' and sys_platform == 'linux' and extra == 'group-36-torch-tweak-stable-diffusion-example-xpu-nightly') or (platform_machine != 'x86_64' and extra == 'group-36-torch-tweak-stable-diffusion-example-xpu-nightly' and extra == 'group-36-torch-tweak-stable-diffusion-example-xpu-stable') or (sys_platform != 'linux' and extra == 'group-36-torch-tweak-stable-diffusion-example-xpu-nightly' and extra == 'group-36-torch-tweak-stable-diffusion-example-xpu-stable')" },
-    { name = "setuptools", marker = "extra == 'group-36-torch-tweak-stable-diffusion-example-xpu-nightly'" },
-    { name = "sympy", marker = "extra == 'group-36-torch-tweak-stable-diffusion-example-xpu-nightly'" },
-    { name = "tbb", marker = "extra == 'group-36-torch-tweak-stable-diffusion-example-xpu-nightly'" },
-    { name = "tcmlib", marker = "extra == 'group-36-torch-tweak-stable-diffusion-example-xpu-nightly'" },
-    { name = "triton-xpu", version = "3.9.0+gitb6f7ac74", source = { registry = "https://download.pytorch.org/whl/nightly/xpu" }, marker = "(python_full_version < '3.15' and extra == 'group-36-torch-tweak-stable-diffusion-example-xpu-nightly') or (extra == 'group-36-torch-tweak-stable-diffusion-example-xpu-nightly' and extra == 'group-36-torch-tweak-stable-diffusion-example-xpu-stable')" },
-    { name = "typing-extensions", marker = "extra == 'group-36-torch-tweak-stable-diffusion-example-xpu-nightly'" },
-    { name = "umf", marker = "extra == 'group-36-torch-tweak-stable-diffusion-example-xpu-nightly'" },
+    { name = "oneccl", version = "2022.1.2", source = { registry = "https://pypi.org/simple" }, marker = "(python_full_version >= '3.11' and platform_machine == 'x86_64' and sys_platform == 'linux' and extra == 'group-36-torch-tweak-stable-diffusion-example-xpu-nightly') or (python_full_version < '3.11' and extra == 'group-36-torch-tweak-stable-diffusion-example-xpu-nightly' and extra == 'group-36-torch-tweak-stable-diffusion-example-xpu-stable') or (platform_machine != 'x86_64' and extra == 'group-36-torch-tweak-stable-diffusion-example-xpu-nightly' and extra == 'group-36-torch-tweak-stable-diffusion-example-xpu-stable') or (sys_platform != 'linux' and extra == 'group-36-torch-tweak-stable-diffusion-example-xpu-nightly' and extra == 'group-36-torch-tweak-stable-diffusion-example-xpu-stable')" },
+    { name = "oneccl-devel", version = "2022.1.2", source = { registry = "https://pypi.org/simple" }, marker = "(python_full_version >= '3.11' and platform_machine == 'x86_64' and sys_platform == 'linux' and extra == 'group-36-torch-tweak-stable-diffusion-example-xpu-nightly') or (python_full_version < '3.11' and extra == 'group-36-torch-tweak-stable-diffusion-example-xpu-nightly' and extra == 'group-36-torch-tweak-stable-diffusion-example-xpu-stable') or (platform_machine != 'x86_64' and extra == 'group-36-torch-tweak-stable-diffusion-example-xpu-nightly' and extra == 'group-36-torch-tweak-stable-diffusion-example-xpu-stable') or (sys_platform != 'linux' and extra == 'group-36-torch-tweak-stable-diffusion-example-xpu-nightly' and extra == 'group-36-torch-tweak-stable-diffusion-example-xpu-stable')" },
+    { name = "onemkl-license", marker = "(python_full_version >= '3.11' and extra == 'group-36-torch-tweak-stable-diffusion-example-xpu-nightly') or (extra == 'group-36-torch-tweak-stable-diffusion-example-xpu-nightly' and extra == 'group-36-torch-tweak-stable-diffusion-example-xpu-stable')" },
+    { name = "onemkl-sycl-blas", marker = "(python_full_version >= '3.11' and extra == 'group-36-torch-tweak-stable-diffusion-example-xpu-nightly') or (extra == 'group-36-torch-tweak-stable-diffusion-example-xpu-nightly' and extra == 'group-36-torch-tweak-stable-diffusion-example-xpu-stable')" },
+    { name = "onemkl-sycl-dft", marker = "(python_full_version >= '3.11' and extra == 'group-36-torch-tweak-stable-diffusion-example-xpu-nightly') or (extra == 'group-36-torch-tweak-stable-diffusion-example-xpu-nightly' and extra == 'group-36-torch-tweak-stable-diffusion-example-xpu-stable')" },
+    { name = "onemkl-sycl-lapack", marker = "(python_full_version >= '3.11' and extra == 'group-36-torch-tweak-stable-diffusion-example-xpu-nightly') or (extra == 'group-36-torch-tweak-stable-diffusion-example-xpu-nightly' and extra == 'group-36-torch-tweak-stable-diffusion-example-xpu-stable')" },
+    { name = "onemkl-sycl-rng", marker = "(python_full_version >= '3.11' and extra == 'group-36-torch-tweak-stable-diffusion-example-xpu-nightly') or (extra == 'group-36-torch-tweak-stable-diffusion-example-xpu-nightly' and extra == 'group-36-torch-tweak-stable-diffusion-example-xpu-stable')" },
+    { name = "onemkl-sycl-sparse", marker = "(python_full_version >= '3.11' and extra == 'group-36-torch-tweak-stable-diffusion-example-xpu-nightly') or (extra == 'group-36-torch-tweak-stable-diffusion-example-xpu-nightly' and extra == 'group-36-torch-tweak-stable-diffusion-example-xpu-stable')" },
+    { name = "pyzes", marker = "(python_full_version >= '3.11' and platform_machine == 'x86_64' and sys_platform == 'linux' and extra == 'group-36-torch-tweak-stable-diffusion-example-xpu-nightly') or (python_full_version < '3.11' and extra == 'group-36-torch-tweak-stable-diffusion-example-xpu-nightly' and extra == 'group-36-torch-tweak-stable-diffusion-example-xpu-stable') or (platform_machine != 'x86_64' and extra == 'group-36-torch-tweak-stable-diffusion-example-xpu-nightly' and extra == 'group-36-torch-tweak-stable-diffusion-example-xpu-stable') or (sys_platform != 'linux' and extra == 'group-36-torch-tweak-stable-diffusion-example-xpu-nightly' and extra == 'group-36-torch-tweak-stable-diffusion-example-xpu-stable')" },
+    { name = "setuptools", marker = "(python_full_version >= '3.11' and extra == 'group-36-torch-tweak-stable-diffusion-example-xpu-nightly') or (extra == 'group-36-torch-tweak-stable-diffusion-example-xpu-nightly' and extra == 'group-36-torch-tweak-stable-diffusion-example-xpu-stable')" },
+    { name = "sympy", marker = "(python_full_version >= '3.11' and extra == 'group-36-torch-tweak-stable-diffusion-example-xpu-nightly') or (extra == 'group-36-torch-tweak-stable-diffusion-example-xpu-nightly' and extra == 'group-36-torch-tweak-stable-diffusion-example-xpu-stable')" },
+    { name = "tbb", marker = "(python_full_version >= '3.11' and extra == 'group-36-torch-tweak-stable-diffusion-example-xpu-nightly') or (extra == 'group-36-torch-tweak-stable-diffusion-example-xpu-nightly' and extra == 'group-36-torch-tweak-stable-diffusion-example-xpu-stable')" },
+    { name = "tcmlib", marker = "(python_full_version >= '3.11' and extra == 'group-36-torch-tweak-stable-diffusion-example-xpu-nightly') or (extra == 'group-36-torch-tweak-stable-diffusion-example-xpu-nightly' and extra == 'group-36-torch-tweak-stable-diffusion-example-xpu-stable')" },
+    { name = "triton-xpu", version = "3.9.0+gitb6f7ac74", source = { registry = "https://download.pytorch.org/whl/nightly/xpu" }, marker = "(python_full_version >= '3.11' and python_full_version < '3.15' and extra == 'group-36-torch-tweak-stable-diffusion-example-xpu-nightly') or (python_full_version < '3.11' and extra == 'group-36-torch-tweak-stable-diffusion-example-xpu-nightly' and extra == 'group-36-torch-tweak-stable-diffusion-example-xpu-stable') or (python_full_version >= '3.15' and extra == 'group-36-torch-tweak-stable-diffusion-example-xpu-nightly' and extra == 'group-36-torch-tweak-stable-diffusion-example-xpu-stable')" },
+    { name = "typing-extensions", marker = "(python_full_version >= '3.11' and extra == 'group-36-torch-tweak-stable-diffusion-example-xpu-nightly') or (extra == 'group-36-torch-tweak-stable-diffusion-example-xpu-nightly' and extra == 'group-36-torch-tweak-stable-diffusion-example-xpu-stable')" },
+    { name = "umf", marker = "(python_full_version >= '3.11' and extra == 'group-36-torch-tweak-stable-diffusion-example-xpu-nightly') or (extra == 'group-36-torch-tweak-stable-diffusion-example-xpu-nightly' and extra == 'group-36-torch-tweak-stable-diffusion-example-xpu-stable')" },
 ]
 wheels = [
     { url = "https://download-r2.pytorch.org/whl/nightly/xpu/torch-2.15.0.dev20261005%2Bxpu-cp311-cp311-manylinux_2_28_x86_64.whl", upload-time = "2026-10-05T10:44:58Z" },
@@ -2387,6 +2442,8 @@ dependencies = [
 requires-dist = [
     { name = "datasets", marker = "extra == 'test'", specifier = ">=4.8.5,<6.0.0" },
     { name = "diffusers", marker = "extra == 'test'", specifier = ">=0.40.0,<1.0" },
+    { name = "fsspec", marker = "extra == 'test'", specifier = ">=2026.6.0" },
+    { name = "fsspec", marker = "extra == 'xpu'", specifier = ">=2026.6.0" },
     { name = "gitpython", marker = "extra == 'doc'", specifier = ">=3.1.58" },
     { name = "ipykernel", marker = "extra == 'dev'" },
     { name = "ipython", marker = "extra == 'dev'", specifier = ">=8.39.0" },
@@ -2396,6 +2453,7 @@ requires-dist = [
     { name = "mkdocs-redirects", marker = "extra == 'doc'", specifier = ">=1.2.3" },
     { name = "mkdocstrings", extras = ["python"], marker = "extra == 'doc'", specifier = ">=1.0.4" },
     { name = "mkdocstrings-python", marker = "extra == 'doc'", specifier = ">=2.0.5" },
+    { name = "multidict", marker = "extra == 'test'", specifier = ">=6.9.1" },
     { name = "numpy", specifier = ">=2" },
     { name = "openvino", specifier = ">=2026.2.1" },
     { name = "pdbpp", marker = "extra == 'dev'", specifier = ">=0.12.1" },
@@ -2409,7 +2467,7 @@ requires-dist = [
     { name = "pytest", marker = "extra == 'test'", specifier = ">=9.1.1" },
     { name = "pytest-mock", marker = "extra == 'test'" },
     { name = "pytype", marker = "extra == 'dev'" },
-    { name = "ruff", marker = "extra == 'dev'", specifier = "==0.16.10" },
+    { name = "ruff", marker = "extra == 'dev'", specifier = "==0.17.0" },
     { name = "sentencepiece", marker = "extra == 'test'", specifier = ">=0.2.1" },
     { name = "tabulate", specifier = ">=0.10.0" },
     { name = "timm", marker = "extra == 'test'" },
@@ -2417,9 +2475,11 @@ requires-dist = [
     { name = "torch-tweak", extras = ["doc"], marker = "extra == 'dev'" },
     { name = "torch-tweak", extras = ["test"], marker = "extra == 'dev'" },
     { name = "torchao", specifier = ">=0.17.0", index = "https://download.pytorch.org/whl/cpu" },
+    { name = "tornado", marker = "extra == 'dev'", specifier = ">=6.5.9" },
     { name = "transformers", marker = "extra == 'test'", specifier = ">=5.13.0,<6" },
     { name = "urllib3", marker = "extra == 'test'", specifier = ">=2.7.0" },
     { name = "uv", marker = "extra == 'dev'", specifier = ">=0.11.26" },
+    { name = "virtualenv", marker = "extra == 'dev'", specifier = ">=21.7.13" },
     { name = "wrapt", specifier = "~=2.2" },
 ]
 provides-extras = ["xpu", "test", "doc", "dev"]
@@ -2441,15 +2501,18 @@ dependencies = [
     { name = "sentencepiece" },
     { name = "torch", version = "2.14.1", source = { registry = "https://pypi.org/simple" }, marker = "(extra == 'group-36-torch-tweak-stable-diffusion-example-xpu-nightly' and extra == 'group-36-torch-tweak-stable-diffusion-example-xpu-stable') or (extra != 'group-36-torch-tweak-stable-diffusion-example-xpu-nightly' and extra != 'group-36-torch-tweak-stable-diffusion-example-xpu-stable')" },
     { name = "torch", version = "2.14.1+xpu", source = { registry = "https://download.pytorch.org/whl/xpu" }, marker = "extra == 'group-36-torch-tweak-stable-diffusion-example-xpu-stable'" },
-    { name = "torch", version = "2.15.0.dev20261005+xpu", source = { registry = "https://download.pytorch.org/whl/nightly/xpu" }, marker = "extra == 'group-36-torch-tweak-stable-diffusion-example-xpu-nightly'" },
+    { name = "torch", version = "2.15.0.dev20260923+xpu", source = { registry = "https://download.pytorch.org/whl/nightly/xpu" }, marker = "(python_full_version < '3.11' and extra == 'group-36-torch-tweak-stable-diffusion-example-xpu-nightly') or (extra == 'group-36-torch-tweak-stable-diffusion-example-xpu-nightly' and extra == 'group-36-torch-tweak-stable-diffusion-example-xpu-stable')" },
+    { name = "torch", version = "2.15.0.dev20261005+xpu", source = { registry = "https://download.pytorch.org/whl/nightly/xpu" }, marker = "(python_full_version >= '3.11' and extra == 'group-36-torch-tweak-stable-diffusion-example-xpu-nightly') or (extra == 'group-36-torch-tweak-stable-diffusion-example-xpu-nightly' and extra == 'group-36-torch-tweak-stable-diffusion-example-xpu-stable')" },
     { name = "torch-tweak" },
     { name = "transformers" },
 ]
 
 [package.dev-dependencies]
 xpu-nightly = [
-    { name = "torch", version = "2.15.0.dev20261005+xpu", source = { registry = "https://download.pytorch.org/whl/nightly/xpu" } },
-    { name = "triton-xpu", version = "3.9.0+gitb6f7ac74", source = { registry = "https://download.pytorch.org/whl/nightly/xpu" } },
+    { name = "torch", version = "2.15.0.dev20260923+xpu", source = { registry = "https://download.pytorch.org/whl/nightly/xpu" }, marker = "(python_full_version < '3.11' and extra == 'group-36-torch-tweak-stable-diffusion-example-xpu-nightly') or (extra == 'group-36-torch-tweak-stable-diffusion-example-xpu-nightly' and extra == 'group-36-torch-tweak-stable-diffusion-example-xpu-stable')" },
+    { name = "torch", version = "2.15.0.dev20261005+xpu", source = { registry = "https://download.pytorch.org/whl/nightly/xpu" }, marker = "(python_full_version >= '3.11' and extra == 'group-36-torch-tweak-stable-diffusion-example-xpu-nightly') or (extra == 'group-36-torch-tweak-stable-diffusion-example-xpu-nightly' and extra == 'group-36-torch-tweak-stable-diffusion-example-xpu-stable')" },
+    { name = "triton-xpu", version = "3.8.0+git1e2d42a0", source = { registry = "https://download.pytorch.org/whl/nightly/xpu" }, marker = "(python_full_version < '3.11' and extra == 'group-36-torch-tweak-stable-diffusion-example-xpu-nightly') or (extra == 'group-36-torch-tweak-stable-diffusion-example-xpu-nightly' and extra == 'group-36-torch-tweak-stable-diffusion-example-xpu-stable')" },
+    { name = "triton-xpu", version = "3.9.0+gitb6f7ac74", source = { registry = "https://download.pytorch.org/whl/nightly/xpu" }, marker = "(python_full_version >= '3.11' and extra == 'group-36-torch-tweak-stable-diffusion-example-xpu-nightly') or (extra == 'group-36-torch-tweak-stable-diffusion-example-xpu-nightly' and extra == 'group-36-torch-tweak-stable-diffusion-example-xpu-stable')" },
 ]
 xpu-stable = [
     { name = "torch", version = "2.14.1+xpu", source = { registry = "https://download.pytorch.org/whl/xpu" } },
@@ -2500,7 +2563,7 @@ wheels = [
 
 [[package]]
 name = "transformers"
-version = "5.18.0"
+version = "5.19.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "huggingface-hub" },
@@ -2515,9 +2578,9 @@ dependencies = [
     { name = "tqdm" },
     { name = "typer" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/9e/6e/5a50ca8aff5fdd4ff21271198d2fb9e1f11bcd0ea279576199c0caa34cba/transformers-5.18.0.tar.gz", hash = "sha256:d89c206e42e841af7cd314b3d2b21c03e977d819cdb4aef65ada048769a644df", size = 10028745, upload-time = "2026-09-30T16:46:00.575Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/65/4c/70012ed0795235fb6bd7806fafd4a1842f03e49ebbfa3bb9580e451948ce/transformers-5.19.0.tar.gz", hash = "sha256:87f38dd25e4521151b97e94520ac457f44a0ae8a8358a5b112daff6c64a822d6", size = 10032022, upload-time = "2026-10-06T16:39:00.229Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/2d/3b/f84d7d12886147c5267216ed6c57d1163e68d24a89b2ad29d835a7089463/transformers-5.18.0-py3-none-any.whl", hash = "sha256:d79e5a515a572ee3deb33eb0d578be47d91e70c75d54cf21bf6eede6edef14a9", size = 12579646, upload-time = "2026-09-30T16:45:57.51Z" },
+    { url = "https://files.pythonhosted.org/packages/b9/59/1e7f1212c215c73690ae6cab4678efe1555ff985953e145d88cc212859b0/transformers-5.19.0-py3-none-any.whl", hash = "sha256:afcd2dd5f603ed28c1e1fcb00a338ccbb4ef5f878ed289635df8b58187afb518", size = 12599123, upload-time = "2026-10-06T16:38:56.794Z" },
 ]
 
 [[package]]
@@ -2572,33 +2635,61 @@ wheels = [
 
 [[package]]
 name = "triton-xpu"
+version = "3.8.0+git1e2d42a0"
+source = { registry = "https://download.pytorch.org/whl/nightly/xpu" }
+resolution-markers = [
+    "python_full_version < '3.11'",
+]
+dependencies = [
+    { name = "pyelftools", marker = "(python_full_version < '3.11' and extra == 'group-36-torch-tweak-stable-diffusion-example-xpu-nightly') or (extra == 'group-36-torch-tweak-stable-diffusion-example-xpu-nightly' and extra == 'group-36-torch-tweak-stable-diffusion-example-xpu-stable')" },
+]
+wheels = [
+    { url = "https://download-r2.pytorch.org/whl/nightly/triton_xpu-3.8.0%2Bgit1e2d42a0-cp310-cp310-manylinux_2_27_x86_64.manylinux_2_28_x86_64.whl", upload-time = "2026-09-15T14:05:17Z" },
+    { url = "https://download-r2.pytorch.org/whl/nightly/triton_xpu-3.8.0%2Bgit1e2d42a0-cp310-cp310-win_amd64.whl", upload-time = "2026-09-15T14:05:21Z" },
+    { url = "https://download-r2.pytorch.org/whl/nightly/triton_xpu-3.8.0%2Bgit1e2d42a0-cp311-cp311-manylinux_2_27_x86_64.manylinux_2_28_x86_64.whl", upload-time = "2026-09-15T14:05:27Z" },
+    { url = "https://download-r2.pytorch.org/whl/nightly/triton_xpu-3.8.0%2Bgit1e2d42a0-cp311-cp311-win_amd64.whl", upload-time = "2026-09-15T14:05:31Z" },
+    { url = "https://download-r2.pytorch.org/whl/nightly/triton_xpu-3.8.0%2Bgit1e2d42a0-cp312-cp312-manylinux_2_27_x86_64.manylinux_2_28_x86_64.whl", upload-time = "2026-09-15T14:05:35Z" },
+    { url = "https://download-r2.pytorch.org/whl/nightly/triton_xpu-3.8.0%2Bgit1e2d42a0-cp312-cp312-win_amd64.whl", upload-time = "2026-09-15T14:05:38Z" },
+    { url = "https://download-r2.pytorch.org/whl/nightly/triton_xpu-3.8.0%2Bgit1e2d42a0-cp313-cp313-manylinux_2_27_x86_64.manylinux_2_28_x86_64.whl", upload-time = "2026-09-15T14:05:42Z" },
+    { url = "https://download-r2.pytorch.org/whl/nightly/triton_xpu-3.8.0%2Bgit1e2d42a0-cp313-cp313-win_amd64.whl", upload-time = "2026-09-15T14:05:45Z" },
+    { url = "https://download-r2.pytorch.org/whl/nightly/triton_xpu-3.8.0%2Bgit1e2d42a0-cp314-cp314-manylinux_2_27_x86_64.manylinux_2_28_x86_64.whl", upload-time = "2026-09-15T14:05:49Z" },
+    { url = "https://download-r2.pytorch.org/whl/nightly/triton_xpu-3.8.0%2Bgit1e2d42a0-cp314-cp314-win_amd64.whl", upload-time = "2026-09-15T14:05:53Z" },
+    { url = "https://download-r2.pytorch.org/whl/nightly/triton_xpu-3.8.0%2Bgit1e2d42a0-cp314-cp314t-manylinux_2_27_x86_64.manylinux_2_28_x86_64.whl", upload-time = "2026-09-15T14:05:57Z" },
+    { url = "https://download-r2.pytorch.org/whl/nightly/triton_xpu-3.8.0%2Bgit1e2d42a0-cp314-cp314t-win_amd64.whl", upload-time = "2026-09-15T14:06:00Z" },
+    { url = "https://download-r2.pytorch.org/whl/nightly/triton_xpu-3.8.0%2Bgit1e2d42a0-cp315-cp315-manylinux_2_27_x86_64.manylinux_2_28_x86_64.whl", upload-time = "2026-09-15T14:06:04Z" },
+    { url = "https://download-r2.pytorch.org/whl/nightly/triton_xpu-3.8.0%2Bgit1e2d42a0-cp315-cp315-win_amd64.whl", upload-time = "2026-09-15T14:06:11Z" },
+    { url = "https://download-r2.pytorch.org/whl/nightly/triton_xpu-3.8.0%2Bgit1e2d42a0-cp315-cp315t-manylinux_2_27_x86_64.manylinux_2_28_x86_64.whl", upload-time = "2026-09-15T14:06:15Z" },
+    { url = "https://download-r2.pytorch.org/whl/nightly/triton_xpu-3.8.0%2Bgit1e2d42a0-cp315-cp315t-win_amd64.whl", upload-time = "2026-09-15T14:06:18Z" },
+]
+
+[[package]]
+name = "triton-xpu"
 version = "3.9.0+gitb6f7ac74"
 source = { registry = "https://download.pytorch.org/whl/nightly/xpu" }
 resolution-markers = [
     "python_full_version >= '3.12'",
     "python_full_version == '3.11.*'",
-    "python_full_version < '3.11'",
 ]
 dependencies = [
-    { name = "pyelftools", marker = "extra == 'group-36-torch-tweak-stable-diffusion-example-xpu-nightly'" },
+    { name = "pyelftools", marker = "(python_full_version >= '3.11' and extra == 'group-36-torch-tweak-stable-diffusion-example-xpu-nightly') or (extra == 'group-36-torch-tweak-stable-diffusion-example-xpu-nightly' and extra == 'group-36-torch-tweak-stable-diffusion-example-xpu-stable')" },
 ]
 wheels = [
     { url = "https://download-r2.pytorch.org/whl/nightly/triton_xpu-3.9.0%2Bgitb6f7ac74-cp310-cp310-manylinux_2_27_x86_64.manylinux_2_28_x86_64.whl", upload-time = "2026-09-23T15:56:53Z" },
     { url = "https://download-r2.pytorch.org/whl/nightly/triton_xpu-3.9.0%2Bgitb6f7ac74-cp310-cp310-win_amd64.whl", upload-time = "2026-09-23T15:56:56Z" },
-    { url = "https://download-r2.pytorch.org/whl/nightly/triton_xpu-3.9.0%2Bgitb6f7ac74-cp311-cp311-manylinux_2_27_x86_64.manylinux_2_28_x86_64.whl", upload-time = "2026-10-05T18:04:36Z" },
-    { url = "https://download-r2.pytorch.org/whl/nightly/triton_xpu-3.9.0%2Bgitb6f7ac74-cp311-cp311-win_amd64.whl", upload-time = "2026-10-05T18:04:39Z" },
-    { url = "https://download-r2.pytorch.org/whl/nightly/triton_xpu-3.9.0%2Bgitb6f7ac74-cp312-cp312-manylinux_2_27_x86_64.manylinux_2_28_x86_64.whl", upload-time = "2026-10-05T18:04:43Z" },
-    { url = "https://download-r2.pytorch.org/whl/nightly/triton_xpu-3.9.0%2Bgitb6f7ac74-cp312-cp312-win_amd64.whl", upload-time = "2026-10-05T18:04:46Z" },
-    { url = "https://download-r2.pytorch.org/whl/nightly/triton_xpu-3.9.0%2Bgitb6f7ac74-cp313-cp313-manylinux_2_27_x86_64.manylinux_2_28_x86_64.whl", upload-time = "2026-10-05T18:04:49Z" },
-    { url = "https://download-r2.pytorch.org/whl/nightly/triton_xpu-3.9.0%2Bgitb6f7ac74-cp313-cp313-win_amd64.whl", upload-time = "2026-10-05T18:04:52Z" },
-    { url = "https://download-r2.pytorch.org/whl/nightly/triton_xpu-3.9.0%2Bgitb6f7ac74-cp314-cp314-manylinux_2_27_x86_64.manylinux_2_28_x86_64.whl", upload-time = "2026-10-05T18:04:56Z" },
-    { url = "https://download-r2.pytorch.org/whl/nightly/triton_xpu-3.9.0%2Bgitb6f7ac74-cp314-cp314-win_amd64.whl", upload-time = "2026-10-05T18:04:59Z" },
-    { url = "https://download-r2.pytorch.org/whl/nightly/triton_xpu-3.9.0%2Bgitb6f7ac74-cp314-cp314t-manylinux_2_27_x86_64.manylinux_2_28_x86_64.whl", upload-time = "2026-10-05T18:05:02Z" },
-    { url = "https://download-r2.pytorch.org/whl/nightly/triton_xpu-3.9.0%2Bgitb6f7ac74-cp314-cp314t-win_amd64.whl", upload-time = "2026-10-05T18:05:06Z" },
-    { url = "https://download-r2.pytorch.org/whl/nightly/triton_xpu-3.9.0%2Bgitb6f7ac74-cp315-cp315-manylinux_2_27_x86_64.manylinux_2_28_x86_64.whl", upload-time = "2026-10-05T18:05:09Z" },
-    { url = "https://download-r2.pytorch.org/whl/nightly/triton_xpu-3.9.0%2Bgitb6f7ac74-cp315-cp315-win_amd64.whl", upload-time = "2026-10-05T18:05:12Z" },
-    { url = "https://download-r2.pytorch.org/whl/nightly/triton_xpu-3.9.0%2Bgitb6f7ac74-cp315-cp315t-manylinux_2_27_x86_64.manylinux_2_28_x86_64.whl", upload-time = "2026-10-05T18:05:16Z" },
-    { url = "https://download-r2.pytorch.org/whl/nightly/triton_xpu-3.9.0%2Bgitb6f7ac74-cp315-cp315t-win_amd64.whl", upload-time = "2026-10-05T18:05:19Z" },
+    { url = "https://download-r2.pytorch.org/whl/nightly/triton_xpu-3.9.0%2Bgitb6f7ac74-cp311-cp311-manylinux_2_27_x86_64.manylinux_2_28_x86_64.whl", upload-time = "2026-10-07T08:58:43Z" },
+    { url = "https://download-r2.pytorch.org/whl/nightly/triton_xpu-3.9.0%2Bgitb6f7ac74-cp311-cp311-win_amd64.whl", upload-time = "2026-10-07T08:58:46Z" },
+    { url = "https://download-r2.pytorch.org/whl/nightly/triton_xpu-3.9.0%2Bgitb6f7ac74-cp312-cp312-manylinux_2_27_x86_64.manylinux_2_28_x86_64.whl", upload-time = "2026-10-07T08:58:50Z" },
+    { url = "https://download-r2.pytorch.org/whl/nightly/triton_xpu-3.9.0%2Bgitb6f7ac74-cp312-cp312-win_amd64.whl", upload-time = "2026-10-07T08:58:54Z" },
+    { url = "https://download-r2.pytorch.org/whl/nightly/triton_xpu-3.9.0%2Bgitb6f7ac74-cp313-cp313-manylinux_2_27_x86_64.manylinux_2_28_x86_64.whl", upload-time = "2026-10-07T08:58:58Z" },
+    { url = "https://download-r2.pytorch.org/whl/nightly/triton_xpu-3.9.0%2Bgitb6f7ac74-cp313-cp313-win_amd64.whl", upload-time = "2026-10-07T08:59:02Z" },
+    { url = "https://download-r2.pytorch.org/whl/nightly/triton_xpu-3.9.0%2Bgitb6f7ac74-cp314-cp314-manylinux_2_27_x86_64.manylinux_2_28_x86_64.whl", upload-time = "2026-10-07T08:59:06Z" },
+    { url = "https://download-r2.pytorch.org/whl/nightly/triton_xpu-3.9.0%2Bgitb6f7ac74-cp314-cp314-win_amd64.whl", upload-time = "2026-10-07T08:59:09Z" },
+    { url = "https://download-r2.pytorch.org/whl/nightly/triton_xpu-3.9.0%2Bgitb6f7ac74-cp314-cp314t-manylinux_2_27_x86_64.manylinux_2_28_x86_64.whl", upload-time = "2026-10-07T08:59:13Z" },
+    { url = "https://download-r2.pytorch.org/whl/nightly/triton_xpu-3.9.0%2Bgitb6f7ac74-cp314-cp314t-win_amd64.whl", upload-time = "2026-10-07T08:59:17Z" },
+    { url = "https://download-r2.pytorch.org/whl/nightly/triton_xpu-3.9.0%2Bgitb6f7ac74-cp315-cp315-manylinux_2_27_x86_64.manylinux_2_28_x86_64.whl", upload-time = "2026-10-07T08:59:21Z" },
+    { url = "https://download-r2.pytorch.org/whl/nightly/triton_xpu-3.9.0%2Bgitb6f7ac74-cp315-cp315-win_amd64.whl", upload-time = "2026-10-07T08:59:24Z" },
+    { url = "https://download-r2.pytorch.org/whl/nightly/triton_xpu-3.9.0%2Bgitb6f7ac74-cp315-cp315t-manylinux_2_27_x86_64.manylinux_2_28_x86_64.whl", upload-time = "2026-10-07T08:59:28Z" },
+    { url = "https://download-r2.pytorch.org/whl/nightly/triton_xpu-3.9.0%2Bgitb6f7ac74-cp315-cp315t-win_amd64.whl", upload-time = "2026-10-07T08:59:32Z" },
 ]
 
 [[package]]
