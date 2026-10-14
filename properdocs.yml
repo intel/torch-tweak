@@ -4,6 +4,7 @@
 #
 # NOTE: This file has been modified by Intel Corporation.
 site_name: Torch Tweak
+site_url: https://intel.github.io/torch-tweak/
 theme:
     name: material
     custom_dir: docs/overrides

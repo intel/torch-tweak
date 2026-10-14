@@ -50,3 +50,35 @@ jobs:
 
       - name: Build docs
         run: uv run --no-default-groups --extra doc properdocs build
+
+  deploy-docs:
+    name: Deploy docs
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    needs: build-docs
+    concurrency:
+      group: docs-deploy
+      cancel-in-progress: false
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GH_BB_DOCKER_TOKEN }}
+
+      - name: Set up Python
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: "3.x"
+
+      - name: Install uv
+        run: pip install uv
+
+      - name: Install doc dependencies
+        run: uv sync --no-default-groups --extra doc
+
+      - name: Deploy docs
+        env:
+          GIT_COMMITTER_NAME: ${{ secrets.GH_BB_DOCKER_USERNAME }}
+          GIT_COMMITTER_EMAIL: ${{ secrets.GH_BB_DOCKER_USERNAME }}@users.noreply.github.com
+        run: uv run --no-default-groups --extra doc mike deploy --push main
