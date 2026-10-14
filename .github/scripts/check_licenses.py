@@ -108,6 +108,7 @@ _SKIP_PATH_PREFIXES: frozenset[str] = frozenset({
 _SKIP_EXACT_PATHS: frozenset[str] = frozenset({
     ".github/dependabot.yml",
     "CODE_OF_CONDUCT.md",
+    "CONTRIBUTING.md",
 })
 
 # Suffixes whose headers live inside HTML comments (<!-- -->) rather than
