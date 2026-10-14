@@ -57,8 +57,7 @@ watch:
     - properdocs.yml
     - LICENSE
     - ChangeLog.md
-    # TODO(SPJT-453): temporary.
-    # - CONTRIBUTING.md
+    - CONTRIBUTING.md
 hooks:
     - scripts/stage_docs.py
     - scripts/rewrite_links_to_repo.py
@@ -127,6 +126,5 @@ nav:
     -   Resources:
             -   Changelog: ChangeLog.md
             -   Known Issues: known_issues.md
-            # TODO(SPJT-453): temporary.
-            # -   Contributing: CONTRIBUTING.md
+            -   Contributing: CONTRIBUTING.md
             -   License: LICENSE.md

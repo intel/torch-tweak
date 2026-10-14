@@ -25,10 +25,8 @@ def on_pre_build(config, **kwargs):
     shutil.copy(_REPO_ROOT / "ChangeLog.md", _DOCS / "ChangeLog.md")
     shutil.copy(_REPO_ROOT / "LICENSE", _DOCS / "LICENSE.md")
 
-    # TODO(SPJT-453): temporary.
     contributing = _REPO_ROOT / "CONTRIBUTING.md"
-    if contributing.is_file():
-        shutil.copy(contributing, _DOCS / "CONTRIBUTING.md")
+    shutil.copy(contributing, _DOCS / "CONTRIBUTING.md")
 
     examples_dst = _DOCS / "examples"
     examples_dst.mkdir(exist_ok=True)
