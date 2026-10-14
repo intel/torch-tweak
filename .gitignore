@@ -329,7 +329,6 @@ cython_debug/
 tests/data
 workspace/
 docs/ChangeLog.md
-docs/CONTRIBUTING.md
 docs/LICENSE.md
 docs/README.md
 docs/examples/examples.md

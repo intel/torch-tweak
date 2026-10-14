@@ -105,7 +105,7 @@ pip install \
 * [Changelog](ChangeLog.md)
 * [Contributing](CONTRIBUTING.md)
 * [License](LICENSE)
-* [Documentation](https://github.com/intel/torch-tweak) <!-- TODO: if we have a web docs, update the link -->
+* [Documentation](https://intel.github.io/torch-tweak/)
 * [GitHub Issues](https://github.com/intel/torch-tweak/issues)
 
 ## General Misuse Statement

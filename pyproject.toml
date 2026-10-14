@@ -71,7 +71,6 @@ test = [
     "urllib3>=2.7.0", # sec
 ]
 doc = [
-    "GitPython >= 3.1.58",
     "mike >= 2.2.0",
     "mkdocs-htmlproofer-plugin >= 1.5.0",
     "mkdocs-material >= 9.7.6",

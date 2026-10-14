@@ -3,7 +3,7 @@
 """ProperDocs hook: copy root files into docs/ before every build.
 
 A handful of files live outside docs/ but are referenced in the nav:
-  ChangeLog.md, CONTRIBUTING.md, LICENSE, examples/*/README.md
+  ChangeLog.md, LICENSE, examples/*/README.md
 
 This hook copies them into docs/ so properdocs can find them.  The copies are
 gitignored and never committed; the originals at the repo root are the source
@@ -24,9 +24,6 @@ def on_pre_build(config, **kwargs):
     """Copy root files that the nav references into docs/."""
     shutil.copy(_REPO_ROOT / "ChangeLog.md", _DOCS / "ChangeLog.md")
     shutil.copy(_REPO_ROOT / "LICENSE", _DOCS / "LICENSE.md")
-
-    contributing = _REPO_ROOT / "CONTRIBUTING.md"
-    shutil.copy(contributing, _DOCS / "CONTRIBUTING.md")
 
     examples_dst = _DOCS / "examples"
     examples_dst.mkdir(exist_ok=True)

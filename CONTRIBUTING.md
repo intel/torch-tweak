@@ -139,14 +139,38 @@ uv run properdocs serve
 #### How staging works
 
 A few pages of the site come from files outside `docs/`: `ChangeLog.md`,
-`CONTRIBUTING.md`, `LICENSE`, and the READMEs under `examples/`. The
-`scripts/stage_docs.py` ProperDocs hook copies them into `docs/` before every
-build, including live-reload rebuilds, so you never need to copy them
-manually. `LICENSE` is staged as `docs/LICENSE.md`, and `examples/README.md`
-as `docs/examples/examples.md`.
+`LICENSE`, and the READMEs under `examples/`. The `scripts/stage_docs.py`
+ProperDocs hook copies them into `docs/` before every build, including
+live-reload rebuilds, so you never need to copy them manually. Two files are
+renamed when staged:
+
+- `LICENSE` is staged as `docs/LICENSE.md`. ProperDocs renders only Markdown
+  files as pages, so without the `.md` extension it could not be listed in the
+  navigation.
+- `examples/README.md` is staged as `docs/examples/examples.md`. ProperDocs
+  treats a `README.md` as the index page of its folder (e.g.
+  `examples/ResNet/README.md` is served as `/examples/ResNet/`); this one is
+  served as `/examples/examples/` instead.
 
 The copies are gitignored and overwritten on every build. Always edit the
 original files, not the copies in `docs/`.
+
+Community files such as this guide, `SECURITY.md`, `CODE_OF_CONDUCT.md` and
+`COMMIT_CONVENTION.md` are not part of the site. The navigation links to them
+on GitHub, because they always apply as they are on `main`, not per release.
+
+#### Writing links
+
+Use relative links only between pages of the site, that is files in `docs/`
+and staged files. The site contains nothing else, so a relative link to any
+other file in the repository (e.g. `README.md` or a script in `examples/`)
+breaks on the site. Use an absolute GitHub URL for such files, e.g.
+`https://github.com/intel/torch-tweak/blob/main/README.md`. Note that this will
+always refer to the current main so use fixed URLs for files that do not have
+to be versioned, i.e. where only the recent versions must be referenced.
+
+CI builds the docs with `properdocs build --strict`, so broken links fail the
+build. Run the same command locally before opening a pull request.
 
 ## Code style
 

@@ -6,7 +6,7 @@ NOTE: This file has been modified by Intel Corporation.
 -->
 # Torch Tweak
 
-[![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](../LICENSE.md)
+[![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://github.com/intel/torch-tweak/blob/main/LICENSE)
 [![Python](https://img.shields.io/badge/python-3.10+-blue.svg)](https://www.python.org/downloads/)
 [![PyTorch](https://img.shields.io/badge/PyTorch-2.7+-red.svg)](https://pytorch.org/)
 

@@ -57,14 +57,11 @@ watch:
     - properdocs.yml
     - LICENSE
     - ChangeLog.md
-    - CONTRIBUTING.md
 hooks:
     - scripts/stage_docs.py
-    - scripts/rewrite_links_to_repo.py
 extra:
     version:
         provider: mike
-    view_uri_template: blob/{ref}/{path}
 markdown_extensions:
     - admonition
     - pymdownx.details
@@ -126,5 +123,8 @@ nav:
     -   Resources:
             -   Changelog: ChangeLog.md
             -   Known Issues: known_issues.md
-            -   Contributing: CONTRIBUTING.md
+            -   Contributing: https://github.com/intel/torch-tweak/blob/main/CONTRIBUTING.md
+            -   Commit Convention: https://github.com/intel/torch-tweak/blob/main/COMMIT_CONVENTION.md
+            -   Code of Conduct: https://github.com/intel/torch-tweak/blob/main/CODE_OF_CONDUCT.md
+            -   Security Policy: https://github.com/intel/torch-tweak/blob/main/SECURITY.md
             -   License: LICENSE.md
