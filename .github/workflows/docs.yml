@@ -49,6 +49,9 @@ jobs:
       - name: Build docs
         run: uv run --no-default-groups --extra doc properdocs build --strict
 
+  # Deploys with mike instead of actions/deploy-pages to keep versioned docs (one
+  # directory per version on the gh-pages branch, with a version selector).
+  # mike pushes to gh-pages, so this job needs contents: write.
   deploy-docs:
     name: Deploy docs
     if: github.ref == 'refs/heads/main'
@@ -56,6 +59,11 @@ jobs:
     needs: build-docs
     permissions:
       contents: write
+    # The workflow-level group is per event and ref, so runs for different refs can
+    # deploy at the same time, e.g. a release pushes main and a tag together. This
+    # shared group queues all deploys, so two mike pushes to gh-pages never race,
+    # and a running deploy is not cancelled by a queued one. A newer push to the
+    # same ref still cancels the whole older run.
     concurrency:
       group: docs-deploy
       cancel-in-progress: false
