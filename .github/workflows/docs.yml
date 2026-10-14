@@ -49,7 +49,7 @@ jobs:
         run: uv sync --no-default-groups --extra doc
 
       - name: Build docs
-        run: uv run --no-default-groups --extra doc properdocs build
+        run: uv run --no-default-groups --extra doc properdocs build --strict
 
   deploy-docs:
     name: Deploy docs
