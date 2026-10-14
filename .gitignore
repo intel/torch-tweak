@@ -330,8 +330,6 @@ tests/data
 workspace/
 docs/ChangeLog.md
 docs/LICENSE.md
-docs/README.md
-docs/examples/examples.md
 docs/examples/**/README.md
 version.yaml
 .devcontainer

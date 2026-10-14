@@ -141,16 +141,12 @@ uv run properdocs serve
 A few pages of the site come from files outside `docs/`: `ChangeLog.md`,
 `LICENSE`, and the READMEs under `examples/`. The `scripts/stage_docs.py`
 ProperDocs hook copies them into `docs/` before every build, including
-live-reload rebuilds, so you never need to copy them manually. Two files are
+live-reload rebuilds, so you never need to copy them manually. One file is
 renamed when staged:
 
 - `LICENSE` is staged as `docs/LICENSE.md`. ProperDocs renders only Markdown
   files as pages, so without the `.md` extension it could not be listed in the
   navigation.
-- `examples/README.md` is staged as `docs/examples/examples.md`. ProperDocs
-  treats a `README.md` as the index page of its folder (e.g.
-  `examples/ResNet/README.md` is served as `/examples/ResNet/`); this one is
-  served as `/examples/examples/` instead.
 
 The copies are gitignored and overwritten on every build. Always edit the
 original files, not the copies in `docs/`.

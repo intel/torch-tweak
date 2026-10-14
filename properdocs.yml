@@ -93,7 +93,7 @@ nav:
                 - Execution Graphs: guides/advanced/execution_graphs.md
 
     -   Examples:
-            - Overview: examples/examples.md
+            - Overview: examples/README.md
             - E5Large: examples/E5Large/README.md
             - ESM2: examples/ESM2/README.md
             - FLUX: examples/FLUX/README.md

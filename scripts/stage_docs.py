@@ -27,7 +27,7 @@ def on_pre_build(config, **kwargs):
 
     examples_dst = _DOCS / "examples"
     examples_dst.mkdir(exist_ok=True)
-    shutil.copy(_REPO_ROOT / "examples" / "README.md", examples_dst / "examples.md")
+    shutil.copy(_REPO_ROOT / "examples" / "README.md", examples_dst / "README.md")
 
     for readme in sorted((_REPO_ROOT / "examples").glob("*/README.md")):
         dst_dir = examples_dst / readme.parent.name
