@@ -23,11 +23,11 @@ repo_name: GitHub Repository
 plugins:
     - autorefs
     - htmlproofer:
+        # External sites are not checked, so connection issues cannot fail the build.
+        validate_external_urls: false
         ignore_urls:
             - '**/tuning/backend/#torch_tweak.torch.backend*'
             - '**/backends/*/#torch_tweak.torch.backend*'
-            - 'https://huggingface.co/*'
-            - 'https://www.biorxiv.org/*'
     - mike
     - mkdocstrings:
         enable_inventory: true

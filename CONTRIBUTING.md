@@ -157,16 +157,16 @@ on GitHub, because they always apply as they are on `main`, not per release.
 
 #### Writing links
 
-Use relative links only between pages of the site, that is files in `docs/`
-and staged files. The site contains nothing else, so a relative link to any
-other file in the repository (e.g. `README.md` or a script in `examples/`)
-breaks on the site. Use an absolute GitHub URL for such files, e.g.
-`https://github.com/intel/torch-tweak/blob/main/README.md`. Note that this will
-always refer to the current main so use fixed URLs for files that do not have
-to be versioned, i.e. where only the recent versions must be referenced.
+Links in `docs/` and in staged files are written for the docs site, not for
+GitHub. Link only to other pages of the site, with paths relative to the
+staged location in `docs/` (e.g. `../LICENSE.md` from `docs/learn/`). Such
+links may not work when browsing the files on GitHub. Do not link to other
+files in this repository, such as `README.md` or scripts in `examples/`,
+because the site does not contain them.
 
-CI builds the docs with `properdocs build --strict`, so broken links fail the
-build. Run the same command locally before opening a pull request.
+CI builds the docs with `properdocs build --strict`, so broken links between
+pages fail the build. Links to external sites are not checked. Run the same
+command locally before opening a pull request.
 
 ## Code style
 
