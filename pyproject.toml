@@ -77,7 +77,9 @@ doc = [
     "mkdocs-redirects >= 1.2.3",
     "mkdocstrings[python] >= 1.0.4",
     "mkdocstrings-python >= 2.0.5",
-    "properdocs >= 1.6.7"
+    "properdocs >= 1.6.7",
+    # Keep this pin equal to the ruff-pre-commit rev. Lint fails when they differ.
+    "ruff==0.17.0",
 ]
 dev = [
     "torch-tweak[test]",
@@ -85,8 +87,6 @@ dev = [
     "ipython >= 8.39.0",
     "pdbpp >= 0.12.1",
     "pip >= 26.1.2",
-    # Keep this pin equal to the ruff-pre-commit rev. Lint fails when they differ.
-    "ruff==0.17.0",
     "ipykernel",
     "pre-commit",
     "pre-commit-uv",
