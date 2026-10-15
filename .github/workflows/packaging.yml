@@ -52,7 +52,23 @@ jobs:
         run: python3 -m pip install uv
 
       - name: Build core distributions
-        run: uv build --out-dir dist/core
+        run: |
+          probe=".untracked-sdist-probe"
+          touch "${probe}"
+          trap 'rm -f "${probe}"' EXIT
+          uv build --out-dir dist/core
+          python3 - "${probe}" <<'PY'
+          import sys
+          import tarfile
+          from pathlib import Path
+
+          probe = sys.argv[1]
+          sdist = next(Path("dist/core").glob("*.tar.gz"))
+          with tarfile.open(sdist) as archive:
+              names = archive.getnames()
+          if any(name.endswith(probe) for name in names):
+              sys.exit(f"untracked file {probe} was packed into {sdist.name}")
+          PY
 
       # Example license-file symlinks point to the repository root, so build
       # their wheels directly from the checkout rather than through an sdist.
