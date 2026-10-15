@@ -103,6 +103,12 @@ cd examples/ResNet
 uv build --wheel
 ```
 
+Each example's `LICENSE` and `third-party-programs.txt` entries are **symlinks**
+to the canonical files at the repository root. Hatchling includes their contents
+in the wheel's `.dist-info/licenses/` directory. Build wheels (and wheels only)
+directly from the checkout; example's sdist cannot safely carry symlinks that
+point outside its source tree.
+
 Everyday workflows:
 ```shell
 uv sync          # installs the example into .venv

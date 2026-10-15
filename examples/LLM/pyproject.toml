@@ -10,6 +10,7 @@ dynamic = ["version"]
 description = "Torch Tweak LLM Example"
 readme = "README.md"
 license = "Apache-2.0"
+license-files = ["LICENSE", "third-party-programs.txt"]
 requires-python = ">=3.10"
 
 dependencies = [
@@ -44,19 +45,12 @@ benchmark = "llm.benchmark:main"
 benchmark-all = "llm.benchmark_all:main"
 
 [build-system]
-requires = ["hatchling>=1.27.0"]
+requires = ["hatchling>=1.27.0", "hatch-vcs>=0.4.0"]
 build-backend = "hatchling.build"
 
 [tool.hatch.build.targets.wheel]
 packages = ["llm"]
 
-# LICENSE and third-party-programs.txt are kept only at the repository root and
-# pulled in at build time, so distributions must be built with `uv build --wheel`.
-#
-# The target directory below has to spell out name and version, because hatchling
-# does not expand placeholders here. Update it whenever either one changes: a stale
-# name silently produces a second .dist-info directory, which the packaging workflow
-# rejects.
-[tool.hatch.build.targets.wheel.force-include]
-"../../LICENSE" = "torch_tweak_llm_example-0.1.0.dist-info/licenses/LICENSE"
-"../../third-party-programs.txt" = "torch_tweak_llm_example-0.1.0.dist-info/licenses/third-party-programs.txt"
+[tool.hatch.version]
+source = "vcs"
+raw-options = { root = "../..", local_scheme = "no-local-version", fallback_version = "0.4.0" }

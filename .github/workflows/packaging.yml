@@ -1,7 +1,8 @@
 name: Packaging
 
 # Builds every distribution the repository can produce and checks that each one
-# carries the Apache-2.0 license text and the upstream attribution notices.
+# carries the Apache-2.0 license text and the upstream attribution notices,
+# identical to the canonical copies at the repository root.
 # Build backends stay silent when those files go missing, so the artifacts are
 # inspected explicitly.
 
@@ -14,6 +15,8 @@ on:
       - "third-party-programs.txt"
       - "pyproject.toml"
       - "examples/*/pyproject.toml"
+      - "examples/*/LICENSE"
+      - "examples/*/third-party-programs.txt"
       - ".github/scripts/check_dist_licenses.py"
       - ".github/workflows/packaging.yml"
   pull_request:
@@ -51,8 +54,8 @@ jobs:
       - name: Build core distributions
         run: uv build --out-dir dist/core
 
-      # Examples are wheel-only: they pull the license files from the repository
-      # root at build time, which an sdist-based build cannot reach.
+      # Example license-file symlinks point to the repository root, so build
+      # their wheels directly from the checkout rather than through an sdist.
       - name: Build example wheels
         run: |
           for example in examples/*/pyproject.toml; do

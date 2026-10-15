@@ -31,13 +31,21 @@ Prepare changes for the release:
   - `git remote update`
 - Add a new entry to the `ChangeLog.md`
   - For major releases mention API compatibility with the previous releases
-- Update `fallback_version` in all `pyproject.toml` files, including top-level and examples
-  - This is set to have last released version specified, in case Torch Tweak is built
+- Update `fallback_version` in `[tool.hatch.version] raw-options` in all `pyproject.toml` files,
+  including top-level and examples, and refresh the `uv.lock` files
+  - Run commands like:
+    ```bash
+    sed -i -E "s/(fallback_version = \")[^\"]*\"/\1${VERSION}\"/" pyproject.toml examples/*/pyproject.toml
+    git diff --stat   # expect one changed line in every pyproject.toml
+    uv lock
+    for example in examples/*/pyproject.toml; do uv lock --directory "$(dirname "${example}")"; done
+    ```
+  - The fallback is set to have the last released version specified, in case Torch Tweak is built
     on a machine without access to github's tags
-  - Rebuild Torch Tweak and all examples to update uv.lock files as well
 - Update `version` and `date-released` in `CITATION.cff`
 - Once all changes are done, [build locally](CONTRIBUTING.md#building-packages) (and/or verify changes on CI), including:
   - Verify if scanners/linters/checkers passed
+  - Make sure packaging workflow builds properly (you can check that on your fork)
   - Verify if version is set properly
 - Commit these changes and tag the release:
   - `git add examples CITATION.cff pyproject.toml ChangeLog.md`

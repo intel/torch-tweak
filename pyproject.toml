@@ -113,7 +113,7 @@ packages = ["torch_tweak"]
 # Ref. https://github.com/pypa/setuptools-scm/issues/1084
 [tool.hatch.version]
 source = "vcs"
-raw-options = { local_scheme = "no-local-version", fallback_version = "0.0.0" }
+raw-options = { local_scheme = "no-local-version", fallback_version = "0.4.0" }
 
 [dependency-groups]
 xpu-nightly = ["torch>=2.13.0", "triton-xpu"]
