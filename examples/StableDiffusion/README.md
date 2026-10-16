@@ -10,7 +10,7 @@ NOTE: This file has been modified by Intel Corporation.
 This example shows how to tune a Hugging Face **Stable Diffusion** pipeline with Torch Tweak.
 Selected `nn.Module` blocks are wrapped, and a strategy picks backends per module and per input graph.
 
-**Backends:** OpenVINO, Torch Inductor (`torch.compile`), Torch Eager - see `stable_diffusion/tuning_strategy.py`.
+**Backends:** Torch Inductor (`torch.compile`), OpenVINO, then Torch Eager. See `stable_diffusion/tuning_strategy.py`.
 
 **Default model:** `stable-diffusion-v1-5/stable-diffusion-v1-5` (fits ~12 GB VRAM; larger checkpoints such as SD 3 need much more memory).
 
@@ -58,14 +58,14 @@ Common CLI options (shared by `tune` and `inference`):
 
 ### Hybrid vs single-backend benchmark
 
-Compare **HighestThroughput** (OpenVINO + Inductor + Eager per module) against single-backend baselines:
+Compare **HighestThroughput** (Inductor, OpenVINO, and Eager per module) against single-backend baselines:
 
 ```bash
 uv run benchmark-hybrid \
   --model-name stable-diffusion-v1-5/stable-diffusion-v1-5 \
   --sizes "512,512" \
   --steps 8 \
-  --scenarios hybrid,openvino,inductor,eager \
+  --scenarios hybrid,inductor,eager,openvino \
   --output-json benchmark_sd_hybrid_results.json
 ```
 

@@ -163,8 +163,9 @@ Tries backends in priority order and returns the first one that builds and valid
 
 ```python
 strategy = tt.FirstWinsStrategy([
-    tt.backend.OpenVINOBackend(),
     tt.backend.TorchInductorBackend(),
+    tt.backend.OpenVINOBackend(),
+    tt.backend.TorchEagerBackend(),
 ])
 ```
 
@@ -200,8 +201,9 @@ Before actual tuning, this strategy tries to estimate `max_batch_size`. It does 
 
 ```python
 strategy = tt.HighestThroughputStrategy([
-    tt.backend.OpenVINOBackend(),
+    tt.backend.TorchAOBackend(),
     tt.backend.TorchInductorBackend(),
+    tt.backend.OpenVINOBackend(),
     tt.backend.TorchEagerBackend(),
 ])
 ```

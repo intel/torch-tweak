@@ -20,9 +20,9 @@ across various AI workloads including Computer Vision, Natural Language Processi
 
 The toolkit tunes PyTorch models and pipelines through one Python API. Four backends ship with the package:
 
-* **OpenVINO** converts a module to an OpenVINO model and runs it on an Intel CPU or GPU
 * **TorchAO** quantizes weights through PyTorch AO
 * **Torch Inductor** compiles with `torch.compile`
+* **OpenVINO** converts a module to an OpenVINO model and runs it on an Intel CPU or GPU
 * **Torch Eager** runs the module with no compilation, as the baseline other backends are compared against
 
 The guides under [`docs/learn/`](docs/learn/overview.md) are the maintained documentation.
@@ -35,7 +35,7 @@ This page is the landing summary. The same file is the PyPI long description.
 | Feature                     | Description                                                                                                               |
 |-----------------------------|---------------------------------------------------------------------------------------------------------------------------|
 | Ease-of-use                 | Single line of code to run all possible tuning paths directly from your source code                                       |
-| Wide Backend Support        | Compatible with OpenVINO, TorchAO, Torch Inductor, and eager PyTorch                                                      |
+| Wide Backend Support        | Compatible with TorchAO, Torch Inductor, OpenVINO, and eager PyTorch                                                      |
 | Model Tuning                | Enhance the performance of models such as ResNET and BERT for efficient inference deployment                              |
 | Pipeline Tuning             | Streamline Python code pipelines for models such as Stable Diffusion and Flux using seamless model wrapping and tuning    |
 | Correctness Testing         | Ensures tuned models produce correct outputs by validating on provided data samples                                       |
@@ -53,25 +53,25 @@ use frameworks like vLLM or SGLang for best performance. Use Torch Tweak for gen
 
 ```python
 from torch_tweak.torch.backend import (
-    OpenVINOBackend,
-    OpenVINOBackendConfig,
     TorchAOBackend,
-    TorchEagerBackend,
     TorchInductorBackend,
+    OpenVINOBackend,
+    TorchEagerBackend,
 )
 from torch_tweak.torch.tune_strategy import HighestThroughputStrategy
 
-# OpenVINO is the Intel conversion path. Dynamo export is the default.
-# use_dynamo=False falls back to the legacy trace conversion.
-backend = OpenVINOBackend(OpenVINOBackendConfig(use_dynamo=False, performance_hint="THROUGHPUT"))
-
-# Profile every backend, including the eager baseline, and keep the fastest.
+# The strategy measures every backend and keeps the fastest.
 strategy = HighestThroughputStrategy(
-    backends=[OpenVINOBackend(), TorchAOBackend(), TorchInductorBackend(), TorchEagerBackend()]
+    backends=[
+        TorchAOBackend(),
+        TorchInductorBackend(),
+        OpenVINOBackend(),
+        TorchEagerBackend(),
+    ]
 )
 ```
 
-OpenVINO, TorchAO, and Torch Inductor configuration is in the [backends guide](docs/learn/backends.md).
+TorchAO, Torch Inductor, and OpenVINO configuration is in the [backends guide](docs/learn/backends.md).
 Torch Eager accepts an optional autocast dtype and otherwise runs the module unchanged.
 Tune strategies are in [core functionalities](docs/learn/core_functionalities.md).
 

@@ -12,7 +12,7 @@ NOTE: This file has been modified by Intel Corporation.
 
 **Torch Tweak** is an inference toolkit designed for tuning and deploying Deep Learning models with a focus on Intel XPU (GPU) accelerators. It provides model tuning capabilities through compilation and conversion paths that can significantly improve inference speed and efficiency across various AI workloads including Computer Vision, Natural Language Processing, Speech Recognition, and Generative AI.
 
-The toolkit enables seamless tuning of PyTorch models and pipelines using various backends such as OpenVINO, TorchAO, and Torch Inductor through a single Python API. The resulting tuned models are ready for deployment in production environments.
+The toolkit enables seamless tuning of PyTorch models and pipelines using TorchAO, Torch Inductor, OpenVINO, and eager through a single Python API. The resulting tuned models are ready for deployment in production environments.
 
 Torch Tweak works with your environment - relying first on your software versions - and selects the best-performing backend for your software and hardware setup, guiding you to supported technologies.
 
@@ -31,7 +31,7 @@ The distinct capabilities of Torch Tweak are summarized in the feature matrix:
 | Feature                     | Description                                                                                                               |
 |-----------------------------|---------------------------------------------------------------------------------------------------------------------------|
 | Ease-of-use                 | Single line of code to run all possible tuning paths directly from your source code                                       |
-| Wide Backend Support        | Compatible with various tuning backends including OpenVINO, TorchAO, and Torch Inductor                                   |
+| Wide Backend Support        | Compatible with TorchAO, Torch Inductor, OpenVINO, and eager                                                              |
 | Model Tuning                | Enhance the performance of models such as ResNET and BERT for efficient inference deployment                              |
 | Pipeline Tuning             | Streamline Python code pipelines for models such as Stable Diffusion and Flux using seamless model wrapping and tuning    |
 | Correctness Testing         | Ensures tuned models produce correct outputs by validating on provided data samples                                       |

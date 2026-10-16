@@ -34,9 +34,9 @@ def _inductor_backend() -> TorchInductorBackend:
 
 def _backend_catalog() -> dict[str, Backend]:
     return {
+        "inductor": _inductor_backend(),
         "openvino": _openvino_backend(use_dynamo=False),
         "openvino_dynamo": _openvino_backend(use_dynamo=True),
-        "inductor": _inductor_backend(),
         "eager": TorchEagerBackend(),
     }
 
