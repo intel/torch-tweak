@@ -97,25 +97,27 @@ dev = [
 ]
 
 [build-system]
-requires = ["setuptools>=83.0.0", "setuptools_scm[toml]>=10.2.0", "wheel>=0.47.0"]
-build-backend = "setuptools.build_meta"
+requires = [
+    "hatchling>=1.27.0",
+    "hatch-vcs>=0.4.0",
+    "setuptools>=83.0.0"
+]
+build-backend = "hatchling.build"
 
-[tool.setuptools]
-include-package-data = true
+[tool.hatch.build.targets.wheel]
+packages = ["torch_tweak"]
 
-[tool.setuptools.packages.find]
-namespaces = false
-include = ["torch_tweak*"]
-
+# hatch-vcs wraps setuptools_scm, so raw-options are passed through to it verbatim.
+#
 # We're dropping here a specific git version, when building. Now, instead of a version like
 # "torch_tweak==0.1.dev1+g7c6ac7b94", we're getting "torch_tweak==0.1.dev1".
 # This is mostly to solve the CI issue, when there's unexpected git dirty state.
 #
 # We could bring more accurate version, using local, private scheme, but this can fail in some scenarios...?
 # Ref. https://github.com/pypa/setuptools-scm/issues/1084
-[tool.setuptools_scm]
-local_scheme = "no-local-version"
-fallback_version = "0.4.0"
+[tool.hatch.version]
+source = "vcs"
+raw-options = { local_scheme = "no-local-version", fallback_version = "0.4.0" }
 
 [dependency-groups]
 xpu-nightly = ["torch>=2.13.0", "triton-xpu"]

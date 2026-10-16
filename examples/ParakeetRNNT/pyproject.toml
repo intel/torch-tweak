@@ -53,20 +53,16 @@ benchmark = "parakeet_rnnt.benchmark:main"
 patch-nv-one-logger = "parakeet_rnnt.patch_nv_one_logger:main"
 
 [build-system]
-requires = ["setuptools>=83.0.0", "setuptools_scm[toml]>=10.2.0", "wheel>=0.47.0"]
-build-backend = "setuptools.build_meta"
+requires = [
+    "hatchling>=1.27.0",
+    "hatch-vcs>=0.4.0",
+    "setuptools>=83.0.0"
+]
+build-backend = "hatchling.build"
 
-[tool.setuptools]
-include-package-data = true
+[tool.hatch.build.targets.wheel]
+packages = ["parakeet_rnnt"]
 
-[tool.setuptools_scm]
-root = "../.."
-local_scheme = "no-local-version"
-fallback_version = "0.4.0"
-
-[tool.setuptools.packages.find]
-namespaces = false
-include = ["parakeet_rnnt"]
-
-[tool.setuptools.package-data]
-parakeet_rnnt = ["**/*"]
+[tool.hatch.version]
+source = "vcs"
+raw-options = { root = "../..", local_scheme = "no-local-version", fallback_version = "0.4.0" }
