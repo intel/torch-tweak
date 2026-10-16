@@ -84,14 +84,8 @@ doc = [
 dev = [
     "torch-tweak[test]",
     "torch-tweak[doc]",
-    "ipython >= 8.39.0",
-    "pdbpp >= 0.12.1",
-    "pip >= 26.1.2",
-    "ipykernel",
     "pre-commit",
     "pre-commit-uv",
-    "pytype",
-    "tornado>=6.5.9", # sec
     "uv>=0.11.26",
     "virtualenv>=21.7.13", # sec
 ]
@@ -220,6 +214,3 @@ quote-style = "double"
 indent-style = "space"
 skip-magic-trailing-comma = false
 line-ending = "lf"
-
-[tool.pytype]
-disable = ["import-error", "module-attr"]
