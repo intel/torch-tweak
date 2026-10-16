@@ -57,12 +57,12 @@ def tune_model(
     if strategy is None:
         strategy = tt.FirstWinsStrategy(
             backends=[
+                TorchInductorBackend(),
                 OpenVINOBackend(
                     OpenVINOBackendConfig(
                         use_dynamo=False,
                     )
                 ),
-                TorchInductorBackend(),
                 TorchEagerBackend(),
             ]
         )

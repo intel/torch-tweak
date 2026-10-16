@@ -40,7 +40,7 @@ Do NOT activate this skill when:
 ## Torch Tweak Overview
 
 - **Purpose**: Tune PyTorch models and pipelines for optimal inference performance
-- **Key Feature**: Single Python API supporting multiple backends (OpenVINO, TorchAO, Torch Inductor)
+- **Key Feature**: Single Python API supporting TorchAO, Torch Inductor, eager, and OpenVINO
 - **Use Cases**: Computer Vision, Large Language Models (LLMs), Natural Language Processing, Speech Recognition, Generative AI (Stable Diffusion, FLUX)
 - **Examples**: See `examples/` directory for Minimal, LLM, ResNet, StableDiffusion, FLUX, Parakeet, ESM2, E5Large
 
@@ -63,8 +63,16 @@ Do NOT activate this skill when:
 
 ## Backends
 
+### TorchAO Backend
+- **Best for**: PyTorch-native quantization on Intel GPU / XPU
+- **Simple**: `TorchAOBackend()` with no config needed
+
+### Torch Inductor Backend
+- **Best for**: PyTorch compiler-based optimization on Intel GPU / XPU
+- **Simple**: `TorchInductorBackend()` with no config needed
+
 ### OpenVINO Backend
-- **Best for**: Intel GPU / XPU inference optimization
+- **Best for**: an OpenVINO model on an Intel CPU or GPU
 - **Simple**: `OpenVINOBackend()` with no config needed
 - **Strengths**:
   - Converts PyTorch models to OpenVINO IR for deployment
@@ -72,13 +80,9 @@ Do NOT activate this skill when:
   - Supports both CPU and GPU execution
   - Supports OpenVINO performance hints for latency- or throughput-oriented compilation
 
-### TorchAO Backend
-- **Best for**: PyTorch-native optimization
-- **Simple**: `TorchAOBackend()` with no config needed
-
-### Torch Inductor Backend
-- **Best for**: PyTorch compiler-based optimization
-- **Simple**: `TorchInductorBackend()` with no config needed
+### Torch Eager Backend
+- **Best for**: the uncompiled baseline inside a throughput search
+- **Simple**: `TorchEagerBackend()` with no config needed
 
 ## Tuning Strategies
 
@@ -89,8 +93,8 @@ Do NOT activate this skill when:
 ## Best Practices
 
 ### Backend Selection
-- **OpenVINO**: Best for Intel GPU / XPU inference optimization
-- **TorchAO/TorchInductor**: Good for development, PyTorch-native
+- **HighestThroughputStrategy**: TorchAO, Torch Inductor, OpenVINO, and eager. It measures each one and keeps the fastest. List order does not change the winner.
+- **FirstWinsStrategy**: default order is Torch Inductor, OpenVINO, then eager. The first backend that builds is kept. TorchAO is not in that default, because the first backend that builds wins and a quantization that builds would be kept without a speed comparison.
 
 ### Common Issues
 - **Graph breaks**: conditional logic in a module blocks tuning of that module
@@ -117,10 +121,22 @@ tt.load(model, "tuned_model.tt")
 
 ### Backend Configuration
 ```python
-from torch_tweak.torch.backend import OpenVINOBackend, OpenVINOBackendConfig
+from torch_tweak.torch.backend import (
+    TorchAOBackend,
+    TorchInductorBackend,
+    OpenVINOBackend,
+    TorchEagerBackend,
+)
+from torch_tweak.torch.tune_strategy import HighestThroughputStrategy
 
-config = OpenVINOBackendConfig(use_dynamo=False)
-backend = OpenVINOBackend(config)
+strategy = HighestThroughputStrategy(
+    backends=[
+        TorchAOBackend(),
+        TorchInductorBackend(),
+        OpenVINOBackend(),
+        TorchEagerBackend(),
+    ]
+)
 ```
 
 ## When Helping Users

@@ -81,7 +81,7 @@ tt.tune(model, input_data)
 
 ## FirstWinsStrategy
 
-Tries backends in priority order and returns the first one that successfully builds and validates. If a backend fails, the strategy moves on to the next candidate instead of aborting. If all backends fail, the error is caught and the original model is used as-is. List backends from fastest to most compatible - for example, OpenVINO first, then Torch Inductor.
+Tries backends in priority order and returns the first one that successfully builds and validates. If a backend fails, the strategy moves on to the next candidate instead of aborting. If all backends fail, the error is caught and the original model is used as-is. The default order is Torch Inductor, then OpenVINO, then eager. Put a backend earlier only when you want that one to win as soon as it builds.
 
 ### Usage
 
@@ -109,7 +109,7 @@ tt.tune(model, input_data)
 
 ### How It Works
 
-1. Tries first backend (e.g., OpenVINO)
+1. Tries the first backend (for example, Torch Inductor)
 2. If successful → uses it, done
 3. If fails (e.g., unsupported op, conversion error, memory limit) → tries next backend
 4. Repeats until a backend succeeds or all fail

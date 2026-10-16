@@ -108,8 +108,16 @@ Tries backends in priority order and returns the first one that succeeds. If a b
 ```python
 from torch_tweak.torch.tune_strategy import FirstWinsStrategy
 
-strategy = FirstWinsStrategy(backends=[OpenVINOBackend(), TorchInductorBackend()])
+strategy = FirstWinsStrategy(
+    backends=[
+        TorchInductorBackend(),
+        OpenVINOBackend(),
+        TorchEagerBackend(),
+    ]
+)
 ```
+
+That order is also the default when you construct `FirstWinsStrategy` with no backend list. The first backend that builds and validates is kept.
 
 ## OneBackendStrategy
 
@@ -123,10 +131,17 @@ strategy = OneBackendStrategy(backend=OpenVINOBackend())
 
 ## HighestThroughputStrategy
 
-Profiles all compatible backends and selects the fastest. Use this when maximum throughput matters and you can afford longer tuning time.
+Profiles all compatible backends and selects the fastest. Use this when maximum throughput matters and you can afford longer tuning time. `HighestThroughputStrategy()` with no backend list compares Torch Inductor and eager only.
 
 ```python
 from torch_tweak.torch.tune_strategy import HighestThroughputStrategy
 
-strategy = HighestThroughputStrategy(backends=[OpenVINOBackend(), TorchInductorBackend(), TorchEagerBackend()])
+strategy = HighestThroughputStrategy(
+    backends=[
+        TorchAOBackend(),
+        TorchInductorBackend(),
+        OpenVINOBackend(),
+        TorchEagerBackend(),
+    ]
+)
 ```

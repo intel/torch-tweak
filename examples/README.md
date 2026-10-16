@@ -49,7 +49,7 @@ Demonstrates tuning of Stable Diffusion models for text-to-image generation. Thi
 - **Model**: Stable Diffusion 1.5 from HuggingFace (default in the example)
 - **Use Case**: Optimizing text-to-image diffusion models on Intel XPU
 - **Key Features**:
-  - Diffusion pipeline tuning (OpenVINO, Inductor, Eager)
+  - Diffusion pipeline tuning (Inductor, OpenVINO, Eager)
   - Hybrid vs single-backend benchmark
   - Text prompt-based image synthesis
 - **More Info**:

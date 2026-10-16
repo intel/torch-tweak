@@ -9,27 +9,6 @@ NOTE: This file has been modified by Intel Corporation.
 
 Torch Tweak supports multiple tuning backends, each with different characteristics and use cases. The backends align with a common interface for the build and inference process.
 
-## OpenVINO Backend
-
-The OpenVINO backend converts the module to an OpenVINO model and runs it on an Intel CPU or GPU.
-
-```python
-from torch_tweak.torch.backend import OpenVINOBackend
-
-backend = OpenVINOBackend()
-```
-
-Conversion defaults to `torch.export`. For modules that `torch.export` cannot capture, switch to the
-legacy trace-based conversion and optionally change the compile hint:
-
-```python
-from torch_tweak.torch.backend import OpenVINOBackend, OpenVINOBackendConfig
-
-backend = OpenVINOBackend(OpenVINOBackendConfig(use_dynamo=False, performance_hint="THROUGHPUT"))
-```
-
-Guide: [OpenVINO Backend](../guides/backends/openvino_backend.md).
-
 ## TorchAO Backend
 
 The TorchAO backend leverages PyTorch's AO (Accelerated Optimization) framework for model tuning.
@@ -53,6 +32,27 @@ backend = TorchInductorBackend()
 ```
 
 Guide: [Torch Inductor Backend](../guides/backends/torch_inductor_backend.md).
+
+## OpenVINO Backend
+
+The OpenVINO backend converts the module to an OpenVINO model and runs it on an Intel CPU or GPU.
+
+```python
+from torch_tweak.torch.backend import OpenVINOBackend
+
+backend = OpenVINOBackend()
+```
+
+Conversion defaults to `torch.export`. For modules that `torch.export` cannot capture, switch to the
+legacy trace-based conversion and optionally change the compile hint:
+
+```python
+from torch_tweak.torch.backend import OpenVINOBackend, OpenVINOBackendConfig
+
+backend = OpenVINOBackend(OpenVINOBackendConfig(use_dynamo=False, performance_hint="THROUGHPUT"))
+```
+
+Guide: [OpenVINO Backend](../guides/backends/openvino_backend.md).
 
 ## Torch Eager Backend
 

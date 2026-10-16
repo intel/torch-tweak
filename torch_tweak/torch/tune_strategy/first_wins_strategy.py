@@ -12,7 +12,7 @@ from pathlib import Path
 import torch
 import torch.nn as nn
 
-from torch_tweak.torch.backend import OpenVINOBackend, TorchInductorBackend
+from torch_tweak.torch.backend import OpenVINOBackend, TorchEagerBackend, TorchInductorBackend
 from torch_tweak.torch.backend.backend import Backend
 from torch_tweak.torch.module.graph_spec import GraphSpec
 from torch_tweak.torch.module.recording_module import Sample
@@ -22,7 +22,10 @@ from torch_tweak.utils.timer import Timer
 
 
 class FirstWinsStrategy(TuneStrategyFindMaxBatchSizeExtension):
-    """Strategy which runs backends until it gets first working backend."""
+    """Runs backends in order and keeps the first one that builds and validates.
+
+    The default order is Torch Inductor, OpenVINO, then eager.
+    """
 
     def __init__(self, backends: Iterable[Backend] | None = None, **kwargs):
         """Initializes strategy."""
@@ -81,8 +84,9 @@ class FirstWinsStrategy(TuneStrategyFindMaxBatchSizeExtension):
     def _default_backends(self) -> list[Backend]:
         """Returns default backends."""
         return [
-            OpenVINOBackend(),
             TorchInductorBackend(),
+            OpenVINOBackend(),
+            TorchEagerBackend(),
         ]
 
     def _describe_parts(self) -> list[str]:

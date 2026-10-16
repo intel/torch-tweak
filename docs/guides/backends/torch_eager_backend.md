@@ -18,18 +18,18 @@ Use it as the uncompiled baseline, for example inside `HighestThroughputStrategy
 
 ```python
 from torch_tweak.torch.backend import (
-    OpenVINOBackend,
     TorchAOBackend,
-    TorchEagerBackend,
     TorchInductorBackend,
+    OpenVINOBackend,
+    TorchEagerBackend,
 )
 from torch_tweak.torch.tune_strategy import HighestThroughputStrategy
 
 strategy = HighestThroughputStrategy(
     backends=[
-        OpenVINOBackend(),
         TorchAOBackend(),
         TorchInductorBackend(),
+        OpenVINOBackend(),
         TorchEagerBackend(),
     ]
 )
