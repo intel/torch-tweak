@@ -8,14 +8,14 @@ This document contains all the steps required to make a new release of Torch Twe
 
 As a helper, we use in this guide this variable:
 ```bash
-  VERSION=0.1.0-rc1   # New version, including optional rc suffix as an example
+  VERSION=0.1.0rc1   # New version, including an optional rc suffix (set here as an example)
 ```
 
 **Note:**
 > Before doing the final release, it's recommended to prepare a pre-release version - a "release candidate"
-> (or "rc" in short). This requires adding, e.g., `-rc1` to the VERSION string. When all tests and checks
+> (or "rc" in short). This requires adding, e.g., `rc1` to the VERSION string. When all tests and checks
 > end properly, you can follow up with the final release. If any fix is required, it should be included in
-> another rc version (e.g., `-rc2`).
+> another rc version (e.g., `0.1.0rc2`).
 
 1. Make sure remotes are up-to-date on your machine (`git remote update`).
 1. Make changes for the release.
@@ -31,16 +31,25 @@ Prepare changes for the release:
   - `git remote update`
 - Add a new entry to the `ChangeLog.md`
   - For major releases mention API compatibility with the previous releases
-- Update `fallback_version` in all `pyproject.toml` files, including top-level and examples
-  - This is set to have last released version specified, in case Torch Tweak is built
-    on a machine without access to github's tags
-  - Rebuild Torch Tweak and all examples to update uv.lock files as well
+- Update `fallback_version` in `[tool.hatch.version] raw-options` in all `pyproject.toml` files,
+  including top-level and examples, and refresh the `uv.lock` files
+  - Run commands like:
+    ```bash
+    sed -i -E "s/(fallback_version = \")[^\"]*\"/\1${VERSION}\"/" pyproject.toml examples/*/pyproject.toml
+    git diff --stat   # expect one changed line in every pyproject.toml
+    uv lock
+    for example in examples/*/pyproject.toml; do uv lock --directory "$(dirname "${example}")"; done
+    ```
+  - The fallback is the last released version, for a build on a machine without access to github's tags
 - Update `version` and `date-released` in `CITATION.cff`
-- Once all changes are done, [build locally](CONTRIBUTING.md#building-packages) (and/or verify changes on CI), including:
+- Once all changes are done, [build locally](CONTRIBUTING.md#building-packages) from a clean worktree
+  (and/or verify changes on CI), including:
+  - `git status --porcelain` prints nothing. The packaging workflow fails when it does not, so a dirty tree is not packed
   - Verify if scanners/linters/checkers passed
-  - Verify if version is set properly
+  - Make sure packaging workflow builds properly (you can check that on your fork)
+  - Verify if version is set properly in the package
 - Commit these changes and tag the release:
-  - `git add examples CITATION.cff pyproject.toml ChangeLog.md`
+  - `git add uv.lock examples CITATION.cff pyproject.toml ChangeLog.md`
   - `git commit -S -m "chore: release v$VERSION"`
   - `git tag -a -s -m "Version $VERSION" v$VERSION`
 - Verify if commit and tag are properly signed:
