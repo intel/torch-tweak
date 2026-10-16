@@ -100,16 +100,19 @@ sdist. No extra flags are needed.
 Each example is a standalone package and is built the same way:
 ```shell
 cd examples/ResNet
-uv build
+uv build --wheel
 ```
-Every example keeps its own copy of `LICENSE` and `third-party-programs.txt`
-next to its `pyproject.toml`. The copies must stay identical to the files at
-the repository root; the `Packaging` workflow fails if they drift apart.
+
+Each example's `LICENSE` and `third-party-programs.txt` entries are **symlinks**
+to the canonical files at the repository root. Hatchling includes their contents
+in the wheel's `.dist-info/licenses/` directory. Build wheels (and wheels only)
+directly from the checkout; example's sdist cannot safely carry symlinks that
+point outside its source tree.
+
 Everyday workflows:
 ```shell
 uv sync          # installs the example into .venv
 uv run tune      # entry points keep working
-pip install .    # used by CI for examples/LLM
 ```
 
 ### Building the docs locally

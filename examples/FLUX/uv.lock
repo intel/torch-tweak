@@ -1,5 +1,5 @@
 version = 1
-revision = 3
+revision = 5
 requires-python = ">=3.10"
 resolution-markers = [
     "python_full_version >= '3.14'",
@@ -1660,49 +1660,66 @@ dependencies = [
 
 [package.metadata]
 requires-dist = [
+    { name = "datasets", marker = "extra == 'dev'", specifier = ">=4.8.5,<6.0.0" },
     { name = "datasets", marker = "extra == 'test'", specifier = ">=4.8.5,<6.0.0" },
+    { name = "diffusers", marker = "extra == 'dev'", specifier = ">=0.40.0,<1.0" },
     { name = "diffusers", marker = "extra == 'test'", specifier = ">=0.40.0,<1.0" },
+    { name = "fsspec", marker = "extra == 'dev'", specifier = ">=2026.6.0" },
     { name = "fsspec", marker = "extra == 'test'", specifier = ">=2026.6.0" },
     { name = "fsspec", marker = "extra == 'xpu'", specifier = ">=2026.6.0" },
-    { name = "gitpython", marker = "extra == 'doc'", specifier = ">=3.1.58" },
     { name = "ipykernel", marker = "extra == 'dev'" },
     { name = "ipython", marker = "extra == 'dev'", specifier = ">=8.39.0" },
+    { name = "mike", marker = "extra == 'dev'", specifier = ">=2.2.0" },
     { name = "mike", marker = "extra == 'doc'", specifier = ">=2.2.0" },
+    { name = "mkdocs-htmlproofer-plugin", marker = "extra == 'dev'", specifier = ">=1.5.0" },
     { name = "mkdocs-htmlproofer-plugin", marker = "extra == 'doc'", specifier = ">=1.5.0" },
+    { name = "mkdocs-material", marker = "extra == 'dev'", specifier = ">=9.7.6" },
     { name = "mkdocs-material", marker = "extra == 'doc'", specifier = ">=9.7.6" },
+    { name = "mkdocs-redirects", marker = "extra == 'dev'", specifier = ">=1.2.3" },
     { name = "mkdocs-redirects", marker = "extra == 'doc'", specifier = ">=1.2.3" },
+    { name = "mkdocstrings", extras = ["python"], marker = "extra == 'dev'", specifier = ">=1.0.4" },
     { name = "mkdocstrings", extras = ["python"], marker = "extra == 'doc'", specifier = ">=1.0.4" },
+    { name = "mkdocstrings-python", marker = "extra == 'dev'", specifier = ">=2.0.5" },
     { name = "mkdocstrings-python", marker = "extra == 'doc'", specifier = ">=2.0.5" },
+    { name = "multidict", marker = "extra == 'dev'", specifier = ">=6.9.1" },
     { name = "multidict", marker = "extra == 'test'", specifier = ">=6.9.1" },
     { name = "numpy", specifier = ">=2" },
     { name = "openvino", specifier = ">=2026.2.1" },
     { name = "pdbpp", marker = "extra == 'dev'", specifier = ">=0.12.1" },
+    { name = "pillow", marker = "extra == 'dev'", specifier = ">=12.3.0" },
     { name = "pillow", marker = "extra == 'test'", specifier = ">=12.3.0" },
     { name = "pip", marker = "extra == 'dev'", specifier = ">=26.1.2" },
     { name = "pre-commit", marker = "extra == 'dev'" },
     { name = "pre-commit-uv", marker = "extra == 'dev'" },
+    { name = "properdocs", marker = "extra == 'dev'", specifier = ">=1.6.7" },
     { name = "properdocs", marker = "extra == 'doc'", specifier = ">=1.6.7" },
     { name = "psutil" },
+    { name = "pyarrow", marker = "extra == 'dev'", specifier = ">=24.0.0" },
     { name = "pyarrow", marker = "extra == 'test'", specifier = ">=24.0.0" },
+    { name = "pytest", marker = "extra == 'dev'", specifier = ">=9.1.1" },
     { name = "pytest", marker = "extra == 'test'", specifier = ">=9.1.1" },
+    { name = "pytest-mock", marker = "extra == 'dev'" },
     { name = "pytest-mock", marker = "extra == 'test'" },
     { name = "pytype", marker = "extra == 'dev'" },
     { name = "ruff", marker = "extra == 'dev'", specifier = "==0.17.0" },
+    { name = "ruff", marker = "extra == 'doc'", specifier = "==0.17.0" },
+    { name = "sentencepiece", marker = "extra == 'dev'", specifier = ">=0.2.1" },
     { name = "sentencepiece", marker = "extra == 'test'", specifier = ">=0.2.1" },
     { name = "tabulate", specifier = ">=0.10.0" },
+    { name = "timm", marker = "extra == 'dev'" },
     { name = "timm", marker = "extra == 'test'" },
     { name = "torch", marker = "extra == 'xpu'", specifier = ">=2.13.0", index = "https://download.pytorch.org/whl/xpu", conflict = { package = "torch-tweak", extra = "xpu" } },
-    { name = "torch-tweak", extras = ["doc"], marker = "extra == 'dev'" },
-    { name = "torch-tweak", extras = ["test"], marker = "extra == 'dev'" },
     { name = "torchao", specifier = ">=0.17.0", index = "https://download.pytorch.org/whl/cpu" },
     { name = "tornado", marker = "extra == 'dev'", specifier = ">=6.5.9" },
+    { name = "transformers", marker = "extra == 'dev'", specifier = ">=5.13.0,<6" },
     { name = "transformers", marker = "extra == 'test'", specifier = ">=5.13.0,<6" },
+    { name = "urllib3", marker = "extra == 'dev'", specifier = ">=2.7.0" },
     { name = "urllib3", marker = "extra == 'test'", specifier = ">=2.7.0" },
     { name = "uv", marker = "extra == 'dev'", specifier = ">=0.11.26" },
     { name = "virtualenv", marker = "extra == 'dev'", specifier = ">=21.7.13" },
     { name = "wrapt", specifier = "~=2.2" },
 ]
-provides-extras = ["xpu", "test", "doc", "dev"]
+provides-extras = ["dev", "doc", "test", "xpu"]
 
 [package.metadata.requires-dev]
 xpu-nightly = [
