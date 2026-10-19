@@ -1,5 +1,5 @@
 version = 1
-revision = 5
+revision = 3
 requires-python = ">=3.10"
 resolution-markers = [
     "python_full_version >= '3.14' and platform_machine == 'x86_64' and sys_platform == 'linux'",
@@ -2063,12 +2063,12 @@ wheels = [
 
 [[package]]
 name = "ruff"
-version = "0.17.0"
+version = "0.17.1"
 source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/e9/a7/70debb024dfacda67b8e560cc7511f52b34b9348a8cc8c1ec23036dcd51d/ruff-0.17.0.tar.gz", hash = "sha256:5cd03240d8208a557c2a9655a5cb07ebe36aa6bb35065f97d48c1f6adef5a322", size = 5320554, upload-time = "2026-10-09T19:47:29.248Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/f9/e7/e6d5749983b020e6cb1055abec0a6f361a8e94f0184cdcf56d4760995f02/ruff-0.17.1.tar.gz", hash = "sha256:5bb796c5112e9fb9527f2ef2faa0a130d6312d19de92bcfaddd70dbb2d41020f", size = 5323349, upload-time = "2026-10-15T15:23:18.64Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/2c/3c/4a01195d93420cad1175bedad13a515dc8a56f95a6e39789b92e582682f5/ruff-0.17.0-py3-none-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:bc73e7c133e82d55b5f15897b2a442d72c0cb4a0c886c46801ce3c247150b60c", size = 10386314, upload-time = "2026-10-09T19:47:03.057Z" },
-    { url = "https://files.pythonhosted.org/packages/2a/fa/955399fd13044cd827862044117d784a59e3196f6cce7424908ac9a7f914/ruff-0.17.0-py3-none-musllinux_1_2_x86_64.whl", hash = "sha256:864b6c1acb6b0bccf94b5a3938a1531fd09aaca5e5659a2e7bf0f3cf2a685540", size = 10791761, upload-time = "2026-10-09T19:47:16.931Z" },
+    { url = "https://files.pythonhosted.org/packages/62/86/5566290219708ce2928f3a29c4f843a1185b341ec6111c4631a33c5ceced/ruff-0.17.1-py3-none-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:a6ef98e51de8ef38082f90653ceeb84944bd7673783eea13e1647c5b9b064189", size = 10350811, upload-time = "2026-10-15T15:22:54.401Z" },
+    { url = "https://files.pythonhosted.org/packages/49/fb/db15b4f8fa24a1e36b99e1401f42ef6df16ee299a48670d5d262b771e7d7/ruff-0.17.1-py3-none-musllinux_1_2_x86_64.whl", hash = "sha256:ce05e6f3973611d9550a600e04bb531061e368baba31610eb57c1509a8f21a0a", size = 10765716, upload-time = "2026-10-15T15:23:08.092Z" },
 ]
 
 [[package]]
@@ -2412,7 +2412,6 @@ wheels = [
 [[package]]
 name = "torch-tweak"
 source = { editable = "." }
-default-groups = ["xpu-stable"]
 dependencies = [
     { name = "numpy", version = "2.2.6", source = { registry = "https://download.pytorch.org/whl/xpu" }, marker = "python_full_version < '3.11' or (extra == 'extra-11-torch-tweak-xpu' and extra == 'group-11-torch-tweak-xpu-nightly') or (extra == 'group-11-torch-tweak-xpu-nightly' and extra == 'group-11-torch-tweak-xpu-stable')" },
     { name = "numpy", version = "2.4.6", source = { registry = "https://download.pytorch.org/whl/xpu" }, marker = "python_full_version == '3.11.*' or (extra == 'extra-11-torch-tweak-xpu' and extra == 'group-11-torch-tweak-xpu-nightly') or (extra == 'group-11-torch-tweak-xpu-nightly' and extra == 'group-11-torch-tweak-xpu-stable')" },
@@ -2499,42 +2498,60 @@ xpu-stable = [
 
 [package.metadata]
 requires-dist = [
+    { name = "datasets", marker = "extra == 'dev'", specifier = ">=4.8.5,<6.0.0" },
     { name = "datasets", marker = "extra == 'test'", specifier = ">=4.8.5,<6.0.0" },
+    { name = "diffusers", marker = "extra == 'dev'", specifier = ">=0.40.0,<1.0" },
     { name = "diffusers", marker = "extra == 'test'", specifier = ">=0.40.0,<1.0" },
+    { name = "fsspec", marker = "extra == 'dev'", specifier = ">=2026.6.0" },
     { name = "fsspec", marker = "extra == 'test'", specifier = ">=2026.6.0" },
     { name = "fsspec", marker = "extra == 'xpu'", specifier = ">=2026.6.0" },
+    { name = "mike", marker = "extra == 'dev'", specifier = ">=2.2.0" },
     { name = "mike", marker = "extra == 'doc'", specifier = ">=2.2.0" },
+    { name = "mkdocs-htmlproofer-plugin", marker = "extra == 'dev'", specifier = ">=1.5.0" },
     { name = "mkdocs-htmlproofer-plugin", marker = "extra == 'doc'", specifier = ">=1.5.0" },
+    { name = "mkdocs-material", marker = "extra == 'dev'", specifier = ">=9.7.6" },
     { name = "mkdocs-material", marker = "extra == 'doc'", specifier = ">=9.7.6" },
+    { name = "mkdocs-redirects", marker = "extra == 'dev'", specifier = ">=1.2.3" },
     { name = "mkdocs-redirects", marker = "extra == 'doc'", specifier = ">=1.2.3" },
+    { name = "mkdocstrings", extras = ["python"], marker = "extra == 'dev'", specifier = ">=1.0.4" },
     { name = "mkdocstrings", extras = ["python"], marker = "extra == 'doc'", specifier = ">=1.0.4" },
+    { name = "mkdocstrings-python", marker = "extra == 'dev'", specifier = ">=2.0.5" },
     { name = "mkdocstrings-python", marker = "extra == 'doc'", specifier = ">=2.0.5" },
+    { name = "multidict", marker = "extra == 'dev'", specifier = ">=6.9.1" },
     { name = "multidict", marker = "extra == 'test'", specifier = ">=6.9.1" },
     { name = "numpy", specifier = ">=2" },
     { name = "openvino", specifier = ">=2026.2.1" },
+    { name = "pillow", marker = "extra == 'dev'", specifier = ">=12.3.0" },
     { name = "pillow", marker = "extra == 'test'", specifier = ">=12.3.0" },
     { name = "pre-commit", marker = "extra == 'dev'" },
     { name = "pre-commit-uv", marker = "extra == 'dev'" },
+    { name = "properdocs", marker = "extra == 'dev'", specifier = ">=1.6.7" },
     { name = "properdocs", marker = "extra == 'doc'", specifier = ">=1.6.7" },
     { name = "psutil" },
+    { name = "pyarrow", marker = "extra == 'dev'", specifier = ">=24.0.0" },
     { name = "pyarrow", marker = "extra == 'test'", specifier = ">=24.0.0" },
+    { name = "pytest", marker = "extra == 'dev'", specifier = ">=9.1.1" },
     { name = "pytest", marker = "extra == 'test'", specifier = ">=9.1.1" },
+    { name = "pytest-mock", marker = "extra == 'dev'" },
     { name = "pytest-mock", marker = "extra == 'test'" },
-    { name = "ruff", marker = "extra == 'doc'", specifier = "==0.17.0" },
+    { name = "ruff", marker = "extra == 'dev'", specifier = "==0.17.1" },
+    { name = "ruff", marker = "extra == 'doc'", specifier = "==0.17.1" },
+    { name = "sentencepiece", marker = "extra == 'dev'", specifier = ">=0.2.1" },
     { name = "sentencepiece", marker = "extra == 'test'", specifier = ">=0.2.1" },
     { name = "tabulate", specifier = ">=0.10.0" },
+    { name = "timm", marker = "extra == 'dev'" },
     { name = "timm", marker = "extra == 'test'" },
     { name = "torch", marker = "extra == 'xpu'", specifier = ">=2.13.0", index = "https://download.pytorch.org/whl/xpu", conflict = { package = "torch-tweak", extra = "xpu" } },
-    { name = "torch-tweak", extras = ["doc"], marker = "extra == 'dev'" },
-    { name = "torch-tweak", extras = ["test"], marker = "extra == 'dev'" },
     { name = "torchao", specifier = ">=0.17.0", index = "https://download.pytorch.org/whl/cpu" },
+    { name = "transformers", marker = "extra == 'dev'", specifier = ">=5.13.0,<6" },
     { name = "transformers", marker = "extra == 'test'", specifier = ">=5.13.0,<6" },
+    { name = "urllib3", marker = "extra == 'dev'", specifier = ">=2.7.0" },
     { name = "urllib3", marker = "extra == 'test'", specifier = ">=2.7.0" },
     { name = "uv", marker = "extra == 'dev'", specifier = ">=0.11.26" },
     { name = "virtualenv", marker = "extra == 'dev'", specifier = ">=21.7.13" },
     { name = "wrapt", specifier = "~=2.2" },
 ]
-provides-extras = ["xpu", "test", "doc", "dev"]
+provides-extras = ["dev", "doc", "test", "xpu"]
 
 [package.metadata.requires-dev]
 xpu-nightly = [
@@ -2586,7 +2603,7 @@ wheels = [
 
 [[package]]
 name = "transformers"
-version = "5.19.0"
+version = "5.20.1"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "huggingface-hub" },
@@ -2601,9 +2618,9 @@ dependencies = [
     { name = "tqdm" },
     { name = "typer" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/65/4c/70012ed0795235fb6bd7806fafd4a1842f03e49ebbfa3bb9580e451948ce/transformers-5.19.0.tar.gz", hash = "sha256:87f38dd25e4521151b97e94520ac457f44a0ae8a8358a5b112daff6c64a822d6", size = 10032022, upload-time = "2026-10-06T16:39:00.229Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/32/03/2e8d6da6a582a0fdbaa7af9c0dab72dac113e6e3ea3b98d6ed67248322cc/transformers-5.20.1.tar.gz", hash = "sha256:25b30879e4c243f00630c1079171ede6d4f6bf76e68f978acd47628a640bc8a0", size = 10224416, upload-time = "2026-10-16T13:02:04.181Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/b9/59/1e7f1212c215c73690ae6cab4678efe1555ff985953e145d88cc212859b0/transformers-5.19.0-py3-none-any.whl", hash = "sha256:afcd2dd5f603ed28c1e1fcb00a338ccbb4ef5f878ed289635df8b58187afb518", size = 12599123, upload-time = "2026-10-06T16:38:56.794Z" },
+    { url = "https://files.pythonhosted.org/packages/ae/ba/057af605774c3c7a9228ce61d88040749134ef320426403b31bb73755d43/transformers-5.20.1-py3-none-any.whl", hash = "sha256:5f51ce444193e5d0a751e3fa489ddbc2224ff12f6675a5cfefd4044b09757c19", size = 12844669, upload-time = "2026-10-16T13:02:00.488Z" },
 ]
 
 [[package]]
@@ -2754,7 +2771,7 @@ wheels = [
 
 [[package]]
 name = "virtualenv"
-version = "21.14.7"
+version = "21.14.8"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "distlib" },
@@ -2766,9 +2783,9 @@ dependencies = [
     { name = "python-discovery" },
     { name = "typing-extensions", marker = "python_full_version < '3.11' or (extra == 'extra-11-torch-tweak-xpu' and extra == 'group-11-torch-tweak-xpu-nightly') or (extra == 'group-11-torch-tweak-xpu-nightly' and extra == 'group-11-torch-tweak-xpu-stable')" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/dc/3f/935cf1757643381fb7f7cc98197b4bc119223d9c2cf37dc3b03ad2a4455f/virtualenv-21.14.7.tar.gz", hash = "sha256:5f427d56f39eb7e7447d641dd4b7ab1e9c92793f498f35f26da2e4972c5546ae", size = 5471741, upload-time = "2026-10-12T01:27:31.842Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/0b/6a/fbdeea5c07d5674139639d42a97a41d26e9b9b8cb2a1265fa936f655ee20/virtualenv-21.14.8.tar.gz", hash = "sha256:394e45ed610ceffb5018e1a179e3a8012c02fd87fe792ab4aae67ce5e7e3afbd", size = 5474561, upload-time = "2026-10-16T00:09:09.672Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/52/5b/799c3e5b8e04d5fa1c9b61a4c1f5079603e747205c7311b92abd30283df5/virtualenv-21.14.7-py3-none-any.whl", hash = "sha256:3769219a308c5d2f093e7729621ad12a6346b5767a7ec4338414e2a0fb0c526b", size = 5487587, upload-time = "2026-10-12T01:27:29.37Z" },
+    { url = "https://files.pythonhosted.org/packages/14/01/cd63b97dd556293e1c74d76053936d9cef11a28eac605c735ae9f0ee324f/virtualenv-21.14.8-py3-none-any.whl", hash = "sha256:d2a347fdbc1a65e33c2c5e84dc767b4a3538a25749536a752744d4fe1f71c37a", size = 5487606, upload-time = "2026-10-16T00:09:07.441Z" },
 ]
 
 [[package]]
