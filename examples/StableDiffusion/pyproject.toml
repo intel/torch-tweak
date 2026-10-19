@@ -67,20 +67,16 @@ inference = "stable_diffusion.inference:main"
 benchmark-hybrid = "stable_diffusion.benchmark_hybrid:main"
 
 [build-system]
-requires = ["setuptools>=83.0.0", "setuptools_scm[toml]>=10.2.0", "wheel>=0.47.0"]
-build-backend = "setuptools.build_meta"
+requires = [
+    "hatchling>=1.27.0",
+    "hatch-vcs>=0.4.0",
+    "setuptools>=83.0.0"
+]
+build-backend = "hatchling.build"
 
-[tool.setuptools]
-include-package-data = true
+[tool.hatch.build.targets.wheel]
+packages = ["stable_diffusion"]
 
-[tool.setuptools_scm]
-root = "../.."
-local_scheme = "no-local-version"
-fallback_version = "0.4.0"
-
-[tool.setuptools.packages.find]
-namespaces = false
-include = ["stable_diffusion"]
-
-[tool.setuptools.package-data]
-stable_diffusion = ["**/*"]
+[tool.hatch.version]
+source = "vcs"
+raw-options = { root = "../..", local_scheme = "no-local-version", fallback_version = "0.4.0" }

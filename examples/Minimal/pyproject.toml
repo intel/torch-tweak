@@ -35,13 +35,16 @@ explicit = true
 demo = "demo:main"
 
 [build-system]
-requires = ["setuptools>=83.0.0", "setuptools_scm[toml]>=10.2.0", "wheel>=0.47.0"]
-build-backend = "setuptools.build_meta"
+requires = [
+    "hatchling>=1.27.0",
+    "hatch-vcs>=0.4.0",
+    "setuptools>=83.0.0"
+]
+build-backend = "hatchling.build"
 
-[tool.setuptools]
-py-modules = ["demo"]
+[tool.hatch.build.targets.wheel]
+only-include = ["demo.py"]
 
-[tool.setuptools_scm]
-root = "../.."
-local_scheme = "no-local-version"
-fallback_version = "0.4.0"
+[tool.hatch.version]
+source = "vcs"
+raw-options = { root = "../..", local_scheme = "no-local-version", fallback_version = "0.4.0" }
