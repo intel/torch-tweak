@@ -2839,7 +2839,7 @@ NOTE: This file has been modified by Intel Corporation.
 <li>Maximum performance discovery</li>
 </ul>
 <h2 id="firstwinsstrategy">FirstWinsStrategy</h2>
-<p>Tries backends in priority order and returns the first one that successfully builds and validates. If a backend fails, the strategy moves on to the next candidate instead of aborting. If all backends fail, the error is caught and the original model is used as-is. List backends from fastest to most compatible - for example, OpenVINO first, then Torch Inductor.</p>
+<p>Tries backends in priority order and returns the first one that successfully builds and validates. If a backend fails, the strategy moves on to the next candidate instead of aborting. If all backends fail, the error is caught and the original model is used as-is. The default order is Torch Inductor, then OpenVINO, then eager. Put a backend earlier only when you want that one to win as soon as it builds.</p>
 <h3 id="usage_1">Usage</h3>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">torch_tweak.torch.backend</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
 <a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>    <span class="n">TorchAOBackend</span><span class="p">,</span>
@@ -2863,7 +2863,7 @@ NOTE: This file has been modified by Intel Corporation.
 </code></pre></div>
 <h3 id="how-it-works">How It Works</h3>
 <ol>
-<li>Tries first backend (e.g., OpenVINO)</li>
+<li>Tries the first backend (for example, Torch Inductor)</li>
 <li>If successful → uses it, done</li>
 <li>If fails (e.g., unsupported op, conversion error, memory limit) → tries next backend</li>
 <li>Repeats until a backend succeeds or all fail</li>

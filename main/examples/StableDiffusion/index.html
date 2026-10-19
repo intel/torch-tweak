@@ -2513,7 +2513,7 @@ NOTE: This file has been modified by Intel Corporation.
 <h1 id="stable-diffusion-tuning-with-torch-tweak">Stable Diffusion tuning with Torch Tweak</h1>
 <p>This example shows how to tune a Hugging Face <strong>Stable Diffusion</strong> pipeline with Torch Tweak.
 Selected <code>nn.Module</code> blocks are wrapped, and a strategy picks backends per module and per input graph.</p>
-<p><strong>Backends:</strong> OpenVINO, Torch Inductor (<code>torch.compile</code>), Torch Eager - see <code>stable_diffusion/tuning_strategy.py</code>.</p>
+<p><strong>Backends:</strong> Torch Inductor (<code>torch.compile</code>), OpenVINO, then Torch Eager. See <code>stable_diffusion/tuning_strategy.py</code>.</p>
 <p><strong>Default model:</strong> <code>stable-diffusion-v1-5/stable-diffusion-v1-5</code> (fits ~12 GB VRAM; larger checkpoints such as SD 3 need much more memory).</p>
 <h2 id="environment-setup">Environment Setup</h2>
 <p>From this example directory (<code>examples/StableDiffusion</code>). PyTorch comes from the <strong><code>xpu-stable</code></strong> dependency group (Intel XPU wheels). Load oneAPI before <code>uv sync</code> / <code>uv run</code>.</p>
@@ -2545,12 +2545,12 @@ Selected <code>nn.Module</code> blocks are wrapped, and a strategy picks backend
 <li><code>--tuned-model-path</code>: Path to save or load the tuned checkpoint (default: <code>stable_diffusion.tt</code>)</li>
 </ul>
 <h3 id="hybrid-vs-single-backend-benchmark">Hybrid vs single-backend benchmark</h3>
-<p>Compare <strong>HighestThroughput</strong> (OpenVINO + Inductor + Eager per module) against single-backend baselines:</p>
+<p>Compare <strong>HighestThroughput</strong> (Inductor, OpenVINO, and Eager per module) against single-backend baselines:</p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a>uv<span class="w"> </span>run<span class="w"> </span>benchmark-hybrid<span class="w"> </span><span class="se">\</span>
 <a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a><span class="w">  </span>--model-name<span class="w"> </span>stable-diffusion-v1-5/stable-diffusion-v1-5<span class="w"> </span><span class="se">\</span>
 <a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a><span class="w">  </span>--sizes<span class="w"> </span><span class="s2">"512,512"</span><span class="w"> </span><span class="se">\</span>
 <a id="__codelineno-4-4" name="__codelineno-4-4" href="#__codelineno-4-4"></a><span class="w">  </span>--steps<span class="w"> </span><span class="m">8</span><span class="w"> </span><span class="se">\</span>
-<a id="__codelineno-4-5" name="__codelineno-4-5" href="#__codelineno-4-5"></a><span class="w">  </span>--scenarios<span class="w"> </span>hybrid,openvino,inductor,eager<span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-4-5" name="__codelineno-4-5" href="#__codelineno-4-5"></a><span class="w">  </span>--scenarios<span class="w"> </span>hybrid,inductor,eager,openvino<span class="w"> </span><span class="se">\</span>
 <a id="__codelineno-4-6" name="__codelineno-4-6" href="#__codelineno-4-6"></a><span class="w">  </span>--output-json<span class="w"> </span>benchmark_sd_hybrid_results.json
 </code></pre></div>
 <p>Use <code>--scenarios hybrid</code> for a quicker run. Results include per-module backend choices and seconds per pipeline run.</p>

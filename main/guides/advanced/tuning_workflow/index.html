@@ -2918,9 +2918,10 @@ NOTE: This file has been modified by Intel Corporation.
 <h4 id="firstwinsstrategy">FirstWinsStrategy</h4>
 <p>Tries backends in priority order and returns the first one that builds and validates successfully. Not every backend can handle every model (e.g., OpenVINO may fail during model conversion, Torch Inductor may hit graph breaks), so this strategy provides automatic fallback instead of aborting.</p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a><span class="n">strategy</span> <span class="o">=</span> <span class="n">tt</span><span class="o">.</span><span class="n">FirstWinsStrategy</span><span class="p">([</span>
-<a id="__codelineno-7-2" name="__codelineno-7-2" href="#__codelineno-7-2"></a>    <span class="n">tt</span><span class="o">.</span><span class="n">backend</span><span class="o">.</span><span class="n">OpenVINOBackend</span><span class="p">(),</span>
-<a id="__codelineno-7-3" name="__codelineno-7-3" href="#__codelineno-7-3"></a>    <span class="n">tt</span><span class="o">.</span><span class="n">backend</span><span class="o">.</span><span class="n">TorchInductorBackend</span><span class="p">(),</span>
-<a id="__codelineno-7-4" name="__codelineno-7-4" href="#__codelineno-7-4"></a><span class="p">])</span>
+<a id="__codelineno-7-2" name="__codelineno-7-2" href="#__codelineno-7-2"></a>    <span class="n">tt</span><span class="o">.</span><span class="n">backend</span><span class="o">.</span><span class="n">TorchInductorBackend</span><span class="p">(),</span>
+<a id="__codelineno-7-3" name="__codelineno-7-3" href="#__codelineno-7-3"></a>    <span class="n">tt</span><span class="o">.</span><span class="n">backend</span><span class="o">.</span><span class="n">OpenVINOBackend</span><span class="p">(),</span>
+<a id="__codelineno-7-4" name="__codelineno-7-4" href="#__codelineno-7-4"></a>    <span class="n">tt</span><span class="o">.</span><span class="n">backend</span><span class="o">.</span><span class="n">TorchEagerBackend</span><span class="p">(),</span>
+<a id="__codelineno-7-5" name="__codelineno-7-5" href="#__codelineno-7-5"></a><span class="p">])</span>
 </code></pre></div>
 <p><strong>Workflow</strong>:</p>
 <ol>
@@ -2945,10 +2946,11 @@ NOTE: This file has been modified by Intel Corporation.
 <h4 id="highestthroughputstrategy">HighestThroughputStrategy</h4>
 <p>Before actual tuning, this strategy tries to estimate <code>max_batch_size</code>. It does so by incrementing <code>batch_size</code> (in powers of 2) and measuring throughput using the original module. The <code>max_batch_size</code> is picked for the best throughput and then is used for selecting the best backend:</p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a><span class="n">strategy</span> <span class="o">=</span> <span class="n">tt</span><span class="o">.</span><span class="n">HighestThroughputStrategy</span><span class="p">([</span>
-<a id="__codelineno-9-2" name="__codelineno-9-2" href="#__codelineno-9-2"></a>    <span class="n">tt</span><span class="o">.</span><span class="n">backend</span><span class="o">.</span><span class="n">OpenVINOBackend</span><span class="p">(),</span>
+<a id="__codelineno-9-2" name="__codelineno-9-2" href="#__codelineno-9-2"></a>    <span class="n">tt</span><span class="o">.</span><span class="n">backend</span><span class="o">.</span><span class="n">TorchAOBackend</span><span class="p">(),</span>
 <a id="__codelineno-9-3" name="__codelineno-9-3" href="#__codelineno-9-3"></a>    <span class="n">tt</span><span class="o">.</span><span class="n">backend</span><span class="o">.</span><span class="n">TorchInductorBackend</span><span class="p">(),</span>
-<a id="__codelineno-9-4" name="__codelineno-9-4" href="#__codelineno-9-4"></a>    <span class="n">tt</span><span class="o">.</span><span class="n">backend</span><span class="o">.</span><span class="n">TorchEagerBackend</span><span class="p">(),</span>
-<a id="__codelineno-9-5" name="__codelineno-9-5" href="#__codelineno-9-5"></a><span class="p">])</span>
+<a id="__codelineno-9-4" name="__codelineno-9-4" href="#__codelineno-9-4"></a>    <span class="n">tt</span><span class="o">.</span><span class="n">backend</span><span class="o">.</span><span class="n">OpenVINOBackend</span><span class="p">(),</span>
+<a id="__codelineno-9-5" name="__codelineno-9-5" href="#__codelineno-9-5"></a>    <span class="n">tt</span><span class="o">.</span><span class="n">backend</span><span class="o">.</span><span class="n">TorchEagerBackend</span><span class="p">(),</span>
+<a id="__codelineno-9-6" name="__codelineno-9-6" href="#__codelineno-9-6"></a><span class="p">])</span>
 </code></pre></div>
 <p><strong>Workflow</strong>:</p>
 <ol>
