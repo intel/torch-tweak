@@ -1,0 +1,23 @@
+name: Semgrep test
+
+permissions:
+  contents: read
+ 
+on:
+  pull_request: {}
+  workflow_dispatch: {}
+  push:
+    branches: [main]
+ 
+jobs:
+  semgrep:
+    runs-on: [BMG]
+    container: semgrep/semgrep:latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        
+      - name: Run Semgrep scan
+        env:
+          SEMGREP_APP_TOKEN: ${{ secrets.SEMGREP_APP_TOKEN }}
+        run: semgrep ci --code --secrets
