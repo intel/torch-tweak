@@ -2,166 +2,166 @@
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
     <url>
          <loc>https://intel.github.io/torch-tweak/main/ChangeLog/</loc>
-         <lastmod>2026-10-15</lastmod>
+         <lastmod>2026-10-19</lastmod>
     </url>
     <url>
          <loc>https://intel.github.io/torch-tweak/main/LICENSE/</loc>
-         <lastmod>2026-10-15</lastmod>
+         <lastmod>2026-10-19</lastmod>
     </url>
     <url>
          <loc>https://intel.github.io/torch-tweak/main/known_issues/</loc>
-         <lastmod>2026-10-15</lastmod>
+         <lastmod>2026-10-19</lastmod>
     </url>
     <url>
          <loc>https://intel.github.io/torch-tweak/main/api/backends/openvino_backend/</loc>
-         <lastmod>2026-10-15</lastmod>
+         <lastmod>2026-10-19</lastmod>
     </url>
     <url>
          <loc>https://intel.github.io/torch-tweak/main/api/backends/torch_eager_backend/</loc>
-         <lastmod>2026-10-15</lastmod>
+         <lastmod>2026-10-19</lastmod>
     </url>
     <url>
          <loc>https://intel.github.io/torch-tweak/main/api/backends/torch_inductor_backend/</loc>
-         <lastmod>2026-10-15</lastmod>
+         <lastmod>2026-10-19</lastmod>
     </url>
     <url>
          <loc>https://intel.github.io/torch-tweak/main/api/backends/torchao_backend/</loc>
-         <lastmod>2026-10-15</lastmod>
+         <lastmod>2026-10-19</lastmod>
     </url>
     <url>
          <loc>https://intel.github.io/torch-tweak/main/api/tune_strategies/first_wins_strategy/</loc>
-         <lastmod>2026-10-15</lastmod>
+         <lastmod>2026-10-19</lastmod>
     </url>
     <url>
          <loc>https://intel.github.io/torch-tweak/main/api/tune_strategies/highest_throughput_strategy/</loc>
-         <lastmod>2026-10-15</lastmod>
+         <lastmod>2026-10-19</lastmod>
     </url>
     <url>
          <loc>https://intel.github.io/torch-tweak/main/api/tune_strategies/one_backend_strategy/</loc>
-         <lastmod>2026-10-15</lastmod>
+         <lastmod>2026-10-19</lastmod>
     </url>
     <url>
          <loc>https://intel.github.io/torch-tweak/main/api/tuning/backend/</loc>
-         <lastmod>2026-10-15</lastmod>
+         <lastmod>2026-10-19</lastmod>
     </url>
     <url>
          <loc>https://intel.github.io/torch-tweak/main/api/tuning/config/</loc>
-         <lastmod>2026-10-15</lastmod>
+         <lastmod>2026-10-19</lastmod>
     </url>
     <url>
          <loc>https://intel.github.io/torch-tweak/main/api/tuning/inspect/</loc>
-         <lastmod>2026-10-15</lastmod>
+         <lastmod>2026-10-19</lastmod>
     </url>
     <url>
          <loc>https://intel.github.io/torch-tweak/main/api/tuning/module/</loc>
-         <lastmod>2026-10-15</lastmod>
+         <lastmod>2026-10-19</lastmod>
     </url>
     <url>
          <loc>https://intel.github.io/torch-tweak/main/api/tuning/tuning/</loc>
-         <lastmod>2026-10-15</lastmod>
+         <lastmod>2026-10-19</lastmod>
     </url>
     <url>
          <loc>https://intel.github.io/torch-tweak/main/examples/</loc>
-         <lastmod>2026-10-15</lastmod>
+         <lastmod>2026-10-19</lastmod>
     </url>
     <url>
          <loc>https://intel.github.io/torch-tweak/main/examples/E5Large/</loc>
-         <lastmod>2026-10-15</lastmod>
+         <lastmod>2026-10-19</lastmod>
     </url>
     <url>
          <loc>https://intel.github.io/torch-tweak/main/examples/ESM2/</loc>
-         <lastmod>2026-10-15</lastmod>
+         <lastmod>2026-10-19</lastmod>
     </url>
     <url>
          <loc>https://intel.github.io/torch-tweak/main/examples/FLUX/</loc>
-         <lastmod>2026-10-15</lastmod>
+         <lastmod>2026-10-19</lastmod>
     </url>
     <url>
          <loc>https://intel.github.io/torch-tweak/main/examples/LLM/</loc>
-         <lastmod>2026-10-15</lastmod>
+         <lastmod>2026-10-19</lastmod>
     </url>
     <url>
          <loc>https://intel.github.io/torch-tweak/main/examples/Minimal/</loc>
-         <lastmod>2026-10-15</lastmod>
+         <lastmod>2026-10-19</lastmod>
     </url>
     <url>
          <loc>https://intel.github.io/torch-tweak/main/examples/ParakeetCTC/</loc>
-         <lastmod>2026-10-15</lastmod>
+         <lastmod>2026-10-19</lastmod>
     </url>
     <url>
          <loc>https://intel.github.io/torch-tweak/main/examples/ParakeetRNNT/</loc>
-         <lastmod>2026-10-15</lastmod>
+         <lastmod>2026-10-19</lastmod>
     </url>
     <url>
          <loc>https://intel.github.io/torch-tweak/main/examples/ResNet/</loc>
-         <lastmod>2026-10-15</lastmod>
+         <lastmod>2026-10-19</lastmod>
     </url>
     <url>
          <loc>https://intel.github.io/torch-tweak/main/examples/StableDiffusion/</loc>
-         <lastmod>2026-10-15</lastmod>
+         <lastmod>2026-10-19</lastmod>
     </url>
     <url>
          <loc>https://intel.github.io/torch-tweak/main/guides/inspect/</loc>
-         <lastmod>2026-10-15</lastmod>
+         <lastmod>2026-10-19</lastmod>
     </url>
     <url>
          <loc>https://intel.github.io/torch-tweak/main/guides/tuning/</loc>
-         <lastmod>2026-10-15</lastmod>
+         <lastmod>2026-10-19</lastmod>
     </url>
     <url>
          <loc>https://intel.github.io/torch-tweak/main/guides/advanced/execution_graphs/</loc>
-         <lastmod>2026-10-15</lastmod>
+         <lastmod>2026-10-19</lastmod>
     </url>
     <url>
          <loc>https://intel.github.io/torch-tweak/main/guides/advanced/tuning_workflow/</loc>
-         <lastmod>2026-10-15</lastmod>
+         <lastmod>2026-10-19</lastmod>
     </url>
     <url>
          <loc>https://intel.github.io/torch-tweak/main/guides/backends/openvino_backend/</loc>
-         <lastmod>2026-10-15</lastmod>
+         <lastmod>2026-10-19</lastmod>
     </url>
     <url>
          <loc>https://intel.github.io/torch-tweak/main/guides/backends/torch_eager_backend/</loc>
-         <lastmod>2026-10-15</lastmod>
+         <lastmod>2026-10-19</lastmod>
     </url>
     <url>
          <loc>https://intel.github.io/torch-tweak/main/guides/backends/torch_inductor_backend/</loc>
-         <lastmod>2026-10-15</lastmod>
+         <lastmod>2026-10-19</lastmod>
     </url>
     <url>
          <loc>https://intel.github.io/torch-tweak/main/guides/backends/torchao_backend/</loc>
-         <lastmod>2026-10-15</lastmod>
+         <lastmod>2026-10-19</lastmod>
     </url>
     <url>
          <loc>https://intel.github.io/torch-tweak/main/guides/deployment/deployment/</loc>
-         <lastmod>2026-10-15</lastmod>
+         <lastmod>2026-10-19</lastmod>
     </url>
     <url>
          <loc>https://intel.github.io/torch-tweak/main/guides/tune_strategies/tune_strategies/</loc>
-         <lastmod>2026-10-15</lastmod>
+         <lastmod>2026-10-19</lastmod>
     </url>
     <url>
          <loc>https://intel.github.io/torch-tweak/main/learn/backends/</loc>
-         <lastmod>2026-10-15</lastmod>
+         <lastmod>2026-10-19</lastmod>
     </url>
     <url>
          <loc>https://intel.github.io/torch-tweak/main/learn/core_functionalities/</loc>
-         <lastmod>2026-10-15</lastmod>
+         <lastmod>2026-10-19</lastmod>
     </url>
     <url>
          <loc>https://intel.github.io/torch-tweak/main/learn/install/</loc>
-         <lastmod>2026-10-15</lastmod>
+         <lastmod>2026-10-19</lastmod>
     </url>
     <url>
          <loc>https://intel.github.io/torch-tweak/main/learn/observability/</loc>
-         <lastmod>2026-10-15</lastmod>
+         <lastmod>2026-10-19</lastmod>
     </url>
     <url>
          <loc>https://intel.github.io/torch-tweak/main/learn/overview/</loc>
-         <lastmod>2026-10-15</lastmod>
+         <lastmod>2026-10-19</lastmod>
     </url>
     <url>
          <loc>https://intel.github.io/torch-tweak/main/learn/quick_start/</loc>
-         <lastmod>2026-10-15</lastmod>
+         <lastmod>2026-10-19</lastmod>
     </url>
 </urlset>
