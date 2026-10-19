@@ -113,6 +113,7 @@ Everyday workflows:
 ```shell
 uv sync          # installs the example into .venv
 uv run tune      # entry points keep working
+pip install .    # pip path, checked by the nightly workflow in a representative example
 ```
 
 ### Building the docs locally

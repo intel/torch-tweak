@@ -146,9 +146,12 @@ jobs:
           echo "::endgroup::"
           echo "::group::llm_all"
 
+          python3 -m pip install \
+            --index-url https://download.pytorch.org/whl/xpu \
+            --extra-index-url https://pypi.org/simple \
+            ./examples/LLM
           cd examples/LLM
-          uv sync
-          uv run benchmark-all --model_id microsoft/Phi-3-mini-4k-instruct
+          benchmark-all --model_id microsoft/Phi-3-mini-4k-instruct
           cd -
 
           echo "::endgroup::"

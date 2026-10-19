@@ -122,14 +122,9 @@ jobs:
 
           echo "::group::llm"
           cd examples/LLM
-          . ../../.venv/bin/activate
-          pip install \
-            --index-url https://download.pytorch.org/whl/xpu \
-            --extra-index-url https://pypi.org/simple \
-            .
-          tune --model_id microsoft/Phi-3-mini-4k-instruct
-          benchmark --model_id microsoft/Phi-3-mini-4k-instruct --sequence_lengths "128,1024"
-          deactivate
+          uv sync
+          uv run tune --model_id microsoft/Phi-3-mini-4k-instruct
+          uv run benchmark --model_id microsoft/Phi-3-mini-4k-instruct --sequence_lengths "128,1024"
           cd -
           echo "::endgroup::"
 
