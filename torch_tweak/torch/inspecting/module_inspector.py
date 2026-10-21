@@ -20,6 +20,10 @@ Object paths used in ModuleInfo are relative to the root module and are in all
 dot notation, even for dictionaries and lists. (e.g., '.list.0.layers`,
 '.dict.key.layers`, `.encoder.layers.0.self_attn.q_proj.weight`).
 
+The depth of a module is the number of executed modules above it in the object
+tree, see `ModuleInfo.depth`. Containers such as lists, dicts, `nn.ModuleList`,
+and modules whose forward never ran do not count.
+
 Environment variables that could be used:
 
     TORCH_TWEAK_INSPECT_DEBUG:
@@ -34,7 +38,7 @@ Environment variables that could be used:
 
 import time
 from collections.abc import Callable
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from functools import cache, wraps
 from logging import getLogger
 from typing import Any
@@ -52,7 +56,7 @@ from torch_tweak.torch.utils.xpu import synchronize
 
 logger = getLogger(__name__)
 
-DEFAULT_MAX_RECURSION_DEPTH = 5
+EXTRA_PATH_SEGMENTS = 4
 
 DEFAULT_INSPECT_DEBUG = False
 
@@ -63,7 +67,7 @@ DEFAULT_INSPECT_DEBUG_RAISE = False
 class InspectContext:
     """Context for inspecting modules."""
 
-    depth: int = 0
+    path_depth: int = 0
     object_path: str = ""
     module_parent: ModuleInfo | None = None
 
@@ -87,36 +91,40 @@ class InspectContext:
             module=module,
             parent=self.module_parent,
             object_path=self.object_path,
-            depth=self.depth,
         )
 
     def next(self, name: str = "", parent: ModuleInfo | None = None) -> "InspectContext":
         """Get the next inspect context - increment depth and add name to object path."""
         return InspectContext(
-            depth=self.depth + 1,
+            path_depth=self.path_depth + 1,
             object_path=f"{self.object_path}.{name}" if name else self.object_path,
             module_parent=parent,
         )
 
     def clone(self, **kwargs) -> "InspectContext":
         """Get the inspect context, with optional changes."""
-        return InspectContext(
-            depth=kwargs.get("depth", self.depth),
-            object_path=kwargs.get("object_path", self.object_path),
-            module_parent=kwargs.get("module_parent", self.module_parent),
-        )
+        return replace(self, **kwargs)
 
 
 class ModuleInspector:
     """Class for inspecting PyTorch modules and tracking their execution."""
 
-    def __init__(self, min_depth: int = 0, max_depth: int = 5):
-        """Initialize the module inspector."""
+    def __init__(self, depth: int = 0):
+        """Initialize the module inspector.
+
+        Args:
+            depth: Depth at which `get_modules` cuts the model.
+        """
+        if depth < 0:
+            raise ValueError(f"Expected depth >= 0, got {depth}")
         self._module_info: dict[Any, ModuleInfo] = {}
         self._original_forward: dict[Any, Any] = {}
         self._inspected_objects: set = set()  # Track objects that have been inspected
-        self._min_recursion_depth = min_depth
-        self._max_recursion_depth = max_depth
+        self._depth = depth
+        # Depth is known only after execution, so traversal is bounded by the object path.
+        # One depth level allows two path segments: the module and a container, as in `layers.0`.
+        # EXTRA_PATH_SEGMENTS covers further containers and modules that never run.
+        self._max_path_depth = 2 * (depth + 1) + EXTRA_PATH_SEGMENTS
         self._execution_parent_module: list[ModuleInfo] = []  # used for logging the execution path only
         if _get_inspect_debug():
             self._debug_inspecting_functions()
@@ -141,40 +149,19 @@ class ModuleInspector:
         self._module_info.clear()
         self._original_forward.clear()
 
-    # fixme: this is wrong if depth is smaller than _min_recursion_depth - some branches are skipped, without even warning
-    # in case of min_depth=0, it will skip all modules except the root one (or in unusual cases all roots)
     def get_modules(self) -> list[ModuleInfo]:
-        """Get list of top-level executed modules or their first executed children.
+        """Get executed modules that cut the model at `depth`.
+
+        The result holds every executed module at `depth`, plus every shallower executed module
+        without executed children. No returned module is nested in another one.
 
         Returns:
-            List of modules that were executed at the top level or their first executed children
-            if the parent wasn't executed.
+            Modules in inspection order.
         """
-        executed_modules = []
-
-        # removing parents calls
-        for module_info in self._module_info.values():
-            if module_info.depth < self._min_recursion_depth:
-                module_info.forward_called = False
-
-        def parent_called(module_info: ModuleInfo) -> bool:
-            if module_info.parent is None:
-                return False
-
-            if module_info.parent.forward_called:
-                return True
-
-            return parent_called(module_info.parent)
-
-        for module_info in self._module_info.values():
-            if (
-                module_info.depth >= self._min_recursion_depth
-                and module_info.forward_called
-                and not parent_called(module_info)
-            ):
-                executed_modules.append(module_info)
-
-        return executed_modules
+        depth = self._depth
+        executed = [m for m in self._module_info.values() if m.forward_called]
+        with_executed_children = {id(m.executed_parent) for m in executed if m.executed_parent is not None}
+        return [m for m in executed if m.depth == depth or (m.depth < depth and id(m) not in with_executed_children)]
 
     def _inspect_object(self, obj: Any, *, context: InspectContext) -> None:
         """Inspect an object and its members for PyTorch modules.
@@ -184,7 +171,7 @@ class ModuleInspector:
             context: The context of the inspection
         """
         # Check recursion depth
-        if context.depth > self._max_recursion_depth:
+        if context.path_depth > self._max_path_depth:
             return
 
         # Skip Python built-in objects
@@ -399,8 +386,8 @@ class ModuleInspector:
         @wraps(method)
         def inspect_debug(*args, **kwargs):
             context = kwargs["context"]
-            indent = "│" * context.depth
-            logger.debug("%s%s(%d)%s for %s", indent, "├", context.depth, method.__name__, context.object_path)
+            indent = "│" * context.path_depth
+            logger.debug("%s%s(%d)%s for %s", indent, "├", context.path_depth, method.__name__, context.object_path)
             try:
                 return method(*args, **kwargs)
             finally:
