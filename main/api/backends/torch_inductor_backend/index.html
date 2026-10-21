@@ -2930,43 +2930,43 @@ NOTE: This file has been modified by Intel Corporation.
 
                   <details class="mkdocstrings-source">
                     <summary>Source code in <code>torch_tweak/torch/backend/torch_inductor_backend.py</code></summary>
-                    <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-113">113</a></span>
-<span class="normal"><a href="#__codelineno-0-114">114</a></span>
-<span class="normal"><a href="#__codelineno-0-115">115</a></span>
-<span class="normal"><a href="#__codelineno-0-116">116</a></span>
-<span class="normal"><a href="#__codelineno-0-117">117</a></span>
-<span class="normal"><a href="#__codelineno-0-118">118</a></span>
-<span class="normal"><a href="#__codelineno-0-119">119</a></span>
-<span class="normal"><a href="#__codelineno-0-120">120</a></span>
-<span class="normal"><a href="#__codelineno-0-121">121</a></span>
-<span class="normal"><a href="#__codelineno-0-122">122</a></span>
-<span class="normal"><a href="#__codelineno-0-123">123</a></span>
-<span class="normal"><a href="#__codelineno-0-124">124</a></span>
-<span class="normal"><a href="#__codelineno-0-125">125</a></span>
-<span class="normal"><a href="#__codelineno-0-126">126</a></span>
-<span class="normal"><a href="#__codelineno-0-127">127</a></span>
-<span class="normal"><a href="#__codelineno-0-128">128</a></span>
-<span class="normal"><a href="#__codelineno-0-129">129</a></span>
-<span class="normal"><a href="#__codelineno-0-130">130</a></span>
-<span class="normal"><a href="#__codelineno-0-131">131</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-0-113" name="__codelineno-0-113"></a><span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
-<a id="__codelineno-0-114" name="__codelineno-0-114"></a>    <span class="bp">self</span><span class="p">,</span>
-<a id="__codelineno-0-115" name="__codelineno-0-115"></a>    <span class="n">config</span><span class="p">:</span> <span class="n">TorchInductorBackendConfig</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-<a id="__codelineno-0-116" name="__codelineno-0-116"></a><span class="p">):</span>
-<a id="__codelineno-0-117" name="__codelineno-0-117"></a><span class="w">    </span><span class="sd">"""Initializes backend.</span>
-<a id="__codelineno-0-118" name="__codelineno-0-118"></a>
-<a id="__codelineno-0-119" name="__codelineno-0-119"></a><span class="sd">    Args:</span>
-<a id="__codelineno-0-120" name="__codelineno-0-120"></a><span class="sd">        config: Configuration for torch compile with inductor backend</span>
-<a id="__codelineno-0-121" name="__codelineno-0-121"></a><span class="sd">    """</span>
-<a id="__codelineno-0-122" name="__codelineno-0-122"></a>    <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
-<a id="__codelineno-0-123" name="__codelineno-0-123"></a>
-<a id="__codelineno-0-124" name="__codelineno-0-124"></a>    <span class="c1"># initialize variables</span>
-<a id="__codelineno-0-125" name="__codelineno-0-125"></a>    <span class="bp">self</span><span class="o">.</span><span class="n">_config</span> <span class="o">=</span> <span class="n">config</span> <span class="ow">or</span> <span class="n">TorchInductorBackendConfig</span><span class="p">()</span>
-<a id="__codelineno-0-126" name="__codelineno-0-126"></a>
-<a id="__codelineno-0-127" name="__codelineno-0-127"></a>    <span class="c1"># build variables</span>
-<a id="__codelineno-0-128" name="__codelineno-0-128"></a>    <span class="bp">self</span><span class="o">.</span><span class="n">_compiled_module</span> <span class="o">=</span> <span class="kc">None</span>
-<a id="__codelineno-0-129" name="__codelineno-0-129"></a>    <span class="bp">self</span><span class="o">.</span><span class="n">_orig_module</span> <span class="o">=</span> <span class="kc">None</span>
-<a id="__codelineno-0-130" name="__codelineno-0-130"></a>    <span class="bp">self</span><span class="o">.</span><span class="n">_output_dtype</span> <span class="o">=</span> <span class="kc">None</span>
-<a id="__codelineno-0-131" name="__codelineno-0-131"></a>    <span class="bp">self</span><span class="o">.</span><span class="n">_data</span> <span class="o">=</span> <span class="kc">None</span>
+                    <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#torch_tweak.torch.backend.TorchInductorBackend--source--__codelineno-0-113">113</a></span>
+<span class="normal"><a href="#torch_tweak.torch.backend.TorchInductorBackend--source--__codelineno-0-114">114</a></span>
+<span class="normal"><a href="#torch_tweak.torch.backend.TorchInductorBackend--source--__codelineno-0-115">115</a></span>
+<span class="normal"><a href="#torch_tweak.torch.backend.TorchInductorBackend--source--__codelineno-0-116">116</a></span>
+<span class="normal"><a href="#torch_tweak.torch.backend.TorchInductorBackend--source--__codelineno-0-117">117</a></span>
+<span class="normal"><a href="#torch_tweak.torch.backend.TorchInductorBackend--source--__codelineno-0-118">118</a></span>
+<span class="normal"><a href="#torch_tweak.torch.backend.TorchInductorBackend--source--__codelineno-0-119">119</a></span>
+<span class="normal"><a href="#torch_tweak.torch.backend.TorchInductorBackend--source--__codelineno-0-120">120</a></span>
+<span class="normal"><a href="#torch_tweak.torch.backend.TorchInductorBackend--source--__codelineno-0-121">121</a></span>
+<span class="normal"><a href="#torch_tweak.torch.backend.TorchInductorBackend--source--__codelineno-0-122">122</a></span>
+<span class="normal"><a href="#torch_tweak.torch.backend.TorchInductorBackend--source--__codelineno-0-123">123</a></span>
+<span class="normal"><a href="#torch_tweak.torch.backend.TorchInductorBackend--source--__codelineno-0-124">124</a></span>
+<span class="normal"><a href="#torch_tweak.torch.backend.TorchInductorBackend--source--__codelineno-0-125">125</a></span>
+<span class="normal"><a href="#torch_tweak.torch.backend.TorchInductorBackend--source--__codelineno-0-126">126</a></span>
+<span class="normal"><a href="#torch_tweak.torch.backend.TorchInductorBackend--source--__codelineno-0-127">127</a></span>
+<span class="normal"><a href="#torch_tweak.torch.backend.TorchInductorBackend--source--__codelineno-0-128">128</a></span>
+<span class="normal"><a href="#torch_tweak.torch.backend.TorchInductorBackend--source--__codelineno-0-129">129</a></span>
+<span class="normal"><a href="#torch_tweak.torch.backend.TorchInductorBackend--source--__codelineno-0-130">130</a></span>
+<span class="normal"><a href="#torch_tweak.torch.backend.TorchInductorBackend--source--__codelineno-0-131">131</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="torch_tweak.torch.backend.TorchInductorBackend--source--__codelineno-0-113" name="torch_tweak.torch.backend.TorchInductorBackend--source--__codelineno-0-113"></a><span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
+<a id="torch_tweak.torch.backend.TorchInductorBackend--source--__codelineno-0-114" name="torch_tweak.torch.backend.TorchInductorBackend--source--__codelineno-0-114"></a>    <span class="bp">self</span><span class="p">,</span>
+<a id="torch_tweak.torch.backend.TorchInductorBackend--source--__codelineno-0-115" name="torch_tweak.torch.backend.TorchInductorBackend--source--__codelineno-0-115"></a>    <span class="n">config</span><span class="p">:</span> <span class="n">TorchInductorBackendConfig</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+<a id="torch_tweak.torch.backend.TorchInductorBackend--source--__codelineno-0-116" name="torch_tweak.torch.backend.TorchInductorBackend--source--__codelineno-0-116"></a><span class="p">):</span>
+<a id="torch_tweak.torch.backend.TorchInductorBackend--source--__codelineno-0-117" name="torch_tweak.torch.backend.TorchInductorBackend--source--__codelineno-0-117"></a><span class="w">    </span><span class="sd">"""Initializes backend.</span>
+<a id="torch_tweak.torch.backend.TorchInductorBackend--source--__codelineno-0-118" name="torch_tweak.torch.backend.TorchInductorBackend--source--__codelineno-0-118"></a>
+<a id="torch_tweak.torch.backend.TorchInductorBackend--source--__codelineno-0-119" name="torch_tweak.torch.backend.TorchInductorBackend--source--__codelineno-0-119"></a><span class="sd">    Args:</span>
+<a id="torch_tweak.torch.backend.TorchInductorBackend--source--__codelineno-0-120" name="torch_tweak.torch.backend.TorchInductorBackend--source--__codelineno-0-120"></a><span class="sd">        config: Configuration for torch compile with inductor backend</span>
+<a id="torch_tweak.torch.backend.TorchInductorBackend--source--__codelineno-0-121" name="torch_tweak.torch.backend.TorchInductorBackend--source--__codelineno-0-121"></a><span class="sd">    """</span>
+<a id="torch_tweak.torch.backend.TorchInductorBackend--source--__codelineno-0-122" name="torch_tweak.torch.backend.TorchInductorBackend--source--__codelineno-0-122"></a>    <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
+<a id="torch_tweak.torch.backend.TorchInductorBackend--source--__codelineno-0-123" name="torch_tweak.torch.backend.TorchInductorBackend--source--__codelineno-0-123"></a>
+<a id="torch_tweak.torch.backend.TorchInductorBackend--source--__codelineno-0-124" name="torch_tweak.torch.backend.TorchInductorBackend--source--__codelineno-0-124"></a>    <span class="c1"># initialize variables</span>
+<a id="torch_tweak.torch.backend.TorchInductorBackend--source--__codelineno-0-125" name="torch_tweak.torch.backend.TorchInductorBackend--source--__codelineno-0-125"></a>    <span class="bp">self</span><span class="o">.</span><span class="n">_config</span> <span class="o">=</span> <span class="n">config</span> <span class="ow">or</span> <span class="n">TorchInductorBackendConfig</span><span class="p">()</span>
+<a id="torch_tweak.torch.backend.TorchInductorBackend--source--__codelineno-0-126" name="torch_tweak.torch.backend.TorchInductorBackend--source--__codelineno-0-126"></a>
+<a id="torch_tweak.torch.backend.TorchInductorBackend--source--__codelineno-0-127" name="torch_tweak.torch.backend.TorchInductorBackend--source--__codelineno-0-127"></a>    <span class="c1"># build variables</span>
+<a id="torch_tweak.torch.backend.TorchInductorBackend--source--__codelineno-0-128" name="torch_tweak.torch.backend.TorchInductorBackend--source--__codelineno-0-128"></a>    <span class="bp">self</span><span class="o">.</span><span class="n">_compiled_module</span> <span class="o">=</span> <span class="kc">None</span>
+<a id="torch_tweak.torch.backend.TorchInductorBackend--source--__codelineno-0-129" name="torch_tweak.torch.backend.TorchInductorBackend--source--__codelineno-0-129"></a>    <span class="bp">self</span><span class="o">.</span><span class="n">_orig_module</span> <span class="o">=</span> <span class="kc">None</span>
+<a id="torch_tweak.torch.backend.TorchInductorBackend--source--__codelineno-0-130" name="torch_tweak.torch.backend.TorchInductorBackend--source--__codelineno-0-130"></a>    <span class="bp">self</span><span class="o">.</span><span class="n">_output_dtype</span> <span class="o">=</span> <span class="kc">None</span>
+<a id="torch_tweak.torch.backend.TorchInductorBackend--source--__codelineno-0-131" name="torch_tweak.torch.backend.TorchInductorBackend--source--__codelineno-0-131"></a>    <span class="bp">self</span><span class="o">.</span><span class="n">_data</span> <span class="o">=</span> <span class="kc">None</span>
 </code></pre></div></td></tr></table></div>
                   </details>
 
@@ -3086,33 +3086,33 @@ NOTE: This file has been modified by Intel Corporation.
 
             <details class="mkdocstrings-source">
               <summary>Source code in <code>torch_tweak/torch/backend/backend.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-218">218</a></span>
-<span class="normal"><a href="#__codelineno-0-219">219</a></span>
-<span class="normal"><a href="#__codelineno-0-220">220</a></span>
-<span class="normal"><a href="#__codelineno-0-221">221</a></span>
-<span class="normal"><a href="#__codelineno-0-222">222</a></span>
-<span class="normal"><a href="#__codelineno-0-223">223</a></span>
-<span class="normal"><a href="#__codelineno-0-224">224</a></span>
-<span class="normal"><a href="#__codelineno-0-225">225</a></span>
-<span class="normal"><a href="#__codelineno-0-226">226</a></span>
-<span class="normal"><a href="#__codelineno-0-227">227</a></span>
-<span class="normal"><a href="#__codelineno-0-228">228</a></span>
-<span class="normal"><a href="#__codelineno-0-229">229</a></span>
-<span class="normal"><a href="#__codelineno-0-230">230</a></span>
-<span class="normal"><a href="#__codelineno-0-231">231</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-0-218" name="__codelineno-0-218"></a><span class="nd">@annotate</span><span class="p">(</span><span class="n">domain</span><span class="o">=</span><span class="s2">"Torch Tweak"</span><span class="p">)</span>
-<a id="__codelineno-0-219" name="__codelineno-0-219"></a><span class="k">def</span><span class="w"> </span><span class="nf">activate</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-<a id="__codelineno-0-220" name="__codelineno-0-220"></a><span class="w">    </span><span class="sd">"""Activates backend.</span>
-<a id="__codelineno-0-221" name="__codelineno-0-221"></a>
-<a id="__codelineno-0-222" name="__codelineno-0-222"></a><span class="sd">    After activating, the backend should be ready to do inference.</span>
-<a id="__codelineno-0-223" name="__codelineno-0-223"></a><span class="sd">    """</span>
-<a id="__codelineno-0-224" name="__codelineno-0-224"></a>    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">state</span> <span class="o">==</span> <span class="n">BackendState</span><span class="o">.</span><span class="n">INIT</span><span class="p">:</span>
-<a id="__codelineno-0-225" name="__codelineno-0-225"></a>        <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Cannot activate backend </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="si">}</span><span class="s2">, backend should be built first"</span><span class="p">)</span>
-<a id="__codelineno-0-226" name="__codelineno-0-226"></a>    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">state</span> <span class="o">==</span> <span class="n">BackendState</span><span class="o">.</span><span class="n">DEPLOYED</span><span class="p">:</span>
-<a id="__codelineno-0-227" name="__codelineno-0-227"></a>        <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Cannot activate backend </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="si">}</span><span class="s2">, backend is already deployed"</span><span class="p">)</span>
-<a id="__codelineno-0-228" name="__codelineno-0-228"></a>
-<a id="__codelineno-0-229" name="__codelineno-0-229"></a>    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">state</span> <span class="o">==</span> <span class="n">BackendState</span><span class="o">.</span><span class="n">INACTIVE</span> <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">state</span> <span class="o">==</span> <span class="n">BackendState</span><span class="o">.</span><span class="n">CHECKPOINT_LOADED</span><span class="p">:</span>
-<a id="__codelineno-0-230" name="__codelineno-0-230"></a>        <span class="bp">self</span><span class="o">.</span><span class="n">_activate</span><span class="p">()</span>
-<a id="__codelineno-0-231" name="__codelineno-0-231"></a>        <span class="bp">self</span><span class="o">.</span><span class="n">state</span> <span class="o">=</span> <span class="n">BackendState</span><span class="o">.</span><span class="n">ACTIVE</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#torch_tweak.torch.backend.TorchInductorBackend.activate--source--__codelineno-0-218">218</a></span>
+<span class="normal"><a href="#torch_tweak.torch.backend.TorchInductorBackend.activate--source--__codelineno-0-219">219</a></span>
+<span class="normal"><a href="#torch_tweak.torch.backend.TorchInductorBackend.activate--source--__codelineno-0-220">220</a></span>
+<span class="normal"><a href="#torch_tweak.torch.backend.TorchInductorBackend.activate--source--__codelineno-0-221">221</a></span>
+<span class="normal"><a href="#torch_tweak.torch.backend.TorchInductorBackend.activate--source--__codelineno-0-222">222</a></span>
+<span class="normal"><a href="#torch_tweak.torch.backend.TorchInductorBackend.activate--source--__codelineno-0-223">223</a></span>
+<span class="normal"><a href="#torch_tweak.torch.backend.TorchInductorBackend.activate--source--__codelineno-0-224">224</a></span>
+<span class="normal"><a href="#torch_tweak.torch.backend.TorchInductorBackend.activate--source--__codelineno-0-225">225</a></span>
+<span class="normal"><a href="#torch_tweak.torch.backend.TorchInductorBackend.activate--source--__codelineno-0-226">226</a></span>
+<span class="normal"><a href="#torch_tweak.torch.backend.TorchInductorBackend.activate--source--__codelineno-0-227">227</a></span>
+<span class="normal"><a href="#torch_tweak.torch.backend.TorchInductorBackend.activate--source--__codelineno-0-228">228</a></span>
+<span class="normal"><a href="#torch_tweak.torch.backend.TorchInductorBackend.activate--source--__codelineno-0-229">229</a></span>
+<span class="normal"><a href="#torch_tweak.torch.backend.TorchInductorBackend.activate--source--__codelineno-0-230">230</a></span>
+<span class="normal"><a href="#torch_tweak.torch.backend.TorchInductorBackend.activate--source--__codelineno-0-231">231</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="torch_tweak.torch.backend.TorchInductorBackend.activate--source--__codelineno-0-218" name="torch_tweak.torch.backend.TorchInductorBackend.activate--source--__codelineno-0-218"></a><span class="nd">@annotate</span><span class="p">(</span><span class="n">domain</span><span class="o">=</span><span class="s2">"Torch Tweak"</span><span class="p">)</span>
+<a id="torch_tweak.torch.backend.TorchInductorBackend.activate--source--__codelineno-0-219" name="torch_tweak.torch.backend.TorchInductorBackend.activate--source--__codelineno-0-219"></a><span class="k">def</span><span class="w"> </span><span class="nf">activate</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<a id="torch_tweak.torch.backend.TorchInductorBackend.activate--source--__codelineno-0-220" name="torch_tweak.torch.backend.TorchInductorBackend.activate--source--__codelineno-0-220"></a><span class="w">    </span><span class="sd">"""Activates backend.</span>
+<a id="torch_tweak.torch.backend.TorchInductorBackend.activate--source--__codelineno-0-221" name="torch_tweak.torch.backend.TorchInductorBackend.activate--source--__codelineno-0-221"></a>
+<a id="torch_tweak.torch.backend.TorchInductorBackend.activate--source--__codelineno-0-222" name="torch_tweak.torch.backend.TorchInductorBackend.activate--source--__codelineno-0-222"></a><span class="sd">    After activating, the backend should be ready to do inference.</span>
+<a id="torch_tweak.torch.backend.TorchInductorBackend.activate--source--__codelineno-0-223" name="torch_tweak.torch.backend.TorchInductorBackend.activate--source--__codelineno-0-223"></a><span class="sd">    """</span>
+<a id="torch_tweak.torch.backend.TorchInductorBackend.activate--source--__codelineno-0-224" name="torch_tweak.torch.backend.TorchInductorBackend.activate--source--__codelineno-0-224"></a>    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">state</span> <span class="o">==</span> <span class="n">BackendState</span><span class="o">.</span><span class="n">INIT</span><span class="p">:</span>
+<a id="torch_tweak.torch.backend.TorchInductorBackend.activate--source--__codelineno-0-225" name="torch_tweak.torch.backend.TorchInductorBackend.activate--source--__codelineno-0-225"></a>        <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Cannot activate backend </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="si">}</span><span class="s2">, backend should be built first"</span><span class="p">)</span>
+<a id="torch_tweak.torch.backend.TorchInductorBackend.activate--source--__codelineno-0-226" name="torch_tweak.torch.backend.TorchInductorBackend.activate--source--__codelineno-0-226"></a>    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">state</span> <span class="o">==</span> <span class="n">BackendState</span><span class="o">.</span><span class="n">DEPLOYED</span><span class="p">:</span>
+<a id="torch_tweak.torch.backend.TorchInductorBackend.activate--source--__codelineno-0-227" name="torch_tweak.torch.backend.TorchInductorBackend.activate--source--__codelineno-0-227"></a>        <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Cannot activate backend </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="si">}</span><span class="s2">, backend is already deployed"</span><span class="p">)</span>
+<a id="torch_tweak.torch.backend.TorchInductorBackend.activate--source--__codelineno-0-228" name="torch_tweak.torch.backend.TorchInductorBackend.activate--source--__codelineno-0-228"></a>
+<a id="torch_tweak.torch.backend.TorchInductorBackend.activate--source--__codelineno-0-229" name="torch_tweak.torch.backend.TorchInductorBackend.activate--source--__codelineno-0-229"></a>    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">state</span> <span class="o">==</span> <span class="n">BackendState</span><span class="o">.</span><span class="n">INACTIVE</span> <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">state</span> <span class="o">==</span> <span class="n">BackendState</span><span class="o">.</span><span class="n">CHECKPOINT_LOADED</span><span class="p">:</span>
+<a id="torch_tweak.torch.backend.TorchInductorBackend.activate--source--__codelineno-0-230" name="torch_tweak.torch.backend.TorchInductorBackend.activate--source--__codelineno-0-230"></a>        <span class="bp">self</span><span class="o">.</span><span class="n">_activate</span><span class="p">()</span>
+<a id="torch_tweak.torch.backend.TorchInductorBackend.activate--source--__codelineno-0-231" name="torch_tweak.torch.backend.TorchInductorBackend.activate--source--__codelineno-0-231"></a>        <span class="bp">self</span><span class="o">.</span><span class="n">state</span> <span class="o">=</span> <span class="n">BackendState</span><span class="o">.</span><span class="n">ACTIVE</span>
 </code></pre></div></td></tr></table></div>
             </details>
     </div>
@@ -3141,61 +3141,61 @@ inputs at most once so that subsequent calls have exact same state as the first 
 
             <details class="mkdocstrings-source">
               <summary>Source code in <code>torch_tweak/torch/backend/backend.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-189">189</a></span>
-<span class="normal"><a href="#__codelineno-0-190">190</a></span>
-<span class="normal"><a href="#__codelineno-0-191">191</a></span>
-<span class="normal"><a href="#__codelineno-0-192">192</a></span>
-<span class="normal"><a href="#__codelineno-0-193">193</a></span>
-<span class="normal"><a href="#__codelineno-0-194">194</a></span>
-<span class="normal"><a href="#__codelineno-0-195">195</a></span>
-<span class="normal"><a href="#__codelineno-0-196">196</a></span>
-<span class="normal"><a href="#__codelineno-0-197">197</a></span>
-<span class="normal"><a href="#__codelineno-0-198">198</a></span>
-<span class="normal"><a href="#__codelineno-0-199">199</a></span>
-<span class="normal"><a href="#__codelineno-0-200">200</a></span>
-<span class="normal"><a href="#__codelineno-0-201">201</a></span>
-<span class="normal"><a href="#__codelineno-0-202">202</a></span>
-<span class="normal"><a href="#__codelineno-0-203">203</a></span>
-<span class="normal"><a href="#__codelineno-0-204">204</a></span>
-<span class="normal"><a href="#__codelineno-0-205">205</a></span>
-<span class="normal"><a href="#__codelineno-0-206">206</a></span>
-<span class="normal"><a href="#__codelineno-0-207">207</a></span>
-<span class="normal"><a href="#__codelineno-0-208">208</a></span>
-<span class="normal"><a href="#__codelineno-0-209">209</a></span>
-<span class="normal"><a href="#__codelineno-0-210">210</a></span>
-<span class="normal"><a href="#__codelineno-0-211">211</a></span>
-<span class="normal"><a href="#__codelineno-0-212">212</a></span>
-<span class="normal"><a href="#__codelineno-0-213">213</a></span>
-<span class="normal"><a href="#__codelineno-0-214">214</a></span>
-<span class="normal"><a href="#__codelineno-0-215">215</a></span>
-<span class="normal"><a href="#__codelineno-0-216">216</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-0-189" name="__codelineno-0-189"></a><span class="k">def</span><span class="w"> </span><span class="nf">build</span><span class="p">(</span>
-<a id="__codelineno-0-190" name="__codelineno-0-190"></a>    <span class="bp">self</span><span class="p">,</span>
-<a id="__codelineno-0-191" name="__codelineno-0-191"></a>    <span class="n">module</span><span class="p">:</span> <span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">,</span>
-<a id="__codelineno-0-192" name="__codelineno-0-192"></a>    <span class="n">graph_spec</span><span class="p">:</span> <span class="n">GraphSpec</span><span class="p">,</span>
-<a id="__codelineno-0-193" name="__codelineno-0-193"></a>    <span class="n">data</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">Sample</span><span class="p">],</span>
-<a id="__codelineno-0-194" name="__codelineno-0-194"></a>    <span class="n">device</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">device</span><span class="p">,</span>
-<a id="__codelineno-0-195" name="__codelineno-0-195"></a>    <span class="n">cache_dir</span><span class="p">:</span> <span class="n">Path</span><span class="p">,</span>
-<a id="__codelineno-0-196" name="__codelineno-0-196"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="s2">"Backend"</span><span class="p">:</span>
-<a id="__codelineno-0-197" name="__codelineno-0-197"></a><span class="w">    </span><span class="sd">"""Build the model with the given arguments.</span>
-<a id="__codelineno-0-198" name="__codelineno-0-198"></a>
-<a id="__codelineno-0-199" name="__codelineno-0-199"></a><span class="sd">    Building a backend should be idempotent i.e. do not cause side effects. A model is not necessarily pure</span>
-<a id="__codelineno-0-200" name="__codelineno-0-200"></a><span class="sd">    functional and can have an internal state (like kv cache for LLMs). That is why build can call a sample of</span>
-<a id="__codelineno-0-201" name="__codelineno-0-201"></a><span class="sd">    inputs at most once so that subsequent calls have exact same state as the first call for the given sample.</span>
-<a id="__codelineno-0-202" name="__codelineno-0-202"></a>
-<a id="__codelineno-0-203" name="__codelineno-0-203"></a><span class="sd">    After building, the backend should be activated.</span>
-<a id="__codelineno-0-204" name="__codelineno-0-204"></a><span class="sd">    """</span>
-<a id="__codelineno-0-205" name="__codelineno-0-205"></a>    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">state</span> <span class="o">==</span> <span class="n">BackendState</span><span class="o">.</span><span class="n">INIT</span><span class="p">:</span>
-<a id="__codelineno-0-206" name="__codelineno-0-206"></a>        <span class="k">try</span><span class="p">:</span>
-<a id="__codelineno-0-207" name="__codelineno-0-207"></a>            <span class="bp">self</span><span class="o">.</span><span class="n">_assert_device</span><span class="p">(</span><span class="n">device</span><span class="p">)</span>
-<a id="__codelineno-0-208" name="__codelineno-0-208"></a>            <span class="bp">self</span><span class="o">.</span><span class="n">_set_device</span><span class="p">(</span><span class="n">device</span><span class="p">)</span>
-<a id="__codelineno-0-209" name="__codelineno-0-209"></a>            <span class="n">ready_backend</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_build</span><span class="p">(</span><span class="n">module</span><span class="p">,</span> <span class="n">graph_spec</span><span class="p">,</span> <span class="n">data</span><span class="p">,</span> <span class="n">cache_dir</span><span class="p">)</span>
-<a id="__codelineno-0-210" name="__codelineno-0-210"></a>            <span class="bp">self</span><span class="o">.</span><span class="n">state</span> <span class="o">=</span> <span class="n">BackendState</span><span class="o">.</span><span class="n">ACTIVE</span>
-<a id="__codelineno-0-211" name="__codelineno-0-211"></a>            <span class="k">return</span> <span class="n">ready_backend</span>
-<a id="__codelineno-0-212" name="__codelineno-0-212"></a>        <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
-<a id="__codelineno-0-213" name="__codelineno-0-213"></a>            <span class="bp">self</span><span class="o">.</span><span class="n">_logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="s2">"Failed to build backend(</span><span class="si">%s</span><span class="s2">): </span><span class="si">%s</span><span class="s2">"</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="o">.</span><span class="vm">__name__</span><span class="p">,</span> <span class="n">e</span><span class="p">,</span> <span class="n">exc_info</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
-<a id="__codelineno-0-214" name="__codelineno-0-214"></a>            <span class="k">raise</span> <span class="n">e</span>
-<a id="__codelineno-0-215" name="__codelineno-0-215"></a>    <span class="k">else</span><span class="p">:</span>
-<a id="__codelineno-0-216" name="__codelineno-0-216"></a>        <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Backend </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="si">}</span><span class="s2"> build should be called only once"</span><span class="p">)</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#torch_tweak.torch.backend.TorchInductorBackend.build--source--__codelineno-0-189">189</a></span>
+<span class="normal"><a href="#torch_tweak.torch.backend.TorchInductorBackend.build--source--__codelineno-0-190">190</a></span>
+<span class="normal"><a href="#torch_tweak.torch.backend.TorchInductorBackend.build--source--__codelineno-0-191">191</a></span>
+<span class="normal"><a href="#torch_tweak.torch.backend.TorchInductorBackend.build--source--__codelineno-0-192">192</a></span>
+<span class="normal"><a href="#torch_tweak.torch.backend.TorchInductorBackend.build--source--__codelineno-0-193">193</a></span>
+<span class="normal"><a href="#torch_tweak.torch.backend.TorchInductorBackend.build--source--__codelineno-0-194">194</a></span>
+<span class="normal"><a href="#torch_tweak.torch.backend.TorchInductorBackend.build--source--__codelineno-0-195">195</a></span>
+<span class="normal"><a href="#torch_tweak.torch.backend.TorchInductorBackend.build--source--__codelineno-0-196">196</a></span>
+<span class="normal"><a href="#torch_tweak.torch.backend.TorchInductorBackend.build--source--__codelineno-0-197">197</a></span>
+<span class="normal"><a href="#torch_tweak.torch.backend.TorchInductorBackend.build--source--__codelineno-0-198">198</a></span>
+<span class="normal"><a href="#torch_tweak.torch.backend.TorchInductorBackend.build--source--__codelineno-0-199">199</a></span>
+<span class="normal"><a href="#torch_tweak.torch.backend.TorchInductorBackend.build--source--__codelineno-0-200">200</a></span>
+<span class="normal"><a href="#torch_tweak.torch.backend.TorchInductorBackend.build--source--__codelineno-0-201">201</a></span>
+<span class="normal"><a href="#torch_tweak.torch.backend.TorchInductorBackend.build--source--__codelineno-0-202">202</a></span>
+<span class="normal"><a href="#torch_tweak.torch.backend.TorchInductorBackend.build--source--__codelineno-0-203">203</a></span>
+<span class="normal"><a href="#torch_tweak.torch.backend.TorchInductorBackend.build--source--__codelineno-0-204">204</a></span>
+<span class="normal"><a href="#torch_tweak.torch.backend.TorchInductorBackend.build--source--__codelineno-0-205">205</a></span>
+<span class="normal"><a href="#torch_tweak.torch.backend.TorchInductorBackend.build--source--__codelineno-0-206">206</a></span>
+<span class="normal"><a href="#torch_tweak.torch.backend.TorchInductorBackend.build--source--__codelineno-0-207">207</a></span>
+<span class="normal"><a href="#torch_tweak.torch.backend.TorchInductorBackend.build--source--__codelineno-0-208">208</a></span>
+<span class="normal"><a href="#torch_tweak.torch.backend.TorchInductorBackend.build--source--__codelineno-0-209">209</a></span>
+<span class="normal"><a href="#torch_tweak.torch.backend.TorchInductorBackend.build--source--__codelineno-0-210">210</a></span>
+<span class="normal"><a href="#torch_tweak.torch.backend.TorchInductorBackend.build--source--__codelineno-0-211">211</a></span>
+<span class="normal"><a href="#torch_tweak.torch.backend.TorchInductorBackend.build--source--__codelineno-0-212">212</a></span>
+<span class="normal"><a href="#torch_tweak.torch.backend.TorchInductorBackend.build--source--__codelineno-0-213">213</a></span>
+<span class="normal"><a href="#torch_tweak.torch.backend.TorchInductorBackend.build--source--__codelineno-0-214">214</a></span>
+<span class="normal"><a href="#torch_tweak.torch.backend.TorchInductorBackend.build--source--__codelineno-0-215">215</a></span>
+<span class="normal"><a href="#torch_tweak.torch.backend.TorchInductorBackend.build--source--__codelineno-0-216">216</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="torch_tweak.torch.backend.TorchInductorBackend.build--source--__codelineno-0-189" name="torch_tweak.torch.backend.TorchInductorBackend.build--source--__codelineno-0-189"></a><span class="k">def</span><span class="w"> </span><span class="nf">build</span><span class="p">(</span>
+<a id="torch_tweak.torch.backend.TorchInductorBackend.build--source--__codelineno-0-190" name="torch_tweak.torch.backend.TorchInductorBackend.build--source--__codelineno-0-190"></a>    <span class="bp">self</span><span class="p">,</span>
+<a id="torch_tweak.torch.backend.TorchInductorBackend.build--source--__codelineno-0-191" name="torch_tweak.torch.backend.TorchInductorBackend.build--source--__codelineno-0-191"></a>    <span class="n">module</span><span class="p">:</span> <span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">,</span>
+<a id="torch_tweak.torch.backend.TorchInductorBackend.build--source--__codelineno-0-192" name="torch_tweak.torch.backend.TorchInductorBackend.build--source--__codelineno-0-192"></a>    <span class="n">graph_spec</span><span class="p">:</span> <span class="n">GraphSpec</span><span class="p">,</span>
+<a id="torch_tweak.torch.backend.TorchInductorBackend.build--source--__codelineno-0-193" name="torch_tweak.torch.backend.TorchInductorBackend.build--source--__codelineno-0-193"></a>    <span class="n">data</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">Sample</span><span class="p">],</span>
+<a id="torch_tweak.torch.backend.TorchInductorBackend.build--source--__codelineno-0-194" name="torch_tweak.torch.backend.TorchInductorBackend.build--source--__codelineno-0-194"></a>    <span class="n">device</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">device</span><span class="p">,</span>
+<a id="torch_tweak.torch.backend.TorchInductorBackend.build--source--__codelineno-0-195" name="torch_tweak.torch.backend.TorchInductorBackend.build--source--__codelineno-0-195"></a>    <span class="n">cache_dir</span><span class="p">:</span> <span class="n">Path</span><span class="p">,</span>
+<a id="torch_tweak.torch.backend.TorchInductorBackend.build--source--__codelineno-0-196" name="torch_tweak.torch.backend.TorchInductorBackend.build--source--__codelineno-0-196"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="s2">"Backend"</span><span class="p">:</span>
+<a id="torch_tweak.torch.backend.TorchInductorBackend.build--source--__codelineno-0-197" name="torch_tweak.torch.backend.TorchInductorBackend.build--source--__codelineno-0-197"></a><span class="w">    </span><span class="sd">"""Build the model with the given arguments.</span>
+<a id="torch_tweak.torch.backend.TorchInductorBackend.build--source--__codelineno-0-198" name="torch_tweak.torch.backend.TorchInductorBackend.build--source--__codelineno-0-198"></a>
+<a id="torch_tweak.torch.backend.TorchInductorBackend.build--source--__codelineno-0-199" name="torch_tweak.torch.backend.TorchInductorBackend.build--source--__codelineno-0-199"></a><span class="sd">    Building a backend should be idempotent i.e. do not cause side effects. A model is not necessarily pure</span>
+<a id="torch_tweak.torch.backend.TorchInductorBackend.build--source--__codelineno-0-200" name="torch_tweak.torch.backend.TorchInductorBackend.build--source--__codelineno-0-200"></a><span class="sd">    functional and can have an internal state (like kv cache for LLMs). That is why build can call a sample of</span>
+<a id="torch_tweak.torch.backend.TorchInductorBackend.build--source--__codelineno-0-201" name="torch_tweak.torch.backend.TorchInductorBackend.build--source--__codelineno-0-201"></a><span class="sd">    inputs at most once so that subsequent calls have exact same state as the first call for the given sample.</span>
+<a id="torch_tweak.torch.backend.TorchInductorBackend.build--source--__codelineno-0-202" name="torch_tweak.torch.backend.TorchInductorBackend.build--source--__codelineno-0-202"></a>
+<a id="torch_tweak.torch.backend.TorchInductorBackend.build--source--__codelineno-0-203" name="torch_tweak.torch.backend.TorchInductorBackend.build--source--__codelineno-0-203"></a><span class="sd">    After building, the backend should be activated.</span>
+<a id="torch_tweak.torch.backend.TorchInductorBackend.build--source--__codelineno-0-204" name="torch_tweak.torch.backend.TorchInductorBackend.build--source--__codelineno-0-204"></a><span class="sd">    """</span>
+<a id="torch_tweak.torch.backend.TorchInductorBackend.build--source--__codelineno-0-205" name="torch_tweak.torch.backend.TorchInductorBackend.build--source--__codelineno-0-205"></a>    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">state</span> <span class="o">==</span> <span class="n">BackendState</span><span class="o">.</span><span class="n">INIT</span><span class="p">:</span>
+<a id="torch_tweak.torch.backend.TorchInductorBackend.build--source--__codelineno-0-206" name="torch_tweak.torch.backend.TorchInductorBackend.build--source--__codelineno-0-206"></a>        <span class="k">try</span><span class="p">:</span>
+<a id="torch_tweak.torch.backend.TorchInductorBackend.build--source--__codelineno-0-207" name="torch_tweak.torch.backend.TorchInductorBackend.build--source--__codelineno-0-207"></a>            <span class="bp">self</span><span class="o">.</span><span class="n">_assert_device</span><span class="p">(</span><span class="n">device</span><span class="p">)</span>
+<a id="torch_tweak.torch.backend.TorchInductorBackend.build--source--__codelineno-0-208" name="torch_tweak.torch.backend.TorchInductorBackend.build--source--__codelineno-0-208"></a>            <span class="bp">self</span><span class="o">.</span><span class="n">_set_device</span><span class="p">(</span><span class="n">device</span><span class="p">)</span>
+<a id="torch_tweak.torch.backend.TorchInductorBackend.build--source--__codelineno-0-209" name="torch_tweak.torch.backend.TorchInductorBackend.build--source--__codelineno-0-209"></a>            <span class="n">ready_backend</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_build</span><span class="p">(</span><span class="n">module</span><span class="p">,</span> <span class="n">graph_spec</span><span class="p">,</span> <span class="n">data</span><span class="p">,</span> <span class="n">cache_dir</span><span class="p">)</span>
+<a id="torch_tweak.torch.backend.TorchInductorBackend.build--source--__codelineno-0-210" name="torch_tweak.torch.backend.TorchInductorBackend.build--source--__codelineno-0-210"></a>            <span class="bp">self</span><span class="o">.</span><span class="n">state</span> <span class="o">=</span> <span class="n">BackendState</span><span class="o">.</span><span class="n">ACTIVE</span>
+<a id="torch_tweak.torch.backend.TorchInductorBackend.build--source--__codelineno-0-211" name="torch_tweak.torch.backend.TorchInductorBackend.build--source--__codelineno-0-211"></a>            <span class="k">return</span> <span class="n">ready_backend</span>
+<a id="torch_tweak.torch.backend.TorchInductorBackend.build--source--__codelineno-0-212" name="torch_tweak.torch.backend.TorchInductorBackend.build--source--__codelineno-0-212"></a>        <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+<a id="torch_tweak.torch.backend.TorchInductorBackend.build--source--__codelineno-0-213" name="torch_tweak.torch.backend.TorchInductorBackend.build--source--__codelineno-0-213"></a>            <span class="bp">self</span><span class="o">.</span><span class="n">_logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="s2">"Failed to build backend(</span><span class="si">%s</span><span class="s2">): </span><span class="si">%s</span><span class="s2">"</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="o">.</span><span class="vm">__name__</span><span class="p">,</span> <span class="n">e</span><span class="p">,</span> <span class="n">exc_info</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<a id="torch_tweak.torch.backend.TorchInductorBackend.build--source--__codelineno-0-214" name="torch_tweak.torch.backend.TorchInductorBackend.build--source--__codelineno-0-214"></a>            <span class="k">raise</span> <span class="n">e</span>
+<a id="torch_tweak.torch.backend.TorchInductorBackend.build--source--__codelineno-0-215" name="torch_tweak.torch.backend.TorchInductorBackend.build--source--__codelineno-0-215"></a>    <span class="k">else</span><span class="p">:</span>
+<a id="torch_tweak.torch.backend.TorchInductorBackend.build--source--__codelineno-0-216" name="torch_tweak.torch.backend.TorchInductorBackend.build--source--__codelineno-0-216"></a>        <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Backend </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="si">}</span><span class="s2"> build should be called only once"</span><span class="p">)</span>
 </code></pre></div></td></tr></table></div>
             </details>
     </div>
@@ -3221,37 +3221,37 @@ inputs at most once so that subsequent calls have exact same state as the first 
 
             <details class="mkdocstrings-source">
               <summary>Source code in <code>torch_tweak/torch/backend/backend.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-233">233</a></span>
-<span class="normal"><a href="#__codelineno-0-234">234</a></span>
-<span class="normal"><a href="#__codelineno-0-235">235</a></span>
-<span class="normal"><a href="#__codelineno-0-236">236</a></span>
-<span class="normal"><a href="#__codelineno-0-237">237</a></span>
-<span class="normal"><a href="#__codelineno-0-238">238</a></span>
-<span class="normal"><a href="#__codelineno-0-239">239</a></span>
-<span class="normal"><a href="#__codelineno-0-240">240</a></span>
-<span class="normal"><a href="#__codelineno-0-241">241</a></span>
-<span class="normal"><a href="#__codelineno-0-242">242</a></span>
-<span class="normal"><a href="#__codelineno-0-243">243</a></span>
-<span class="normal"><a href="#__codelineno-0-244">244</a></span>
-<span class="normal"><a href="#__codelineno-0-245">245</a></span>
-<span class="normal"><a href="#__codelineno-0-246">246</a></span>
-<span class="normal"><a href="#__codelineno-0-247">247</a></span>
-<span class="normal"><a href="#__codelineno-0-248">248</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-0-233" name="__codelineno-0-233"></a><span class="k">def</span><span class="w"> </span><span class="nf">deactivate</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-<a id="__codelineno-0-234" name="__codelineno-0-234"></a><span class="w">    </span><span class="sd">"""Deactivates backend.</span>
-<a id="__codelineno-0-235" name="__codelineno-0-235"></a>
-<a id="__codelineno-0-236" name="__codelineno-0-236"></a><span class="sd">    After deactivating, the backend cannot be used to do inference.</span>
-<a id="__codelineno-0-237" name="__codelineno-0-237"></a><span class="sd">    """</span>
-<a id="__codelineno-0-238" name="__codelineno-0-238"></a>    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">state</span> <span class="o">==</span> <span class="n">BackendState</span><span class="o">.</span><span class="n">INIT</span><span class="p">:</span>
-<a id="__codelineno-0-239" name="__codelineno-0-239"></a>        <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Cannot deactivate backend </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="si">}</span><span class="s2">, backend should be built first"</span><span class="p">)</span>
-<a id="__codelineno-0-240" name="__codelineno-0-240"></a>    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">state</span> <span class="o">==</span> <span class="n">BackendState</span><span class="o">.</span><span class="n">DEPLOYED</span><span class="p">:</span>
-<a id="__codelineno-0-241" name="__codelineno-0-241"></a>        <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Cannot deactivate backend </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="si">}</span><span class="s2">, backend is already deployed"</span><span class="p">)</span>
-<a id="__codelineno-0-242" name="__codelineno-0-242"></a>    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">state</span> <span class="o">==</span> <span class="n">BackendState</span><span class="o">.</span><span class="n">CHECKPOINT_LOADED</span><span class="p">:</span>
-<a id="__codelineno-0-243" name="__codelineno-0-243"></a>        <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Cannot deactivate backend </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="si">}</span><span class="s2">, backend has already been deployed"</span><span class="p">)</span>
-<a id="__codelineno-0-244" name="__codelineno-0-244"></a>
-<a id="__codelineno-0-245" name="__codelineno-0-245"></a>    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">state</span> <span class="o">==</span> <span class="n">BackendState</span><span class="o">.</span><span class="n">ACTIVE</span><span class="p">:</span>
-<a id="__codelineno-0-246" name="__codelineno-0-246"></a>        <span class="bp">self</span><span class="o">.</span><span class="n">_deactivate</span><span class="p">()</span>
-<a id="__codelineno-0-247" name="__codelineno-0-247"></a>        <span class="bp">self</span><span class="o">.</span><span class="n">_clean_memory</span><span class="p">()</span>
-<a id="__codelineno-0-248" name="__codelineno-0-248"></a>        <span class="bp">self</span><span class="o">.</span><span class="n">state</span> <span class="o">=</span> <span class="n">BackendState</span><span class="o">.</span><span class="n">INACTIVE</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#torch_tweak.torch.backend.TorchInductorBackend.deactivate--source--__codelineno-0-233">233</a></span>
+<span class="normal"><a href="#torch_tweak.torch.backend.TorchInductorBackend.deactivate--source--__codelineno-0-234">234</a></span>
+<span class="normal"><a href="#torch_tweak.torch.backend.TorchInductorBackend.deactivate--source--__codelineno-0-235">235</a></span>
+<span class="normal"><a href="#torch_tweak.torch.backend.TorchInductorBackend.deactivate--source--__codelineno-0-236">236</a></span>
+<span class="normal"><a href="#torch_tweak.torch.backend.TorchInductorBackend.deactivate--source--__codelineno-0-237">237</a></span>
+<span class="normal"><a href="#torch_tweak.torch.backend.TorchInductorBackend.deactivate--source--__codelineno-0-238">238</a></span>
+<span class="normal"><a href="#torch_tweak.torch.backend.TorchInductorBackend.deactivate--source--__codelineno-0-239">239</a></span>
+<span class="normal"><a href="#torch_tweak.torch.backend.TorchInductorBackend.deactivate--source--__codelineno-0-240">240</a></span>
+<span class="normal"><a href="#torch_tweak.torch.backend.TorchInductorBackend.deactivate--source--__codelineno-0-241">241</a></span>
+<span class="normal"><a href="#torch_tweak.torch.backend.TorchInductorBackend.deactivate--source--__codelineno-0-242">242</a></span>
+<span class="normal"><a href="#torch_tweak.torch.backend.TorchInductorBackend.deactivate--source--__codelineno-0-243">243</a></span>
+<span class="normal"><a href="#torch_tweak.torch.backend.TorchInductorBackend.deactivate--source--__codelineno-0-244">244</a></span>
+<span class="normal"><a href="#torch_tweak.torch.backend.TorchInductorBackend.deactivate--source--__codelineno-0-245">245</a></span>
+<span class="normal"><a href="#torch_tweak.torch.backend.TorchInductorBackend.deactivate--source--__codelineno-0-246">246</a></span>
+<span class="normal"><a href="#torch_tweak.torch.backend.TorchInductorBackend.deactivate--source--__codelineno-0-247">247</a></span>
+<span class="normal"><a href="#torch_tweak.torch.backend.TorchInductorBackend.deactivate--source--__codelineno-0-248">248</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="torch_tweak.torch.backend.TorchInductorBackend.deactivate--source--__codelineno-0-233" name="torch_tweak.torch.backend.TorchInductorBackend.deactivate--source--__codelineno-0-233"></a><span class="k">def</span><span class="w"> </span><span class="nf">deactivate</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<a id="torch_tweak.torch.backend.TorchInductorBackend.deactivate--source--__codelineno-0-234" name="torch_tweak.torch.backend.TorchInductorBackend.deactivate--source--__codelineno-0-234"></a><span class="w">    </span><span class="sd">"""Deactivates backend.</span>
+<a id="torch_tweak.torch.backend.TorchInductorBackend.deactivate--source--__codelineno-0-235" name="torch_tweak.torch.backend.TorchInductorBackend.deactivate--source--__codelineno-0-235"></a>
+<a id="torch_tweak.torch.backend.TorchInductorBackend.deactivate--source--__codelineno-0-236" name="torch_tweak.torch.backend.TorchInductorBackend.deactivate--source--__codelineno-0-236"></a><span class="sd">    After deactivating, the backend cannot be used to do inference.</span>
+<a id="torch_tweak.torch.backend.TorchInductorBackend.deactivate--source--__codelineno-0-237" name="torch_tweak.torch.backend.TorchInductorBackend.deactivate--source--__codelineno-0-237"></a><span class="sd">    """</span>
+<a id="torch_tweak.torch.backend.TorchInductorBackend.deactivate--source--__codelineno-0-238" name="torch_tweak.torch.backend.TorchInductorBackend.deactivate--source--__codelineno-0-238"></a>    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">state</span> <span class="o">==</span> <span class="n">BackendState</span><span class="o">.</span><span class="n">INIT</span><span class="p">:</span>
+<a id="torch_tweak.torch.backend.TorchInductorBackend.deactivate--source--__codelineno-0-239" name="torch_tweak.torch.backend.TorchInductorBackend.deactivate--source--__codelineno-0-239"></a>        <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Cannot deactivate backend </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="si">}</span><span class="s2">, backend should be built first"</span><span class="p">)</span>
+<a id="torch_tweak.torch.backend.TorchInductorBackend.deactivate--source--__codelineno-0-240" name="torch_tweak.torch.backend.TorchInductorBackend.deactivate--source--__codelineno-0-240"></a>    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">state</span> <span class="o">==</span> <span class="n">BackendState</span><span class="o">.</span><span class="n">DEPLOYED</span><span class="p">:</span>
+<a id="torch_tweak.torch.backend.TorchInductorBackend.deactivate--source--__codelineno-0-241" name="torch_tweak.torch.backend.TorchInductorBackend.deactivate--source--__codelineno-0-241"></a>        <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Cannot deactivate backend </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="si">}</span><span class="s2">, backend is already deployed"</span><span class="p">)</span>
+<a id="torch_tweak.torch.backend.TorchInductorBackend.deactivate--source--__codelineno-0-242" name="torch_tweak.torch.backend.TorchInductorBackend.deactivate--source--__codelineno-0-242"></a>    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">state</span> <span class="o">==</span> <span class="n">BackendState</span><span class="o">.</span><span class="n">CHECKPOINT_LOADED</span><span class="p">:</span>
+<a id="torch_tweak.torch.backend.TorchInductorBackend.deactivate--source--__codelineno-0-243" name="torch_tweak.torch.backend.TorchInductorBackend.deactivate--source--__codelineno-0-243"></a>        <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Cannot deactivate backend </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="si">}</span><span class="s2">, backend has already been deployed"</span><span class="p">)</span>
+<a id="torch_tweak.torch.backend.TorchInductorBackend.deactivate--source--__codelineno-0-244" name="torch_tweak.torch.backend.TorchInductorBackend.deactivate--source--__codelineno-0-244"></a>
+<a id="torch_tweak.torch.backend.TorchInductorBackend.deactivate--source--__codelineno-0-245" name="torch_tweak.torch.backend.TorchInductorBackend.deactivate--source--__codelineno-0-245"></a>    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">state</span> <span class="o">==</span> <span class="n">BackendState</span><span class="o">.</span><span class="n">ACTIVE</span><span class="p">:</span>
+<a id="torch_tweak.torch.backend.TorchInductorBackend.deactivate--source--__codelineno-0-246" name="torch_tweak.torch.backend.TorchInductorBackend.deactivate--source--__codelineno-0-246"></a>        <span class="bp">self</span><span class="o">.</span><span class="n">_deactivate</span><span class="p">()</span>
+<a id="torch_tweak.torch.backend.TorchInductorBackend.deactivate--source--__codelineno-0-247" name="torch_tweak.torch.backend.TorchInductorBackend.deactivate--source--__codelineno-0-247"></a>        <span class="bp">self</span><span class="o">.</span><span class="n">_clean_memory</span><span class="p">()</span>
+<a id="torch_tweak.torch.backend.TorchInductorBackend.deactivate--source--__codelineno-0-248" name="torch_tweak.torch.backend.TorchInductorBackend.deactivate--source--__codelineno-0-248"></a>        <span class="bp">self</span><span class="o">.</span><span class="n">state</span> <span class="o">=</span> <span class="n">BackendState</span><span class="o">.</span><span class="n">INACTIVE</span>
 </code></pre></div></td></tr></table></div>
             </details>
     </div>
@@ -3290,33 +3290,33 @@ inputs at most once so that subsequent calls have exact same state as the first 
 
             <details class="mkdocstrings-source">
               <summary>Source code in <code>torch_tweak/torch/backend/backend.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-250">250</a></span>
-<span class="normal"><a href="#__codelineno-0-251">251</a></span>
-<span class="normal"><a href="#__codelineno-0-252">252</a></span>
-<span class="normal"><a href="#__codelineno-0-253">253</a></span>
-<span class="normal"><a href="#__codelineno-0-254">254</a></span>
-<span class="normal"><a href="#__codelineno-0-255">255</a></span>
-<span class="normal"><a href="#__codelineno-0-256">256</a></span>
-<span class="normal"><a href="#__codelineno-0-257">257</a></span>
-<span class="normal"><a href="#__codelineno-0-258">258</a></span>
-<span class="normal"><a href="#__codelineno-0-259">259</a></span>
-<span class="normal"><a href="#__codelineno-0-260">260</a></span>
-<span class="normal"><a href="#__codelineno-0-261">261</a></span>
-<span class="normal"><a href="#__codelineno-0-262">262</a></span>
-<span class="normal"><a href="#__codelineno-0-263">263</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-0-250" name="__codelineno-0-250"></a><span class="k">def</span><span class="w"> </span><span class="nf">deploy</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">device</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">device</span> <span class="o">|</span> <span class="kc">None</span><span class="p">):</span>
-<a id="__codelineno-0-251" name="__codelineno-0-251"></a><span class="w">    </span><span class="sd">"""Deploys the backend.</span>
-<a id="__codelineno-0-252" name="__codelineno-0-252"></a>
-<a id="__codelineno-0-253" name="__codelineno-0-253"></a><span class="sd">    After deploying, the backend is ready to do inference. Backend cannot be deactivated anymore.</span>
-<a id="__codelineno-0-254" name="__codelineno-0-254"></a>
-<a id="__codelineno-0-255" name="__codelineno-0-255"></a><span class="sd">    Args:</span>
-<a id="__codelineno-0-256" name="__codelineno-0-256"></a><span class="sd">        device: The device to deploy the backend on.</span>
-<a id="__codelineno-0-257" name="__codelineno-0-257"></a><span class="sd">    """</span>
-<a id="__codelineno-0-258" name="__codelineno-0-258"></a>    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">state</span> <span class="o">!=</span> <span class="n">BackendState</span><span class="o">.</span><span class="n">CHECKPOINT_LOADED</span><span class="p">:</span>
-<a id="__codelineno-0-259" name="__codelineno-0-259"></a>        <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Cannot deploy backend </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="si">}</span><span class="s2">, backend should be loaded from a checkpoint"</span><span class="p">)</span>
-<a id="__codelineno-0-260" name="__codelineno-0-260"></a>
-<a id="__codelineno-0-261" name="__codelineno-0-261"></a>    <span class="bp">self</span><span class="o">.</span><span class="n">_set_device</span><span class="p">(</span><span class="n">device</span><span class="p">)</span>
-<a id="__codelineno-0-262" name="__codelineno-0-262"></a>    <span class="bp">self</span><span class="o">.</span><span class="n">_deploy</span><span class="p">()</span>
-<a id="__codelineno-0-263" name="__codelineno-0-263"></a>    <span class="bp">self</span><span class="o">.</span><span class="n">state</span> <span class="o">=</span> <span class="n">BackendState</span><span class="o">.</span><span class="n">DEPLOYED</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#torch_tweak.torch.backend.TorchInductorBackend.deploy--source--__codelineno-0-250">250</a></span>
+<span class="normal"><a href="#torch_tweak.torch.backend.TorchInductorBackend.deploy--source--__codelineno-0-251">251</a></span>
+<span class="normal"><a href="#torch_tweak.torch.backend.TorchInductorBackend.deploy--source--__codelineno-0-252">252</a></span>
+<span class="normal"><a href="#torch_tweak.torch.backend.TorchInductorBackend.deploy--source--__codelineno-0-253">253</a></span>
+<span class="normal"><a href="#torch_tweak.torch.backend.TorchInductorBackend.deploy--source--__codelineno-0-254">254</a></span>
+<span class="normal"><a href="#torch_tweak.torch.backend.TorchInductorBackend.deploy--source--__codelineno-0-255">255</a></span>
+<span class="normal"><a href="#torch_tweak.torch.backend.TorchInductorBackend.deploy--source--__codelineno-0-256">256</a></span>
+<span class="normal"><a href="#torch_tweak.torch.backend.TorchInductorBackend.deploy--source--__codelineno-0-257">257</a></span>
+<span class="normal"><a href="#torch_tweak.torch.backend.TorchInductorBackend.deploy--source--__codelineno-0-258">258</a></span>
+<span class="normal"><a href="#torch_tweak.torch.backend.TorchInductorBackend.deploy--source--__codelineno-0-259">259</a></span>
+<span class="normal"><a href="#torch_tweak.torch.backend.TorchInductorBackend.deploy--source--__codelineno-0-260">260</a></span>
+<span class="normal"><a href="#torch_tweak.torch.backend.TorchInductorBackend.deploy--source--__codelineno-0-261">261</a></span>
+<span class="normal"><a href="#torch_tweak.torch.backend.TorchInductorBackend.deploy--source--__codelineno-0-262">262</a></span>
+<span class="normal"><a href="#torch_tweak.torch.backend.TorchInductorBackend.deploy--source--__codelineno-0-263">263</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="torch_tweak.torch.backend.TorchInductorBackend.deploy--source--__codelineno-0-250" name="torch_tweak.torch.backend.TorchInductorBackend.deploy--source--__codelineno-0-250"></a><span class="k">def</span><span class="w"> </span><span class="nf">deploy</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">device</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">device</span> <span class="o">|</span> <span class="kc">None</span><span class="p">):</span>
+<a id="torch_tweak.torch.backend.TorchInductorBackend.deploy--source--__codelineno-0-251" name="torch_tweak.torch.backend.TorchInductorBackend.deploy--source--__codelineno-0-251"></a><span class="w">    </span><span class="sd">"""Deploys the backend.</span>
+<a id="torch_tweak.torch.backend.TorchInductorBackend.deploy--source--__codelineno-0-252" name="torch_tweak.torch.backend.TorchInductorBackend.deploy--source--__codelineno-0-252"></a>
+<a id="torch_tweak.torch.backend.TorchInductorBackend.deploy--source--__codelineno-0-253" name="torch_tweak.torch.backend.TorchInductorBackend.deploy--source--__codelineno-0-253"></a><span class="sd">    After deploying, the backend is ready to do inference. Backend cannot be deactivated anymore.</span>
+<a id="torch_tweak.torch.backend.TorchInductorBackend.deploy--source--__codelineno-0-254" name="torch_tweak.torch.backend.TorchInductorBackend.deploy--source--__codelineno-0-254"></a>
+<a id="torch_tweak.torch.backend.TorchInductorBackend.deploy--source--__codelineno-0-255" name="torch_tweak.torch.backend.TorchInductorBackend.deploy--source--__codelineno-0-255"></a><span class="sd">    Args:</span>
+<a id="torch_tweak.torch.backend.TorchInductorBackend.deploy--source--__codelineno-0-256" name="torch_tweak.torch.backend.TorchInductorBackend.deploy--source--__codelineno-0-256"></a><span class="sd">        device: The device to deploy the backend on.</span>
+<a id="torch_tweak.torch.backend.TorchInductorBackend.deploy--source--__codelineno-0-257" name="torch_tweak.torch.backend.TorchInductorBackend.deploy--source--__codelineno-0-257"></a><span class="sd">    """</span>
+<a id="torch_tweak.torch.backend.TorchInductorBackend.deploy--source--__codelineno-0-258" name="torch_tweak.torch.backend.TorchInductorBackend.deploy--source--__codelineno-0-258"></a>    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">state</span> <span class="o">!=</span> <span class="n">BackendState</span><span class="o">.</span><span class="n">CHECKPOINT_LOADED</span><span class="p">:</span>
+<a id="torch_tweak.torch.backend.TorchInductorBackend.deploy--source--__codelineno-0-259" name="torch_tweak.torch.backend.TorchInductorBackend.deploy--source--__codelineno-0-259"></a>        <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Cannot deploy backend </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="si">}</span><span class="s2">, backend should be loaded from a checkpoint"</span><span class="p">)</span>
+<a id="torch_tweak.torch.backend.TorchInductorBackend.deploy--source--__codelineno-0-260" name="torch_tweak.torch.backend.TorchInductorBackend.deploy--source--__codelineno-0-260"></a>
+<a id="torch_tweak.torch.backend.TorchInductorBackend.deploy--source--__codelineno-0-261" name="torch_tweak.torch.backend.TorchInductorBackend.deploy--source--__codelineno-0-261"></a>    <span class="bp">self</span><span class="o">.</span><span class="n">_set_device</span><span class="p">(</span><span class="n">device</span><span class="p">)</span>
+<a id="torch_tweak.torch.backend.TorchInductorBackend.deploy--source--__codelineno-0-262" name="torch_tweak.torch.backend.TorchInductorBackend.deploy--source--__codelineno-0-262"></a>    <span class="bp">self</span><span class="o">.</span><span class="n">_deploy</span><span class="p">()</span>
+<a id="torch_tweak.torch.backend.TorchInductorBackend.deploy--source--__codelineno-0-263" name="torch_tweak.torch.backend.TorchInductorBackend.deploy--source--__codelineno-0-263"></a>    <span class="bp">self</span><span class="o">.</span><span class="n">state</span> <span class="o">=</span> <span class="n">BackendState</span><span class="o">.</span><span class="n">DEPLOYED</span>
 </code></pre></div></td></tr></table></div>
             </details>
     </div>
@@ -3341,11 +3341,11 @@ inputs at most once so that subsequent calls have exact same state as the first 
 
             <details class="mkdocstrings-source">
               <summary>Source code in <code>torch_tweak/torch/backend/torch_inductor_backend.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-137">137</a></span>
-<span class="normal"><a href="#__codelineno-0-138">138</a></span>
-<span class="normal"><a href="#__codelineno-0-139">139</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-0-137" name="__codelineno-0-137"></a><span class="k">def</span><span class="w"> </span><span class="nf">describe</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
-<a id="__codelineno-0-138" name="__codelineno-0-138"></a><span class="w">    </span><span class="sd">"""Returns the description of the backend."""</span>
-<a id="__codelineno-0-139" name="__codelineno-0-139"></a>    <span class="k">return</span> <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="o">.</span><span class="vm">__name__</span><span class="si">}</span><span class="s2">(</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">_config</span><span class="o">.</span><span class="n">describe</span><span class="p">()</span><span class="si">}</span><span class="s2">)"</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#torch_tweak.torch.backend.TorchInductorBackend.describe--source--__codelineno-0-137">137</a></span>
+<span class="normal"><a href="#torch_tweak.torch.backend.TorchInductorBackend.describe--source--__codelineno-0-138">138</a></span>
+<span class="normal"><a href="#torch_tweak.torch.backend.TorchInductorBackend.describe--source--__codelineno-0-139">139</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="torch_tweak.torch.backend.TorchInductorBackend.describe--source--__codelineno-0-137" name="torch_tweak.torch.backend.TorchInductorBackend.describe--source--__codelineno-0-137"></a><span class="k">def</span><span class="w"> </span><span class="nf">describe</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<a id="torch_tweak.torch.backend.TorchInductorBackend.describe--source--__codelineno-0-138" name="torch_tweak.torch.backend.TorchInductorBackend.describe--source--__codelineno-0-138"></a><span class="w">    </span><span class="sd">"""Returns the description of the backend."""</span>
+<a id="torch_tweak.torch.backend.TorchInductorBackend.describe--source--__codelineno-0-139" name="torch_tweak.torch.backend.TorchInductorBackend.describe--source--__codelineno-0-139"></a>    <span class="k">return</span> <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="o">.</span><span class="vm">__name__</span><span class="si">}</span><span class="s2">(</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">_config</span><span class="o">.</span><span class="n">describe</span><span class="p">()</span><span class="si">}</span><span class="s2">)"</span>
 </code></pre></div></td></tr></table></div>
             </details>
     </div>
@@ -3374,43 +3374,43 @@ inputs at most once so that subsequent calls have exact same state as the first 
 
             <details class="mkdocstrings-source">
               <summary>Source code in <code>torch_tweak/torch/backend/torch_inductor_backend.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-254">254</a></span>
-<span class="normal"><a href="#__codelineno-0-255">255</a></span>
-<span class="normal"><a href="#__codelineno-0-256">256</a></span>
-<span class="normal"><a href="#__codelineno-0-257">257</a></span>
-<span class="normal"><a href="#__codelineno-0-258">258</a></span>
-<span class="normal"><a href="#__codelineno-0-259">259</a></span>
-<span class="normal"><a href="#__codelineno-0-260">260</a></span>
-<span class="normal"><a href="#__codelineno-0-261">261</a></span>
-<span class="normal"><a href="#__codelineno-0-262">262</a></span>
-<span class="normal"><a href="#__codelineno-0-263">263</a></span>
-<span class="normal"><a href="#__codelineno-0-264">264</a></span>
-<span class="normal"><a href="#__codelineno-0-265">265</a></span>
-<span class="normal"><a href="#__codelineno-0-266">266</a></span>
-<span class="normal"><a href="#__codelineno-0-267">267</a></span>
-<span class="normal"><a href="#__codelineno-0-268">268</a></span>
-<span class="normal"><a href="#__codelineno-0-269">269</a></span>
-<span class="normal"><a href="#__codelineno-0-270">270</a></span>
-<span class="normal"><a href="#__codelineno-0-271">271</a></span>
-<span class="normal"><a href="#__codelineno-0-272">272</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-0-254" name="__codelineno-0-254"></a><span class="nd">@classmethod</span>
-<a id="__codelineno-0-255" name="__codelineno-0-255"></a><span class="k">def</span><span class="w"> </span><span class="nf">from_dict</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">module</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span> <span class="o">|</span> <span class="kc">None</span><span class="p">,</span> <span class="n">state_dict</span><span class="p">:</span> <span class="nb">dict</span><span class="p">):</span>
-<a id="__codelineno-0-256" name="__codelineno-0-256"></a><span class="w">    </span><span class="sd">"""Creates a backend from a state_dict."""</span>
-<a id="__codelineno-0-257" name="__codelineno-0-257"></a>    <span class="k">if</span> <span class="n">state_dict</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="bp">cls</span><span class="o">.</span><span class="n">STATE_TYPE</span><span class="p">)</span> <span class="o">!=</span> <span class="bp">cls</span><span class="o">.</span><span class="vm">__name__</span><span class="p">:</span>
-<a id="__codelineno-0-258" name="__codelineno-0-258"></a>        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Invalid state_dict type: </span><span class="si">{</span><span class="n">state_dict</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="bp">cls</span><span class="o">.</span><span class="n">STATE_TYPE</span><span class="p">)</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
-<a id="__codelineno-0-259" name="__codelineno-0-259"></a>
-<a id="__codelineno-0-260" name="__codelineno-0-260"></a>    <span class="k">if</span> <span class="n">module</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-<a id="__codelineno-0-261" name="__codelineno-0-261"></a>        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"Module is required to create a backend from a state_dict."</span><span class="p">)</span>
-<a id="__codelineno-0-262" name="__codelineno-0-262"></a>
-<a id="__codelineno-0-263" name="__codelineno-0-263"></a>    <span class="n">config</span> <span class="o">=</span> <span class="n">TorchInductorBackendConfig</span><span class="o">.</span><span class="n">from_dict</span><span class="p">(</span><span class="n">state_dict</span><span class="p">[</span><span class="bp">cls</span><span class="o">.</span><span class="n">STATE_CONFIG</span><span class="p">])</span>
-<a id="__codelineno-0-264" name="__codelineno-0-264"></a>
-<a id="__codelineno-0-265" name="__codelineno-0-265"></a>    <span class="n">backend</span> <span class="o">=</span> <span class="bp">cls</span><span class="p">(</span><span class="n">config</span><span class="o">=</span><span class="n">config</span><span class="p">)</span>
-<a id="__codelineno-0-266" name="__codelineno-0-266"></a>    <span class="n">backend</span><span class="o">.</span><span class="n">_output_dtype</span> <span class="o">=</span> <span class="n">state_dict</span><span class="p">[</span><span class="bp">cls</span><span class="o">.</span><span class="n">STATE_OUTPUT_DTYPE</span><span class="p">]</span>
-<a id="__codelineno-0-267" name="__codelineno-0-267"></a>    <span class="n">backend</span><span class="o">.</span><span class="n">_data</span> <span class="o">=</span> <span class="n">state_dict</span><span class="p">[</span><span class="bp">cls</span><span class="o">.</span><span class="n">STATE_DATA</span><span class="p">]</span>
-<a id="__codelineno-0-268" name="__codelineno-0-268"></a>    <span class="n">backend</span><span class="o">.</span><span class="n">_device</span> <span class="o">=</span> <span class="n">state_dict</span><span class="p">[</span><span class="bp">cls</span><span class="o">.</span><span class="n">STATE_DEVICE</span><span class="p">]</span>
-<a id="__codelineno-0-269" name="__codelineno-0-269"></a>    <span class="n">backend</span><span class="o">.</span><span class="n">_orig_module</span> <span class="o">=</span> <span class="n">module</span>
-<a id="__codelineno-0-270" name="__codelineno-0-270"></a>    <span class="n">module</span><span class="o">.</span><span class="n">load_state_dict</span><span class="p">(</span><span class="n">state_dict</span><span class="p">[</span><span class="bp">cls</span><span class="o">.</span><span class="n">STATE_ORIG_MODULE</span><span class="p">],</span> <span class="n">strict</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
-<a id="__codelineno-0-271" name="__codelineno-0-271"></a>    <span class="n">backend</span><span class="o">.</span><span class="n">state</span> <span class="o">=</span> <span class="n">BackendState</span><span class="o">.</span><span class="n">CHECKPOINT_LOADED</span>
-<a id="__codelineno-0-272" name="__codelineno-0-272"></a>    <span class="k">return</span> <span class="n">backend</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#torch_tweak.torch.backend.TorchInductorBackend.from_dict--source--__codelineno-0-254">254</a></span>
+<span class="normal"><a href="#torch_tweak.torch.backend.TorchInductorBackend.from_dict--source--__codelineno-0-255">255</a></span>
+<span class="normal"><a href="#torch_tweak.torch.backend.TorchInductorBackend.from_dict--source--__codelineno-0-256">256</a></span>
+<span class="normal"><a href="#torch_tweak.torch.backend.TorchInductorBackend.from_dict--source--__codelineno-0-257">257</a></span>
+<span class="normal"><a href="#torch_tweak.torch.backend.TorchInductorBackend.from_dict--source--__codelineno-0-258">258</a></span>
+<span class="normal"><a href="#torch_tweak.torch.backend.TorchInductorBackend.from_dict--source--__codelineno-0-259">259</a></span>
+<span class="normal"><a href="#torch_tweak.torch.backend.TorchInductorBackend.from_dict--source--__codelineno-0-260">260</a></span>
+<span class="normal"><a href="#torch_tweak.torch.backend.TorchInductorBackend.from_dict--source--__codelineno-0-261">261</a></span>
+<span class="normal"><a href="#torch_tweak.torch.backend.TorchInductorBackend.from_dict--source--__codelineno-0-262">262</a></span>
+<span class="normal"><a href="#torch_tweak.torch.backend.TorchInductorBackend.from_dict--source--__codelineno-0-263">263</a></span>
+<span class="normal"><a href="#torch_tweak.torch.backend.TorchInductorBackend.from_dict--source--__codelineno-0-264">264</a></span>
+<span class="normal"><a href="#torch_tweak.torch.backend.TorchInductorBackend.from_dict--source--__codelineno-0-265">265</a></span>
+<span class="normal"><a href="#torch_tweak.torch.backend.TorchInductorBackend.from_dict--source--__codelineno-0-266">266</a></span>
+<span class="normal"><a href="#torch_tweak.torch.backend.TorchInductorBackend.from_dict--source--__codelineno-0-267">267</a></span>
+<span class="normal"><a href="#torch_tweak.torch.backend.TorchInductorBackend.from_dict--source--__codelineno-0-268">268</a></span>
+<span class="normal"><a href="#torch_tweak.torch.backend.TorchInductorBackend.from_dict--source--__codelineno-0-269">269</a></span>
+<span class="normal"><a href="#torch_tweak.torch.backend.TorchInductorBackend.from_dict--source--__codelineno-0-270">270</a></span>
+<span class="normal"><a href="#torch_tweak.torch.backend.TorchInductorBackend.from_dict--source--__codelineno-0-271">271</a></span>
+<span class="normal"><a href="#torch_tweak.torch.backend.TorchInductorBackend.from_dict--source--__codelineno-0-272">272</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="torch_tweak.torch.backend.TorchInductorBackend.from_dict--source--__codelineno-0-254" name="torch_tweak.torch.backend.TorchInductorBackend.from_dict--source--__codelineno-0-254"></a><span class="nd">@classmethod</span>
+<a id="torch_tweak.torch.backend.TorchInductorBackend.from_dict--source--__codelineno-0-255" name="torch_tweak.torch.backend.TorchInductorBackend.from_dict--source--__codelineno-0-255"></a><span class="k">def</span><span class="w"> </span><span class="nf">from_dict</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">module</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span> <span class="o">|</span> <span class="kc">None</span><span class="p">,</span> <span class="n">state_dict</span><span class="p">:</span> <span class="nb">dict</span><span class="p">):</span>
+<a id="torch_tweak.torch.backend.TorchInductorBackend.from_dict--source--__codelineno-0-256" name="torch_tweak.torch.backend.TorchInductorBackend.from_dict--source--__codelineno-0-256"></a><span class="w">    </span><span class="sd">"""Creates a backend from a state_dict."""</span>
+<a id="torch_tweak.torch.backend.TorchInductorBackend.from_dict--source--__codelineno-0-257" name="torch_tweak.torch.backend.TorchInductorBackend.from_dict--source--__codelineno-0-257"></a>    <span class="k">if</span> <span class="n">state_dict</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="bp">cls</span><span class="o">.</span><span class="n">STATE_TYPE</span><span class="p">)</span> <span class="o">!=</span> <span class="bp">cls</span><span class="o">.</span><span class="vm">__name__</span><span class="p">:</span>
+<a id="torch_tweak.torch.backend.TorchInductorBackend.from_dict--source--__codelineno-0-258" name="torch_tweak.torch.backend.TorchInductorBackend.from_dict--source--__codelineno-0-258"></a>        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Invalid state_dict type: </span><span class="si">{</span><span class="n">state_dict</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="bp">cls</span><span class="o">.</span><span class="n">STATE_TYPE</span><span class="p">)</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+<a id="torch_tweak.torch.backend.TorchInductorBackend.from_dict--source--__codelineno-0-259" name="torch_tweak.torch.backend.TorchInductorBackend.from_dict--source--__codelineno-0-259"></a>
+<a id="torch_tweak.torch.backend.TorchInductorBackend.from_dict--source--__codelineno-0-260" name="torch_tweak.torch.backend.TorchInductorBackend.from_dict--source--__codelineno-0-260"></a>    <span class="k">if</span> <span class="n">module</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+<a id="torch_tweak.torch.backend.TorchInductorBackend.from_dict--source--__codelineno-0-261" name="torch_tweak.torch.backend.TorchInductorBackend.from_dict--source--__codelineno-0-261"></a>        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"Module is required to create a backend from a state_dict."</span><span class="p">)</span>
+<a id="torch_tweak.torch.backend.TorchInductorBackend.from_dict--source--__codelineno-0-262" name="torch_tweak.torch.backend.TorchInductorBackend.from_dict--source--__codelineno-0-262"></a>
+<a id="torch_tweak.torch.backend.TorchInductorBackend.from_dict--source--__codelineno-0-263" name="torch_tweak.torch.backend.TorchInductorBackend.from_dict--source--__codelineno-0-263"></a>    <span class="n">config</span> <span class="o">=</span> <span class="n">TorchInductorBackendConfig</span><span class="o">.</span><span class="n">from_dict</span><span class="p">(</span><span class="n">state_dict</span><span class="p">[</span><span class="bp">cls</span><span class="o">.</span><span class="n">STATE_CONFIG</span><span class="p">])</span>
+<a id="torch_tweak.torch.backend.TorchInductorBackend.from_dict--source--__codelineno-0-264" name="torch_tweak.torch.backend.TorchInductorBackend.from_dict--source--__codelineno-0-264"></a>
+<a id="torch_tweak.torch.backend.TorchInductorBackend.from_dict--source--__codelineno-0-265" name="torch_tweak.torch.backend.TorchInductorBackend.from_dict--source--__codelineno-0-265"></a>    <span class="n">backend</span> <span class="o">=</span> <span class="bp">cls</span><span class="p">(</span><span class="n">config</span><span class="o">=</span><span class="n">config</span><span class="p">)</span>
+<a id="torch_tweak.torch.backend.TorchInductorBackend.from_dict--source--__codelineno-0-266" name="torch_tweak.torch.backend.TorchInductorBackend.from_dict--source--__codelineno-0-266"></a>    <span class="n">backend</span><span class="o">.</span><span class="n">_output_dtype</span> <span class="o">=</span> <span class="n">state_dict</span><span class="p">[</span><span class="bp">cls</span><span class="o">.</span><span class="n">STATE_OUTPUT_DTYPE</span><span class="p">]</span>
+<a id="torch_tweak.torch.backend.TorchInductorBackend.from_dict--source--__codelineno-0-267" name="torch_tweak.torch.backend.TorchInductorBackend.from_dict--source--__codelineno-0-267"></a>    <span class="n">backend</span><span class="o">.</span><span class="n">_data</span> <span class="o">=</span> <span class="n">state_dict</span><span class="p">[</span><span class="bp">cls</span><span class="o">.</span><span class="n">STATE_DATA</span><span class="p">]</span>
+<a id="torch_tweak.torch.backend.TorchInductorBackend.from_dict--source--__codelineno-0-268" name="torch_tweak.torch.backend.TorchInductorBackend.from_dict--source--__codelineno-0-268"></a>    <span class="n">backend</span><span class="o">.</span><span class="n">_device</span> <span class="o">=</span> <span class="n">state_dict</span><span class="p">[</span><span class="bp">cls</span><span class="o">.</span><span class="n">STATE_DEVICE</span><span class="p">]</span>
+<a id="torch_tweak.torch.backend.TorchInductorBackend.from_dict--source--__codelineno-0-269" name="torch_tweak.torch.backend.TorchInductorBackend.from_dict--source--__codelineno-0-269"></a>    <span class="n">backend</span><span class="o">.</span><span class="n">_orig_module</span> <span class="o">=</span> <span class="n">module</span>
+<a id="torch_tweak.torch.backend.TorchInductorBackend.from_dict--source--__codelineno-0-270" name="torch_tweak.torch.backend.TorchInductorBackend.from_dict--source--__codelineno-0-270"></a>    <span class="n">module</span><span class="o">.</span><span class="n">load_state_dict</span><span class="p">(</span><span class="n">state_dict</span><span class="p">[</span><span class="bp">cls</span><span class="o">.</span><span class="n">STATE_ORIG_MODULE</span><span class="p">],</span> <span class="n">strict</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+<a id="torch_tweak.torch.backend.TorchInductorBackend.from_dict--source--__codelineno-0-271" name="torch_tweak.torch.backend.TorchInductorBackend.from_dict--source--__codelineno-0-271"></a>    <span class="n">backend</span><span class="o">.</span><span class="n">state</span> <span class="o">=</span> <span class="n">BackendState</span><span class="o">.</span><span class="n">CHECKPOINT_LOADED</span>
+<a id="torch_tweak.torch.backend.TorchInductorBackend.from_dict--source--__codelineno-0-272" name="torch_tweak.torch.backend.TorchInductorBackend.from_dict--source--__codelineno-0-272"></a>    <span class="k">return</span> <span class="n">backend</span>
 </code></pre></div></td></tr></table></div>
             </details>
     </div>
@@ -3472,33 +3472,33 @@ inputs at most once so that subsequent calls have exact same state as the first 
 
             <details class="mkdocstrings-source">
               <summary>Source code in <code>torch_tweak/torch/backend/backend.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-265">265</a></span>
-<span class="normal"><a href="#__codelineno-0-266">266</a></span>
-<span class="normal"><a href="#__codelineno-0-267">267</a></span>
-<span class="normal"><a href="#__codelineno-0-268">268</a></span>
-<span class="normal"><a href="#__codelineno-0-269">269</a></span>
-<span class="normal"><a href="#__codelineno-0-270">270</a></span>
-<span class="normal"><a href="#__codelineno-0-271">271</a></span>
-<span class="normal"><a href="#__codelineno-0-272">272</a></span>
-<span class="normal"><a href="#__codelineno-0-273">273</a></span>
-<span class="normal"><a href="#__codelineno-0-274">274</a></span>
-<span class="normal"><a href="#__codelineno-0-275">275</a></span>
-<span class="normal"><a href="#__codelineno-0-276">276</a></span>
-<span class="normal"><a href="#__codelineno-0-277">277</a></span>
-<span class="normal"><a href="#__codelineno-0-278">278</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-0-265" name="__codelineno-0-265"></a><span class="k">def</span><span class="w"> </span><span class="nf">infer</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Any</span><span class="p">:</span>
-<a id="__codelineno-0-266" name="__codelineno-0-266"></a><span class="w">    </span><span class="sd">"""Run inference with the given arguments.</span>
-<a id="__codelineno-0-267" name="__codelineno-0-267"></a>
-<a id="__codelineno-0-268" name="__codelineno-0-268"></a><span class="sd">    Args:</span>
-<a id="__codelineno-0-269" name="__codelineno-0-269"></a><span class="sd">        args: Variable length argument list.</span>
-<a id="__codelineno-0-270" name="__codelineno-0-270"></a><span class="sd">        kwargs: Arbitrary keyword arguments.</span>
-<a id="__codelineno-0-271" name="__codelineno-0-271"></a>
-<a id="__codelineno-0-272" name="__codelineno-0-272"></a><span class="sd">    Returns:</span>
-<a id="__codelineno-0-273" name="__codelineno-0-273"></a><span class="sd">        Any: The result of the inference.</span>
-<a id="__codelineno-0-274" name="__codelineno-0-274"></a><span class="sd">    """</span>
-<a id="__codelineno-0-275" name="__codelineno-0-275"></a>    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">state</span> <span class="o">!=</span> <span class="n">BackendState</span><span class="o">.</span><span class="n">ACTIVE</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">state</span> <span class="o">!=</span> <span class="n">BackendState</span><span class="o">.</span><span class="n">DEPLOYED</span><span class="p">:</span>
-<a id="__codelineno-0-276" name="__codelineno-0-276"></a>        <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Cannot run inference, backend </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="si">}</span><span class="s2"> should be activated first"</span><span class="p">)</span>
-<a id="__codelineno-0-277" name="__codelineno-0-277"></a>
-<a id="__codelineno-0-278" name="__codelineno-0-278"></a>    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_infer</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#torch_tweak.torch.backend.TorchInductorBackend.infer--source--__codelineno-0-265">265</a></span>
+<span class="normal"><a href="#torch_tweak.torch.backend.TorchInductorBackend.infer--source--__codelineno-0-266">266</a></span>
+<span class="normal"><a href="#torch_tweak.torch.backend.TorchInductorBackend.infer--source--__codelineno-0-267">267</a></span>
+<span class="normal"><a href="#torch_tweak.torch.backend.TorchInductorBackend.infer--source--__codelineno-0-268">268</a></span>
+<span class="normal"><a href="#torch_tweak.torch.backend.TorchInductorBackend.infer--source--__codelineno-0-269">269</a></span>
+<span class="normal"><a href="#torch_tweak.torch.backend.TorchInductorBackend.infer--source--__codelineno-0-270">270</a></span>
+<span class="normal"><a href="#torch_tweak.torch.backend.TorchInductorBackend.infer--source--__codelineno-0-271">271</a></span>
+<span class="normal"><a href="#torch_tweak.torch.backend.TorchInductorBackend.infer--source--__codelineno-0-272">272</a></span>
+<span class="normal"><a href="#torch_tweak.torch.backend.TorchInductorBackend.infer--source--__codelineno-0-273">273</a></span>
+<span class="normal"><a href="#torch_tweak.torch.backend.TorchInductorBackend.infer--source--__codelineno-0-274">274</a></span>
+<span class="normal"><a href="#torch_tweak.torch.backend.TorchInductorBackend.infer--source--__codelineno-0-275">275</a></span>
+<span class="normal"><a href="#torch_tweak.torch.backend.TorchInductorBackend.infer--source--__codelineno-0-276">276</a></span>
+<span class="normal"><a href="#torch_tweak.torch.backend.TorchInductorBackend.infer--source--__codelineno-0-277">277</a></span>
+<span class="normal"><a href="#torch_tweak.torch.backend.TorchInductorBackend.infer--source--__codelineno-0-278">278</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="torch_tweak.torch.backend.TorchInductorBackend.infer--source--__codelineno-0-265" name="torch_tweak.torch.backend.TorchInductorBackend.infer--source--__codelineno-0-265"></a><span class="k">def</span><span class="w"> </span><span class="nf">infer</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Any</span><span class="p">:</span>
+<a id="torch_tweak.torch.backend.TorchInductorBackend.infer--source--__codelineno-0-266" name="torch_tweak.torch.backend.TorchInductorBackend.infer--source--__codelineno-0-266"></a><span class="w">    </span><span class="sd">"""Run inference with the given arguments.</span>
+<a id="torch_tweak.torch.backend.TorchInductorBackend.infer--source--__codelineno-0-267" name="torch_tweak.torch.backend.TorchInductorBackend.infer--source--__codelineno-0-267"></a>
+<a id="torch_tweak.torch.backend.TorchInductorBackend.infer--source--__codelineno-0-268" name="torch_tweak.torch.backend.TorchInductorBackend.infer--source--__codelineno-0-268"></a><span class="sd">    Args:</span>
+<a id="torch_tweak.torch.backend.TorchInductorBackend.infer--source--__codelineno-0-269" name="torch_tweak.torch.backend.TorchInductorBackend.infer--source--__codelineno-0-269"></a><span class="sd">        args: Variable length argument list.</span>
+<a id="torch_tweak.torch.backend.TorchInductorBackend.infer--source--__codelineno-0-270" name="torch_tweak.torch.backend.TorchInductorBackend.infer--source--__codelineno-0-270"></a><span class="sd">        kwargs: Arbitrary keyword arguments.</span>
+<a id="torch_tweak.torch.backend.TorchInductorBackend.infer--source--__codelineno-0-271" name="torch_tweak.torch.backend.TorchInductorBackend.infer--source--__codelineno-0-271"></a>
+<a id="torch_tweak.torch.backend.TorchInductorBackend.infer--source--__codelineno-0-272" name="torch_tweak.torch.backend.TorchInductorBackend.infer--source--__codelineno-0-272"></a><span class="sd">    Returns:</span>
+<a id="torch_tweak.torch.backend.TorchInductorBackend.infer--source--__codelineno-0-273" name="torch_tweak.torch.backend.TorchInductorBackend.infer--source--__codelineno-0-273"></a><span class="sd">        Any: The result of the inference.</span>
+<a id="torch_tweak.torch.backend.TorchInductorBackend.infer--source--__codelineno-0-274" name="torch_tweak.torch.backend.TorchInductorBackend.infer--source--__codelineno-0-274"></a><span class="sd">    """</span>
+<a id="torch_tweak.torch.backend.TorchInductorBackend.infer--source--__codelineno-0-275" name="torch_tweak.torch.backend.TorchInductorBackend.infer--source--__codelineno-0-275"></a>    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">state</span> <span class="o">!=</span> <span class="n">BackendState</span><span class="o">.</span><span class="n">ACTIVE</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">state</span> <span class="o">!=</span> <span class="n">BackendState</span><span class="o">.</span><span class="n">DEPLOYED</span><span class="p">:</span>
+<a id="torch_tweak.torch.backend.TorchInductorBackend.infer--source--__codelineno-0-276" name="torch_tweak.torch.backend.TorchInductorBackend.infer--source--__codelineno-0-276"></a>        <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Cannot run inference, backend </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="si">}</span><span class="s2"> should be activated first"</span><span class="p">)</span>
+<a id="torch_tweak.torch.backend.TorchInductorBackend.infer--source--__codelineno-0-277" name="torch_tweak.torch.backend.TorchInductorBackend.infer--source--__codelineno-0-277"></a>
+<a id="torch_tweak.torch.backend.TorchInductorBackend.infer--source--__codelineno-0-278" name="torch_tweak.torch.backend.TorchInductorBackend.infer--source--__codelineno-0-278"></a>    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_infer</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
 </code></pre></div></td></tr></table></div>
             </details>
     </div>
@@ -3523,11 +3523,11 @@ inputs at most once so that subsequent calls have exact same state as the first 
 
             <details class="mkdocstrings-source">
               <summary>Source code in <code>torch_tweak/torch/backend/torch_inductor_backend.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-133">133</a></span>
-<span class="normal"><a href="#__codelineno-0-134">134</a></span>
-<span class="normal"><a href="#__codelineno-0-135">135</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-0-133" name="__codelineno-0-133"></a><span class="k">def</span><span class="w"> </span><span class="nf">key</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
-<a id="__codelineno-0-134" name="__codelineno-0-134"></a><span class="w">    </span><span class="sd">"""Returns the key of the backend."""</span>
-<a id="__codelineno-0-135" name="__codelineno-0-135"></a>    <span class="k">return</span> <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="o">.</span><span class="vm">__name__</span><span class="si">}</span><span class="s2">_</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">_config</span><span class="o">.</span><span class="n">key</span><span class="p">()</span><span class="si">}</span><span class="s2">"</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#torch_tweak.torch.backend.TorchInductorBackend.key--source--__codelineno-0-133">133</a></span>
+<span class="normal"><a href="#torch_tweak.torch.backend.TorchInductorBackend.key--source--__codelineno-0-134">134</a></span>
+<span class="normal"><a href="#torch_tweak.torch.backend.TorchInductorBackend.key--source--__codelineno-0-135">135</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="torch_tweak.torch.backend.TorchInductorBackend.key--source--__codelineno-0-133" name="torch_tweak.torch.backend.TorchInductorBackend.key--source--__codelineno-0-133"></a><span class="k">def</span><span class="w"> </span><span class="nf">key</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<a id="torch_tweak.torch.backend.TorchInductorBackend.key--source--__codelineno-0-134" name="torch_tweak.torch.backend.TorchInductorBackend.key--source--__codelineno-0-134"></a><span class="w">    </span><span class="sd">"""Returns the key of the backend."""</span>
+<a id="torch_tweak.torch.backend.TorchInductorBackend.key--source--__codelineno-0-135" name="torch_tweak.torch.backend.TorchInductorBackend.key--source--__codelineno-0-135"></a>    <span class="k">return</span> <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="o">.</span><span class="vm">__name__</span><span class="si">}</span><span class="s2">_</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">_config</span><span class="o">.</span><span class="n">key</span><span class="p">()</span><span class="si">}</span><span class="s2">"</span>
 </code></pre></div></td></tr></table></div>
             </details>
     </div>
@@ -3552,31 +3552,31 @@ inputs at most once so that subsequent calls have exact same state as the first 
 
             <details class="mkdocstrings-source">
               <summary>Source code in <code>torch_tweak/torch/backend/torch_inductor_backend.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-240">240</a></span>
-<span class="normal"><a href="#__codelineno-0-241">241</a></span>
-<span class="normal"><a href="#__codelineno-0-242">242</a></span>
-<span class="normal"><a href="#__codelineno-0-243">243</a></span>
-<span class="normal"><a href="#__codelineno-0-244">244</a></span>
-<span class="normal"><a href="#__codelineno-0-245">245</a></span>
-<span class="normal"><a href="#__codelineno-0-246">246</a></span>
-<span class="normal"><a href="#__codelineno-0-247">247</a></span>
-<span class="normal"><a href="#__codelineno-0-248">248</a></span>
-<span class="normal"><a href="#__codelineno-0-249">249</a></span>
-<span class="normal"><a href="#__codelineno-0-250">250</a></span>
-<span class="normal"><a href="#__codelineno-0-251">251</a></span>
-<span class="normal"><a href="#__codelineno-0-252">252</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-0-240" name="__codelineno-0-240"></a><span class="k">def</span><span class="w"> </span><span class="nf">to_dict</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-<a id="__codelineno-0-241" name="__codelineno-0-241"></a><span class="w">    </span><span class="sd">"""Returns the state_dict of the backend."""</span>
-<a id="__codelineno-0-242" name="__codelineno-0-242"></a>    <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">_orig_module</span><span class="p">:</span>
-<a id="__codelineno-0-243" name="__codelineno-0-243"></a>        <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span><span class="s2">"Backend has not been properly initialized. Please call build() first."</span><span class="p">)</span>
-<a id="__codelineno-0-244" name="__codelineno-0-244"></a>
-<a id="__codelineno-0-245" name="__codelineno-0-245"></a>    <span class="k">return</span> <span class="p">{</span>
-<a id="__codelineno-0-246" name="__codelineno-0-246"></a>        <span class="bp">self</span><span class="o">.</span><span class="n">STATE_TYPE</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="o">.</span><span class="vm">__name__</span><span class="p">,</span>
-<a id="__codelineno-0-247" name="__codelineno-0-247"></a>        <span class="bp">self</span><span class="o">.</span><span class="n">STATE_CONFIG</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">_config</span><span class="o">.</span><span class="n">to_dict</span><span class="p">(),</span>
-<a id="__codelineno-0-248" name="__codelineno-0-248"></a>        <span class="bp">self</span><span class="o">.</span><span class="n">STATE_OUTPUT_DTYPE</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">_output_dtype</span><span class="p">,</span>
-<a id="__codelineno-0-249" name="__codelineno-0-249"></a>        <span class="bp">self</span><span class="o">.</span><span class="n">STATE_DATA</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">_data</span><span class="p">,</span>
-<a id="__codelineno-0-250" name="__codelineno-0-250"></a>        <span class="bp">self</span><span class="o">.</span><span class="n">STATE_ORIG_MODULE</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">_orig_module</span><span class="o">.</span><span class="n">state_dict</span><span class="p">(),</span>
-<a id="__codelineno-0-251" name="__codelineno-0-251"></a>        <span class="bp">self</span><span class="o">.</span><span class="n">STATE_DEVICE</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">_device</span><span class="p">,</span>
-<a id="__codelineno-0-252" name="__codelineno-0-252"></a>    <span class="p">}</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#torch_tweak.torch.backend.TorchInductorBackend.to_dict--source--__codelineno-0-240">240</a></span>
+<span class="normal"><a href="#torch_tweak.torch.backend.TorchInductorBackend.to_dict--source--__codelineno-0-241">241</a></span>
+<span class="normal"><a href="#torch_tweak.torch.backend.TorchInductorBackend.to_dict--source--__codelineno-0-242">242</a></span>
+<span class="normal"><a href="#torch_tweak.torch.backend.TorchInductorBackend.to_dict--source--__codelineno-0-243">243</a></span>
+<span class="normal"><a href="#torch_tweak.torch.backend.TorchInductorBackend.to_dict--source--__codelineno-0-244">244</a></span>
+<span class="normal"><a href="#torch_tweak.torch.backend.TorchInductorBackend.to_dict--source--__codelineno-0-245">245</a></span>
+<span class="normal"><a href="#torch_tweak.torch.backend.TorchInductorBackend.to_dict--source--__codelineno-0-246">246</a></span>
+<span class="normal"><a href="#torch_tweak.torch.backend.TorchInductorBackend.to_dict--source--__codelineno-0-247">247</a></span>
+<span class="normal"><a href="#torch_tweak.torch.backend.TorchInductorBackend.to_dict--source--__codelineno-0-248">248</a></span>
+<span class="normal"><a href="#torch_tweak.torch.backend.TorchInductorBackend.to_dict--source--__codelineno-0-249">249</a></span>
+<span class="normal"><a href="#torch_tweak.torch.backend.TorchInductorBackend.to_dict--source--__codelineno-0-250">250</a></span>
+<span class="normal"><a href="#torch_tweak.torch.backend.TorchInductorBackend.to_dict--source--__codelineno-0-251">251</a></span>
+<span class="normal"><a href="#torch_tweak.torch.backend.TorchInductorBackend.to_dict--source--__codelineno-0-252">252</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="torch_tweak.torch.backend.TorchInductorBackend.to_dict--source--__codelineno-0-240" name="torch_tweak.torch.backend.TorchInductorBackend.to_dict--source--__codelineno-0-240"></a><span class="k">def</span><span class="w"> </span><span class="nf">to_dict</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<a id="torch_tweak.torch.backend.TorchInductorBackend.to_dict--source--__codelineno-0-241" name="torch_tweak.torch.backend.TorchInductorBackend.to_dict--source--__codelineno-0-241"></a><span class="w">    </span><span class="sd">"""Returns the state_dict of the backend."""</span>
+<a id="torch_tweak.torch.backend.TorchInductorBackend.to_dict--source--__codelineno-0-242" name="torch_tweak.torch.backend.TorchInductorBackend.to_dict--source--__codelineno-0-242"></a>    <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">_orig_module</span><span class="p">:</span>
+<a id="torch_tweak.torch.backend.TorchInductorBackend.to_dict--source--__codelineno-0-243" name="torch_tweak.torch.backend.TorchInductorBackend.to_dict--source--__codelineno-0-243"></a>        <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span><span class="s2">"Backend has not been properly initialized. Please call build() first."</span><span class="p">)</span>
+<a id="torch_tweak.torch.backend.TorchInductorBackend.to_dict--source--__codelineno-0-244" name="torch_tweak.torch.backend.TorchInductorBackend.to_dict--source--__codelineno-0-244"></a>
+<a id="torch_tweak.torch.backend.TorchInductorBackend.to_dict--source--__codelineno-0-245" name="torch_tweak.torch.backend.TorchInductorBackend.to_dict--source--__codelineno-0-245"></a>    <span class="k">return</span> <span class="p">{</span>
+<a id="torch_tweak.torch.backend.TorchInductorBackend.to_dict--source--__codelineno-0-246" name="torch_tweak.torch.backend.TorchInductorBackend.to_dict--source--__codelineno-0-246"></a>        <span class="bp">self</span><span class="o">.</span><span class="n">STATE_TYPE</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="o">.</span><span class="vm">__name__</span><span class="p">,</span>
+<a id="torch_tweak.torch.backend.TorchInductorBackend.to_dict--source--__codelineno-0-247" name="torch_tweak.torch.backend.TorchInductorBackend.to_dict--source--__codelineno-0-247"></a>        <span class="bp">self</span><span class="o">.</span><span class="n">STATE_CONFIG</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">_config</span><span class="o">.</span><span class="n">to_dict</span><span class="p">(),</span>
+<a id="torch_tweak.torch.backend.TorchInductorBackend.to_dict--source--__codelineno-0-248" name="torch_tweak.torch.backend.TorchInductorBackend.to_dict--source--__codelineno-0-248"></a>        <span class="bp">self</span><span class="o">.</span><span class="n">STATE_OUTPUT_DTYPE</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">_output_dtype</span><span class="p">,</span>
+<a id="torch_tweak.torch.backend.TorchInductorBackend.to_dict--source--__codelineno-0-249" name="torch_tweak.torch.backend.TorchInductorBackend.to_dict--source--__codelineno-0-249"></a>        <span class="bp">self</span><span class="o">.</span><span class="n">STATE_DATA</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">_data</span><span class="p">,</span>
+<a id="torch_tweak.torch.backend.TorchInductorBackend.to_dict--source--__codelineno-0-250" name="torch_tweak.torch.backend.TorchInductorBackend.to_dict--source--__codelineno-0-250"></a>        <span class="bp">self</span><span class="o">.</span><span class="n">STATE_ORIG_MODULE</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">_orig_module</span><span class="o">.</span><span class="n">state_dict</span><span class="p">(),</span>
+<a id="torch_tweak.torch.backend.TorchInductorBackend.to_dict--source--__codelineno-0-251" name="torch_tweak.torch.backend.TorchInductorBackend.to_dict--source--__codelineno-0-251"></a>        <span class="bp">self</span><span class="o">.</span><span class="n">STATE_DEVICE</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">_device</span><span class="p">,</span>
+<a id="torch_tweak.torch.backend.TorchInductorBackend.to_dict--source--__codelineno-0-252" name="torch_tweak.torch.backend.TorchInductorBackend.to_dict--source--__codelineno-0-252"></a>    <span class="p">}</span>
 </code></pre></div></td></tr></table></div>
             </details>
     </div>
@@ -3769,23 +3769,23 @@ functional tests, and the remaining three either collapse into it or only add au
 
             <details class="mkdocstrings-source">
               <summary>Source code in <code>torch_tweak/torch/backend/torch_inductor_backend.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-84">84</a></span>
-<span class="normal"><a href="#__codelineno-0-85">85</a></span>
-<span class="normal"><a href="#__codelineno-0-86">86</a></span>
-<span class="normal"><a href="#__codelineno-0-87">87</a></span>
-<span class="normal"><a href="#__codelineno-0-88">88</a></span>
-<span class="normal"><a href="#__codelineno-0-89">89</a></span>
-<span class="normal"><a href="#__codelineno-0-90">90</a></span>
-<span class="normal"><a href="#__codelineno-0-91">91</a></span>
-<span class="normal"><a href="#__codelineno-0-92">92</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-0-84" name="__codelineno-0-84"></a><span class="k">def</span><span class="w"> </span><span class="nf">__post_init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-<a id="__codelineno-0-85" name="__codelineno-0-85"></a><span class="w">    </span><span class="sd">"""Post init."""</span>
-<a id="__codelineno-0-86" name="__codelineno-0-86"></a>    <span class="c1"># Check that mode and options are not both supplied in config</span>
-<a id="__codelineno-0-87" name="__codelineno-0-87"></a>    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">mode</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">options</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-<a id="__codelineno-0-88" name="__codelineno-0-88"></a>        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
-<a id="__codelineno-0-89" name="__codelineno-0-89"></a>            <span class="s2">"Cannot specify both 'mode' and 'options' parameters in config. "</span>
-<a id="__codelineno-0-90" name="__codelineno-0-90"></a>            <span class="s2">"Use either 'mode' for predefined configurations or 'options' "</span>
-<a id="__codelineno-0-91" name="__codelineno-0-91"></a>            <span class="s2">"for custom configurations, but not both."</span>
-<a id="__codelineno-0-92" name="__codelineno-0-92"></a>        <span class="p">)</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#torch_tweak.torch.backend.TorchInductorBackendConfig.__post_init__--source--__codelineno-0-84">84</a></span>
+<span class="normal"><a href="#torch_tweak.torch.backend.TorchInductorBackendConfig.__post_init__--source--__codelineno-0-85">85</a></span>
+<span class="normal"><a href="#torch_tweak.torch.backend.TorchInductorBackendConfig.__post_init__--source--__codelineno-0-86">86</a></span>
+<span class="normal"><a href="#torch_tweak.torch.backend.TorchInductorBackendConfig.__post_init__--source--__codelineno-0-87">87</a></span>
+<span class="normal"><a href="#torch_tweak.torch.backend.TorchInductorBackendConfig.__post_init__--source--__codelineno-0-88">88</a></span>
+<span class="normal"><a href="#torch_tweak.torch.backend.TorchInductorBackendConfig.__post_init__--source--__codelineno-0-89">89</a></span>
+<span class="normal"><a href="#torch_tweak.torch.backend.TorchInductorBackendConfig.__post_init__--source--__codelineno-0-90">90</a></span>
+<span class="normal"><a href="#torch_tweak.torch.backend.TorchInductorBackendConfig.__post_init__--source--__codelineno-0-91">91</a></span>
+<span class="normal"><a href="#torch_tweak.torch.backend.TorchInductorBackendConfig.__post_init__--source--__codelineno-0-92">92</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="torch_tweak.torch.backend.TorchInductorBackendConfig.__post_init__--source--__codelineno-0-84" name="torch_tweak.torch.backend.TorchInductorBackendConfig.__post_init__--source--__codelineno-0-84"></a><span class="k">def</span><span class="w"> </span><span class="nf">__post_init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<a id="torch_tweak.torch.backend.TorchInductorBackendConfig.__post_init__--source--__codelineno-0-85" name="torch_tweak.torch.backend.TorchInductorBackendConfig.__post_init__--source--__codelineno-0-85"></a><span class="w">    </span><span class="sd">"""Post init."""</span>
+<a id="torch_tweak.torch.backend.TorchInductorBackendConfig.__post_init__--source--__codelineno-0-86" name="torch_tweak.torch.backend.TorchInductorBackendConfig.__post_init__--source--__codelineno-0-86"></a>    <span class="c1"># Check that mode and options are not both supplied in config</span>
+<a id="torch_tweak.torch.backend.TorchInductorBackendConfig.__post_init__--source--__codelineno-0-87" name="torch_tweak.torch.backend.TorchInductorBackendConfig.__post_init__--source--__codelineno-0-87"></a>    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">mode</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">options</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+<a id="torch_tweak.torch.backend.TorchInductorBackendConfig.__post_init__--source--__codelineno-0-88" name="torch_tweak.torch.backend.TorchInductorBackendConfig.__post_init__--source--__codelineno-0-88"></a>        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+<a id="torch_tweak.torch.backend.TorchInductorBackendConfig.__post_init__--source--__codelineno-0-89" name="torch_tweak.torch.backend.TorchInductorBackendConfig.__post_init__--source--__codelineno-0-89"></a>            <span class="s2">"Cannot specify both 'mode' and 'options' parameters in config. "</span>
+<a id="torch_tweak.torch.backend.TorchInductorBackendConfig.__post_init__--source--__codelineno-0-90" name="torch_tweak.torch.backend.TorchInductorBackendConfig.__post_init__--source--__codelineno-0-90"></a>            <span class="s2">"Use either 'mode' for predefined configurations or 'options' "</span>
+<a id="torch_tweak.torch.backend.TorchInductorBackendConfig.__post_init__--source--__codelineno-0-91" name="torch_tweak.torch.backend.TorchInductorBackendConfig.__post_init__--source--__codelineno-0-91"></a>            <span class="s2">"for custom configurations, but not both."</span>
+<a id="torch_tweak.torch.backend.TorchInductorBackendConfig.__post_init__--source--__codelineno-0-92" name="torch_tweak.torch.backend.TorchInductorBackendConfig.__post_init__--source--__codelineno-0-92"></a>        <span class="p">)</span>
 </code></pre></div></td></tr></table></div>
             </details>
     </div>
@@ -3810,15 +3810,15 @@ functional tests, and the remaining three either collapse into it or only add au
 
             <details class="mkdocstrings-source">
               <summary>Source code in <code>torch_tweak/torch/backend/backend.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-97"> 97</a></span>
-<span class="normal"><a href="#__codelineno-0-98"> 98</a></span>
-<span class="normal"><a href="#__codelineno-0-99"> 99</a></span>
-<span class="normal"><a href="#__codelineno-0-100">100</a></span>
-<span class="normal"><a href="#__codelineno-0-101">101</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-0-97" name="__codelineno-0-97"></a><span class="k">def</span><span class="w"> </span><span class="nf">describe</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
-<a id="__codelineno-0-98" name="__codelineno-0-98"></a><span class="w">    </span><span class="sd">"""Describe the backend configuration. Display only changed fields."""</span>
-<a id="__codelineno-0-99" name="__codelineno-0-99"></a>    <span class="n">default</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="p">()</span>
-<a id="__codelineno-0-100" name="__codelineno-0-100"></a>    <span class="n">changed_fields</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_changed_fields</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">default</span><span class="p">)</span>
-<a id="__codelineno-0-101" name="__codelineno-0-101"></a>    <span class="k">return</span> <span class="s2">","</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">changed_fields</span><span class="p">)</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#torch_tweak.torch.backend.TorchInductorBackendConfig.describe--source--__codelineno-0-97"> 97</a></span>
+<span class="normal"><a href="#torch_tweak.torch.backend.TorchInductorBackendConfig.describe--source--__codelineno-0-98"> 98</a></span>
+<span class="normal"><a href="#torch_tweak.torch.backend.TorchInductorBackendConfig.describe--source--__codelineno-0-99"> 99</a></span>
+<span class="normal"><a href="#torch_tweak.torch.backend.TorchInductorBackendConfig.describe--source--__codelineno-0-100">100</a></span>
+<span class="normal"><a href="#torch_tweak.torch.backend.TorchInductorBackendConfig.describe--source--__codelineno-0-101">101</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="torch_tweak.torch.backend.TorchInductorBackendConfig.describe--source--__codelineno-0-97" name="torch_tweak.torch.backend.TorchInductorBackendConfig.describe--source--__codelineno-0-97"></a><span class="k">def</span><span class="w"> </span><span class="nf">describe</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<a id="torch_tweak.torch.backend.TorchInductorBackendConfig.describe--source--__codelineno-0-98" name="torch_tweak.torch.backend.TorchInductorBackendConfig.describe--source--__codelineno-0-98"></a><span class="w">    </span><span class="sd">"""Describe the backend configuration. Display only changed fields."""</span>
+<a id="torch_tweak.torch.backend.TorchInductorBackendConfig.describe--source--__codelineno-0-99" name="torch_tweak.torch.backend.TorchInductorBackendConfig.describe--source--__codelineno-0-99"></a>    <span class="n">default</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="p">()</span>
+<a id="torch_tweak.torch.backend.TorchInductorBackendConfig.describe--source--__codelineno-0-100" name="torch_tweak.torch.backend.TorchInductorBackendConfig.describe--source--__codelineno-0-100"></a>    <span class="n">changed_fields</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_changed_fields</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">default</span><span class="p">)</span>
+<a id="torch_tweak.torch.backend.TorchInductorBackendConfig.describe--source--__codelineno-0-101" name="torch_tweak.torch.backend.TorchInductorBackendConfig.describe--source--__codelineno-0-101"></a>    <span class="k">return</span> <span class="s2">","</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">changed_fields</span><span class="p">)</span>
 </code></pre></div></td></tr></table></div>
             </details>
     </div>
@@ -3847,13 +3847,13 @@ functional tests, and the remaining three either collapse into it or only add au
 
             <details class="mkdocstrings-source">
               <summary>Source code in <code>torch_tweak/torch/backend/torch_inductor_backend.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-94">94</a></span>
-<span class="normal"><a href="#__codelineno-0-95">95</a></span>
-<span class="normal"><a href="#__codelineno-0-96">96</a></span>
-<span class="normal"><a href="#__codelineno-0-97">97</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-0-94" name="__codelineno-0-94"></a><span class="nd">@classmethod</span>
-<a id="__codelineno-0-95" name="__codelineno-0-95"></a><span class="k">def</span><span class="w"> </span><span class="nf">from_dict</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">state_dict</span><span class="p">:</span> <span class="nb">dict</span><span class="p">):</span>
-<a id="__codelineno-0-96" name="__codelineno-0-96"></a><span class="w">    </span><span class="sd">"""Convert dict to TorchInductorBackendConfig."""</span>
-<a id="__codelineno-0-97" name="__codelineno-0-97"></a>    <span class="k">return</span> <span class="bp">cls</span><span class="p">(</span><span class="o">**</span><span class="n">state_dict</span><span class="p">)</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#torch_tweak.torch.backend.TorchInductorBackendConfig.from_dict--source--__codelineno-0-94">94</a></span>
+<span class="normal"><a href="#torch_tweak.torch.backend.TorchInductorBackendConfig.from_dict--source--__codelineno-0-95">95</a></span>
+<span class="normal"><a href="#torch_tweak.torch.backend.TorchInductorBackendConfig.from_dict--source--__codelineno-0-96">96</a></span>
+<span class="normal"><a href="#torch_tweak.torch.backend.TorchInductorBackendConfig.from_dict--source--__codelineno-0-97">97</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="torch_tweak.torch.backend.TorchInductorBackendConfig.from_dict--source--__codelineno-0-94" name="torch_tweak.torch.backend.TorchInductorBackendConfig.from_dict--source--__codelineno-0-94"></a><span class="nd">@classmethod</span>
+<a id="torch_tweak.torch.backend.TorchInductorBackendConfig.from_dict--source--__codelineno-0-95" name="torch_tweak.torch.backend.TorchInductorBackendConfig.from_dict--source--__codelineno-0-95"></a><span class="k">def</span><span class="w"> </span><span class="nf">from_dict</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">state_dict</span><span class="p">:</span> <span class="nb">dict</span><span class="p">):</span>
+<a id="torch_tweak.torch.backend.TorchInductorBackendConfig.from_dict--source--__codelineno-0-96" name="torch_tweak.torch.backend.TorchInductorBackendConfig.from_dict--source--__codelineno-0-96"></a><span class="w">    </span><span class="sd">"""Convert dict to TorchInductorBackendConfig."""</span>
+<a id="torch_tweak.torch.backend.TorchInductorBackendConfig.from_dict--source--__codelineno-0-97" name="torch_tweak.torch.backend.TorchInductorBackendConfig.from_dict--source--__codelineno-0-97"></a>    <span class="k">return</span> <span class="bp">cls</span><span class="p">(</span><span class="o">**</span><span class="n">state_dict</span><span class="p">)</span>
 </code></pre></div></td></tr></table></div>
             </details>
     </div>
@@ -3878,19 +3878,19 @@ functional tests, and the remaining three either collapse into it or only add au
 
             <details class="mkdocstrings-source">
               <summary>Source code in <code>torch_tweak/torch/backend/backend.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-89">89</a></span>
-<span class="normal"><a href="#__codelineno-0-90">90</a></span>
-<span class="normal"><a href="#__codelineno-0-91">91</a></span>
-<span class="normal"><a href="#__codelineno-0-92">92</a></span>
-<span class="normal"><a href="#__codelineno-0-93">93</a></span>
-<span class="normal"><a href="#__codelineno-0-94">94</a></span>
-<span class="normal"><a href="#__codelineno-0-95">95</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-0-89" name="__codelineno-0-89"></a><span class="k">def</span><span class="w"> </span><span class="nf">key</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
-<a id="__codelineno-0-90" name="__codelineno-0-90"></a><span class="w">    </span><span class="sd">"""Returns the keys of the backend configuration."""</span>
-<a id="__codelineno-0-91" name="__codelineno-0-91"></a>    <span class="n">config_dict</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">to_dict</span><span class="p">()</span>
-<a id="__codelineno-0-92" name="__codelineno-0-92"></a>    <span class="n">config_dict</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_to_json</span><span class="p">(</span><span class="n">config_dict</span><span class="p">)</span>
-<a id="__codelineno-0-93" name="__codelineno-0-93"></a>    <span class="n">config_dict_str</span> <span class="o">=</span> <span class="n">json</span><span class="o">.</span><span class="n">dumps</span><span class="p">(</span><span class="n">config_dict</span><span class="p">)</span>
-<a id="__codelineno-0-94" name="__codelineno-0-94"></a>    <span class="n">key</span> <span class="o">=</span> <span class="n">hash_string</span><span class="p">(</span><span class="n">config_dict_str</span><span class="p">)</span>
-<a id="__codelineno-0-95" name="__codelineno-0-95"></a>    <span class="k">return</span> <span class="n">key</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#torch_tweak.torch.backend.TorchInductorBackendConfig.key--source--__codelineno-0-89">89</a></span>
+<span class="normal"><a href="#torch_tweak.torch.backend.TorchInductorBackendConfig.key--source--__codelineno-0-90">90</a></span>
+<span class="normal"><a href="#torch_tweak.torch.backend.TorchInductorBackendConfig.key--source--__codelineno-0-91">91</a></span>
+<span class="normal"><a href="#torch_tweak.torch.backend.TorchInductorBackendConfig.key--source--__codelineno-0-92">92</a></span>
+<span class="normal"><a href="#torch_tweak.torch.backend.TorchInductorBackendConfig.key--source--__codelineno-0-93">93</a></span>
+<span class="normal"><a href="#torch_tweak.torch.backend.TorchInductorBackendConfig.key--source--__codelineno-0-94">94</a></span>
+<span class="normal"><a href="#torch_tweak.torch.backend.TorchInductorBackendConfig.key--source--__codelineno-0-95">95</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="torch_tweak.torch.backend.TorchInductorBackendConfig.key--source--__codelineno-0-89" name="torch_tweak.torch.backend.TorchInductorBackendConfig.key--source--__codelineno-0-89"></a><span class="k">def</span><span class="w"> </span><span class="nf">key</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<a id="torch_tweak.torch.backend.TorchInductorBackendConfig.key--source--__codelineno-0-90" name="torch_tweak.torch.backend.TorchInductorBackendConfig.key--source--__codelineno-0-90"></a><span class="w">    </span><span class="sd">"""Returns the keys of the backend configuration."""</span>
+<a id="torch_tweak.torch.backend.TorchInductorBackendConfig.key--source--__codelineno-0-91" name="torch_tweak.torch.backend.TorchInductorBackendConfig.key--source--__codelineno-0-91"></a>    <span class="n">config_dict</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">to_dict</span><span class="p">()</span>
+<a id="torch_tweak.torch.backend.TorchInductorBackendConfig.key--source--__codelineno-0-92" name="torch_tweak.torch.backend.TorchInductorBackendConfig.key--source--__codelineno-0-92"></a>    <span class="n">config_dict</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_to_json</span><span class="p">(</span><span class="n">config_dict</span><span class="p">)</span>
+<a id="torch_tweak.torch.backend.TorchInductorBackendConfig.key--source--__codelineno-0-93" name="torch_tweak.torch.backend.TorchInductorBackendConfig.key--source--__codelineno-0-93"></a>    <span class="n">config_dict_str</span> <span class="o">=</span> <span class="n">json</span><span class="o">.</span><span class="n">dumps</span><span class="p">(</span><span class="n">config_dict</span><span class="p">)</span>
+<a id="torch_tweak.torch.backend.TorchInductorBackendConfig.key--source--__codelineno-0-94" name="torch_tweak.torch.backend.TorchInductorBackendConfig.key--source--__codelineno-0-94"></a>    <span class="n">key</span> <span class="o">=</span> <span class="n">hash_string</span><span class="p">(</span><span class="n">config_dict_str</span><span class="p">)</span>
+<a id="torch_tweak.torch.backend.TorchInductorBackendConfig.key--source--__codelineno-0-95" name="torch_tweak.torch.backend.TorchInductorBackendConfig.key--source--__codelineno-0-95"></a>    <span class="k">return</span> <span class="n">key</span>
 </code></pre></div></td></tr></table></div>
             </details>
     </div>
@@ -3915,11 +3915,11 @@ functional tests, and the remaining three either collapse into it or only add au
 
             <details class="mkdocstrings-source">
               <summary>Source code in <code>torch_tweak/torch/backend/backend.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-103">103</a></span>
-<span class="normal"><a href="#__codelineno-0-104">104</a></span>
-<span class="normal"><a href="#__codelineno-0-105">105</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-0-103" name="__codelineno-0-103"></a><span class="k">def</span><span class="w"> </span><span class="nf">to_dict</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-<a id="__codelineno-0-104" name="__codelineno-0-104"></a><span class="w">    </span><span class="sd">"""Returns the state_dict of the backend."""</span>
-<a id="__codelineno-0-105" name="__codelineno-0-105"></a>    <span class="k">return</span> <span class="n">asdict</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#torch_tweak.torch.backend.TorchInductorBackendConfig.to_dict--source--__codelineno-0-103">103</a></span>
+<span class="normal"><a href="#torch_tweak.torch.backend.TorchInductorBackendConfig.to_dict--source--__codelineno-0-104">104</a></span>
+<span class="normal"><a href="#torch_tweak.torch.backend.TorchInductorBackendConfig.to_dict--source--__codelineno-0-105">105</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="torch_tweak.torch.backend.TorchInductorBackendConfig.to_dict--source--__codelineno-0-103" name="torch_tweak.torch.backend.TorchInductorBackendConfig.to_dict--source--__codelineno-0-103"></a><span class="k">def</span><span class="w"> </span><span class="nf">to_dict</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<a id="torch_tweak.torch.backend.TorchInductorBackendConfig.to_dict--source--__codelineno-0-104" name="torch_tweak.torch.backend.TorchInductorBackendConfig.to_dict--source--__codelineno-0-104"></a><span class="w">    </span><span class="sd">"""Returns the state_dict of the backend."""</span>
+<a id="torch_tweak.torch.backend.TorchInductorBackendConfig.to_dict--source--__codelineno-0-105" name="torch_tweak.torch.backend.TorchInductorBackendConfig.to_dict--source--__codelineno-0-105"></a>    <span class="k">return</span> <span class="n">asdict</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
 </code></pre></div></td></tr></table></div>
             </details>
     </div>
@@ -3944,19 +3944,19 @@ functional tests, and the remaining three either collapse into it or only add au
 
             <details class="mkdocstrings-source">
               <summary>Source code in <code>torch_tweak/torch/backend/backend.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-107">107</a></span>
-<span class="normal"><a href="#__codelineno-0-108">108</a></span>
-<span class="normal"><a href="#__codelineno-0-109">109</a></span>
-<span class="normal"><a href="#__codelineno-0-110">110</a></span>
-<span class="normal"><a href="#__codelineno-0-111">111</a></span>
-<span class="normal"><a href="#__codelineno-0-112">112</a></span>
-<span class="normal"><a href="#__codelineno-0-113">113</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-0-107" name="__codelineno-0-107"></a><span class="k">def</span><span class="w"> </span><span class="nf">to_json</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">path</span><span class="p">:</span> <span class="n">Path</span><span class="p">):</span>
-<a id="__codelineno-0-108" name="__codelineno-0-108"></a><span class="w">    </span><span class="sd">"""Saves the backend configuration to a file."""</span>
-<a id="__codelineno-0-109" name="__codelineno-0-109"></a>    <span class="n">config_dict</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">to_dict</span><span class="p">()</span>
-<a id="__codelineno-0-110" name="__codelineno-0-110"></a>    <span class="n">config_dict</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_to_json</span><span class="p">(</span><span class="n">config_dict</span><span class="p">)</span>
-<a id="__codelineno-0-111" name="__codelineno-0-111"></a>    <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="s2">"w"</span><span class="p">,</span> <span class="n">encoding</span><span class="o">=</span><span class="s2">"utf-8"</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
-<a id="__codelineno-0-112" name="__codelineno-0-112"></a>        <span class="n">json</span><span class="o">.</span><span class="n">dump</span><span class="p">(</span><span class="n">config_dict</span><span class="p">,</span> <span class="n">f</span><span class="p">,</span> <span class="n">indent</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span>
-<a id="__codelineno-0-113" name="__codelineno-0-113"></a>    <span class="n">secure_file</span><span class="p">(</span><span class="n">path</span><span class="p">)</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#torch_tweak.torch.backend.TorchInductorBackendConfig.to_json--source--__codelineno-0-107">107</a></span>
+<span class="normal"><a href="#torch_tweak.torch.backend.TorchInductorBackendConfig.to_json--source--__codelineno-0-108">108</a></span>
+<span class="normal"><a href="#torch_tweak.torch.backend.TorchInductorBackendConfig.to_json--source--__codelineno-0-109">109</a></span>
+<span class="normal"><a href="#torch_tweak.torch.backend.TorchInductorBackendConfig.to_json--source--__codelineno-0-110">110</a></span>
+<span class="normal"><a href="#torch_tweak.torch.backend.TorchInductorBackendConfig.to_json--source--__codelineno-0-111">111</a></span>
+<span class="normal"><a href="#torch_tweak.torch.backend.TorchInductorBackendConfig.to_json--source--__codelineno-0-112">112</a></span>
+<span class="normal"><a href="#torch_tweak.torch.backend.TorchInductorBackendConfig.to_json--source--__codelineno-0-113">113</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="torch_tweak.torch.backend.TorchInductorBackendConfig.to_json--source--__codelineno-0-107" name="torch_tweak.torch.backend.TorchInductorBackendConfig.to_json--source--__codelineno-0-107"></a><span class="k">def</span><span class="w"> </span><span class="nf">to_json</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">path</span><span class="p">:</span> <span class="n">Path</span><span class="p">):</span>
+<a id="torch_tweak.torch.backend.TorchInductorBackendConfig.to_json--source--__codelineno-0-108" name="torch_tweak.torch.backend.TorchInductorBackendConfig.to_json--source--__codelineno-0-108"></a><span class="w">    </span><span class="sd">"""Saves the backend configuration to a file."""</span>
+<a id="torch_tweak.torch.backend.TorchInductorBackendConfig.to_json--source--__codelineno-0-109" name="torch_tweak.torch.backend.TorchInductorBackendConfig.to_json--source--__codelineno-0-109"></a>    <span class="n">config_dict</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">to_dict</span><span class="p">()</span>
+<a id="torch_tweak.torch.backend.TorchInductorBackendConfig.to_json--source--__codelineno-0-110" name="torch_tweak.torch.backend.TorchInductorBackendConfig.to_json--source--__codelineno-0-110"></a>    <span class="n">config_dict</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_to_json</span><span class="p">(</span><span class="n">config_dict</span><span class="p">)</span>
+<a id="torch_tweak.torch.backend.TorchInductorBackendConfig.to_json--source--__codelineno-0-111" name="torch_tweak.torch.backend.TorchInductorBackendConfig.to_json--source--__codelineno-0-111"></a>    <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="s2">"w"</span><span class="p">,</span> <span class="n">encoding</span><span class="o">=</span><span class="s2">"utf-8"</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+<a id="torch_tweak.torch.backend.TorchInductorBackendConfig.to_json--source--__codelineno-0-112" name="torch_tweak.torch.backend.TorchInductorBackendConfig.to_json--source--__codelineno-0-112"></a>        <span class="n">json</span><span class="o">.</span><span class="n">dump</span><span class="p">(</span><span class="n">config_dict</span><span class="p">,</span> <span class="n">f</span><span class="p">,</span> <span class="n">indent</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span>
+<a id="torch_tweak.torch.backend.TorchInductorBackendConfig.to_json--source--__codelineno-0-113" name="torch_tweak.torch.backend.TorchInductorBackendConfig.to_json--source--__codelineno-0-113"></a>    <span class="n">secure_file</span><span class="p">(</span><span class="n">path</span><span class="p">)</span>
 </code></pre></div></td></tr></table></div>
             </details>
     </div>

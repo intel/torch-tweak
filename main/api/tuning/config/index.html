@@ -2622,21 +2622,21 @@ NOTE: This file has been modified by Intel Corporation.
 
                   <details class="mkdocstrings-source">
                     <summary>Source code in <code>torch_tweak/torch/config.py</code></summary>
-                    <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-44">44</a></span>
-<span class="normal"><a href="#__codelineno-0-45">45</a></span>
-<span class="normal"><a href="#__codelineno-0-46">46</a></span>
-<span class="normal"><a href="#__codelineno-0-47">47</a></span>
-<span class="normal"><a href="#__codelineno-0-48">48</a></span>
-<span class="normal"><a href="#__codelineno-0-49">49</a></span>
-<span class="normal"><a href="#__codelineno-0-50">50</a></span>
-<span class="normal"><a href="#__codelineno-0-51">51</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-0-44" name="__codelineno-0-44"></a><span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-<a id="__codelineno-0-45" name="__codelineno-0-45"></a><span class="w">    </span><span class="sd">"""Initialize TorchTweakConfig."""</span>
-<a id="__codelineno-0-46" name="__codelineno-0-46"></a>    <span class="bp">self</span><span class="o">.</span><span class="n">_cache_dir</span><span class="p">:</span> <span class="n">Path</span> <span class="o">=</span> <span class="n">torch_tweak_cache_dir</span><span class="p">()</span>
-<a id="__codelineno-0-47" name="__codelineno-0-47"></a>    <span class="bp">self</span><span class="o">.</span><span class="n">_min_num_samples</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="n">DEFAULT_MIN_NUM_SAMPLES</span>
-<a id="__codelineno-0-48" name="__codelineno-0-48"></a>    <span class="bp">self</span><span class="o">.</span><span class="n">_max_num_samples_stored</span><span class="p">:</span> <span class="nb">int</span> <span class="o">|</span> <span class="nb">float</span> <span class="o">=</span> <span class="n">DEFAULT_MAX_NUM_SAMPLES_STORED</span>
-<a id="__codelineno-0-49" name="__codelineno-0-49"></a>    <span class="bp">self</span><span class="o">.</span><span class="n">_device_after_tuning</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="n">DEFAULT_DEVICE_AFTER_TUNING</span>
-<a id="__codelineno-0-50" name="__codelineno-0-50"></a>    <span class="bp">self</span><span class="o">.</span><span class="n">strict_mode</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span>
-<a id="__codelineno-0-51" name="__codelineno-0-51"></a>    <span class="bp">self</span><span class="o">.</span><span class="n">enable_hf_integrations</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span>
+                    <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#torch_tweak.torch.config.TorchTweakConfig--source--__codelineno-0-44">44</a></span>
+<span class="normal"><a href="#torch_tweak.torch.config.TorchTweakConfig--source--__codelineno-0-45">45</a></span>
+<span class="normal"><a href="#torch_tweak.torch.config.TorchTweakConfig--source--__codelineno-0-46">46</a></span>
+<span class="normal"><a href="#torch_tweak.torch.config.TorchTweakConfig--source--__codelineno-0-47">47</a></span>
+<span class="normal"><a href="#torch_tweak.torch.config.TorchTweakConfig--source--__codelineno-0-48">48</a></span>
+<span class="normal"><a href="#torch_tweak.torch.config.TorchTweakConfig--source--__codelineno-0-49">49</a></span>
+<span class="normal"><a href="#torch_tweak.torch.config.TorchTweakConfig--source--__codelineno-0-50">50</a></span>
+<span class="normal"><a href="#torch_tweak.torch.config.TorchTweakConfig--source--__codelineno-0-51">51</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="torch_tweak.torch.config.TorchTweakConfig--source--__codelineno-0-44" name="torch_tweak.torch.config.TorchTweakConfig--source--__codelineno-0-44"></a><span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<a id="torch_tweak.torch.config.TorchTweakConfig--source--__codelineno-0-45" name="torch_tweak.torch.config.TorchTweakConfig--source--__codelineno-0-45"></a><span class="w">    </span><span class="sd">"""Initialize TorchTweakConfig."""</span>
+<a id="torch_tweak.torch.config.TorchTweakConfig--source--__codelineno-0-46" name="torch_tweak.torch.config.TorchTweakConfig--source--__codelineno-0-46"></a>    <span class="bp">self</span><span class="o">.</span><span class="n">_cache_dir</span><span class="p">:</span> <span class="n">Path</span> <span class="o">=</span> <span class="n">torch_tweak_cache_dir</span><span class="p">()</span>
+<a id="torch_tweak.torch.config.TorchTweakConfig--source--__codelineno-0-47" name="torch_tweak.torch.config.TorchTweakConfig--source--__codelineno-0-47"></a>    <span class="bp">self</span><span class="o">.</span><span class="n">_min_num_samples</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="n">DEFAULT_MIN_NUM_SAMPLES</span>
+<a id="torch_tweak.torch.config.TorchTweakConfig--source--__codelineno-0-48" name="torch_tweak.torch.config.TorchTweakConfig--source--__codelineno-0-48"></a>    <span class="bp">self</span><span class="o">.</span><span class="n">_max_num_samples_stored</span><span class="p">:</span> <span class="nb">int</span> <span class="o">|</span> <span class="nb">float</span> <span class="o">=</span> <span class="n">DEFAULT_MAX_NUM_SAMPLES_STORED</span>
+<a id="torch_tweak.torch.config.TorchTweakConfig--source--__codelineno-0-49" name="torch_tweak.torch.config.TorchTweakConfig--source--__codelineno-0-49"></a>    <span class="bp">self</span><span class="o">.</span><span class="n">_device_after_tuning</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="n">DEFAULT_DEVICE_AFTER_TUNING</span>
+<a id="torch_tweak.torch.config.TorchTweakConfig--source--__codelineno-0-50" name="torch_tweak.torch.config.TorchTweakConfig--source--__codelineno-0-50"></a>    <span class="bp">self</span><span class="o">.</span><span class="n">strict_mode</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span>
+<a id="torch_tweak.torch.config.TorchTweakConfig--source--__codelineno-0-51" name="torch_tweak.torch.config.TorchTweakConfig--source--__codelineno-0-51"></a>    <span class="bp">self</span><span class="o">.</span><span class="n">enable_hf_integrations</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span>
 </code></pre></div></td></tr></table></div>
                   </details>
 
