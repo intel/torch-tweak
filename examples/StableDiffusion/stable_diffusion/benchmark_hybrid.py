@@ -101,7 +101,6 @@ def _prepare_pipeline(
         inference_function=call_for_inspect,
         number_of_iterations=2,
         warmup_iterations=1,
-        min_depth=1,
     )
     modules = modules_info.get_modules(min_execution_percentage=min_execution_pct)
     logger.info("Wrapping %d modules (min_execution_percentage=%.2f)", len(modules), min_execution_pct)

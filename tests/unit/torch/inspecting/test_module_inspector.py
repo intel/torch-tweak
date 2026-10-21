@@ -101,7 +101,7 @@ def test_initialization():
     assert inspector._module_info == {}
     assert inspector._original_forward == {}
     assert inspector._inspected_objects == set()
-    assert inspector._max_recursion_depth == 5
+    assert inspector._depth == 0
 
 
 def test_reset(simple_model):
@@ -147,15 +147,6 @@ def test_inspect_nested_model(nested_model):
     # Check module hierarchy
     root_module = next(iter(inspector._module_info.values()))
     assert root_module.name == "Sequential"
-
-
-def test_inspect_nested_model_max_depth(nested_model):
-    """Test inspecting a nested model."""
-    inspector = ModuleInspector(max_depth=1)
-    inspector.inspect(nested_model)
-
-    # Check that all modules were registered
-    assert len(inspector._module_info) == 4  # Sequential, Linear, NestedModule, Linear
 
 
 def test_inspect_model_with_dict(model_with_dict):
@@ -278,15 +269,15 @@ def test_inspect_recursion_depth_limit():
     # Create a deeply nested structure
     deep_dict = {}
     current = deep_dict
-    for _ in range(10):  # More than max_recursion_depth
+    for _ in range(10):
         current["nested"] = {"module": nn.Linear(10, 10)}
         current = current["nested"]
 
-    inspector = ModuleInspector(max_depth=4)
+    inspector = ModuleInspector()
     inspector.inspect(deep_dict)
 
     # Should still work without infinite recursion
-    assert len(inspector._module_info) == 3  # dict is not included as it is not a nn.Module
+    assert len(inspector._module_info) == 5  # dict is not included as it is not a nn.Module
 
 
 def test_inspect_duplicate_objects():
@@ -341,6 +332,96 @@ def test_get_modules_with_dict_model(model_with_dict):
     executed_modules = inspector.get_modules()
     assert len(executed_modules) > 0
     assert all(module.forward_called for module in executed_modules)
+
+
+class _Block(nn.Module):
+    def __init__(self):
+        super().__init__()
+        self.mlp = nn.Linear(8, 8)
+
+    def forward(self, x):
+        return self.mlp(x)
+
+
+class _EncoderWithHead(nn.Module):
+    def __init__(self):
+        super().__init__()
+        self.layers = nn.ModuleList([_Block(), _Block()])
+        self.head = nn.Linear(8, 8)
+
+    def forward(self, x):
+        for layer in self.layers:
+            x = layer(x)
+        return self.head(x)
+
+
+def _executed_encoder_inspector(depth: int = 0) -> ModuleInspector:
+    model = _EncoderWithHead()
+    inspector = ModuleInspector(depth=depth)
+    inspector.inspect(model)
+    model(torch.randn(1, 8))
+    return inspector
+
+
+def test_depth_counts_executed_modules_only():
+    """`nn.ModuleList` is never executed, so it does not add a depth level."""
+    depths = {m.object_path: m.depth for m in _executed_encoder_inspector()._module_info.values() if m.forward_called}
+
+    assert depths == {"": 0, ".layers.0": 1, ".layers.1": 1, ".head": 1, ".layers.0.mlp": 2, ".layers.1.mlp": 2}
+
+
+@pytest.mark.parametrize(
+    ("depth", "expected"),
+    [
+        (0, [""]),
+        (1, [".layers.0", ".layers.1", ".head"]),
+        (2, [".layers.0.mlp", ".layers.1.mlp", ".head"]),
+        (5, [".layers.0.mlp", ".layers.1.mlp", ".head"]),
+    ],
+)
+def test_get_modules_keeps_shallower_leaves(depth, expected):
+    """`head` has no executed children, so it stays in every cut below its own depth."""
+    modules = _executed_encoder_inspector(depth).get_modules()
+
+    assert sorted(m.object_path for m in modules) == sorted(expected)
+
+
+def test_get_modules_can_be_called_twice():
+    inspector = _executed_encoder_inspector(depth=2)
+    first = inspector.get_modules()
+
+    assert inspector.get_modules() == first
+
+
+@pytest.mark.parametrize(
+    ("depth", "expected"),
+    [
+        (0, [".encoder", ".decoder"]),
+        (1, [".encoder.mlp", ".decoder.mlp"]),
+    ],
+)
+def test_get_modules_from_non_module_root(depth, expected):
+    """Executed members of a plain object are at depth 0."""
+
+    class Pipeline:
+        def __init__(self):
+            self.encoder = _Block()
+            self.decoder = _Block()
+
+        def __call__(self, x):
+            return self.decoder(self.encoder(x))
+
+    pipeline = Pipeline()
+    inspector = ModuleInspector(depth=depth)
+    inspector.inspect(pipeline)
+    pipeline(torch.randn(1, 8))
+
+    assert [m.object_path for m in inspector.get_modules()] == expected
+
+
+def test_negative_depth():
+    with pytest.raises(ValueError):
+        ModuleInspector(depth=-1)
 
 
 def test_wrap_forward_methods(simple_model):
@@ -554,7 +635,7 @@ def test_get_modules_with_parakeet_rnnt_like_model(parakeet_rnnt_like_model):
 def test_get_modules_with_parakeet_rnnt_like_model_depth_1(parakeet_rnnt_like_model):
     """Test getting executed modules from ParakeetRNNTLikeModel."""
 
-    inspector = ModuleInspector(min_depth=1)
+    inspector = ModuleInspector(depth=1)
     inspector.inspect(parakeet_rnnt_like_model)
 
     parakeet_rnnt_like_model(torch.randn(1, 10))
@@ -617,7 +698,7 @@ class SecondReferencesToModuleCustomClass(SecondReferencesToModuleCustomClassBas
 def test_second_references_to_module_custom_class():
     model = SecondReferencesToModuleCustomClass()
 
-    inspector = ModuleInspector(min_depth=1)
+    inspector = ModuleInspector(depth=1)
     inspector.inspect(model)
 
     model.run(torch.randn(1, 10))
@@ -649,7 +730,7 @@ def test_second_references_to_module_in_module():
     assert "unet2" not in set(vars(model).keys())
     assert "unet2_unused" not in set(vars(model).keys())
 
-    inspector = ModuleInspector(min_depth=1)
+    inspector = ModuleInspector(depth=1)
     inspector.inspect(model)
 
     model(torch.randn(1, 10))

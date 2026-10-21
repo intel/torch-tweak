@@ -24,7 +24,20 @@ class ModuleInfo:
     input_types: list[dict[str, Any]] = field(default_factory=list)  # unused, even in tests
     output_types: list[dict[str, Any]] = field(default_factory=list)  # used in tests only
     object_path: str | None = None
-    depth: int = 0
+
+    @property
+    def executed_parent(self) -> Optional["ModuleInfo"]:
+        """The closest ancestor in the object tree whose forward was called."""
+        parent = self.parent
+        while parent is not None and not parent.forward_called:
+            parent = parent.parent
+        return parent
+
+    @property
+    def depth(self) -> int:
+        """The number of executed ancestors in the object tree."""
+        parent = self.executed_parent
+        return 0 if parent is None else parent.depth + 1
 
     @property
     def module_type(self) -> type:
