@@ -21,7 +21,7 @@ repos:
         pass_filenames: false
   - repo: https://github.com/astral-sh/ruff-pre-commit
     # Keep this rev equal to the ruff pin in pyproject.toml. Lint fails when they differ.
-    rev: v0.17.0
+    rev: v0.17.1
     hooks:
       - id: ruff-check
         args: [ --fix ]
