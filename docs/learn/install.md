@@ -6,7 +6,8 @@ NOTE: This file has been modified by Intel Corporation.
 -->
 # Install
 
-This page is the install guide. The repository [README](../../README.md) only summarizes the stable commands.
+This guide walks you through setting up Torch Tweak together with PyTorch XPU, so you can start tuning
+models on Intel GPUs.
 
 ## Prerequisites
 

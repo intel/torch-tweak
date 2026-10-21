@@ -134,7 +134,7 @@ class TunedModule:
         """Returns the state_dict of the module."""
         backends_data = []
         for sample_metadata, backend in self._backends.items():
-            backends_data.append((sample_metadata.to_dict(), backend.to_dict()))  # pytype: disable=attribute-error
+            backends_data.append((sample_metadata.to_dict(), backend.to_dict()))
 
         return {
             self.BACKENDS_KEY: backends_data,

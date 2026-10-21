@@ -5,7 +5,7 @@
 # NOTE: This file has been modified by Intel Corporation.
 import datasets
 import pytest
-from transformers import T5Tokenizer  # pytype: disable=import-error
+from transformers import T5Tokenizer
 
 from torch_tweak.torch.dataloader import DataLoaderFactory
 

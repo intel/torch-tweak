@@ -8,7 +8,7 @@ import random
 import datasets
 import pytest
 from PIL import Image
-from transformers import AutoImageProcessor  # pytype: disable=import-error
+from transformers import AutoImageProcessor
 
 from torch_tweak.torch.dataloader import samples_generator
 

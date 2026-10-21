@@ -4,6 +4,7 @@
 #
 # NOTE: This file has been modified by Intel Corporation.
 site_name: Torch Tweak
+site_url: https://intel.github.io/torch-tweak/
 theme:
     name: material
     custom_dir: docs/overrides
@@ -22,11 +23,11 @@ repo_name: GitHub Repository
 plugins:
     - autorefs
     - htmlproofer:
+        # External sites are not checked, so connection issues cannot fail the build.
+        validate_external_urls: false
         ignore_urls:
             - '**/tuning/backend/#torch_tweak.torch.backend*'
             - '**/backends/*/#torch_tweak.torch.backend*'
-            - 'https://huggingface.co/*'
-            - 'https://www.biorxiv.org/*'
     - mike
     - mkdocstrings:
         enable_inventory: true
@@ -56,15 +57,11 @@ watch:
     - properdocs.yml
     - LICENSE
     - ChangeLog.md
-    # TODO(SPJT-453): temporary.
-    # - CONTRIBUTING.md
 hooks:
     - scripts/stage_docs.py
-    - scripts/rewrite_links_to_repo.py
 extra:
     version:
         provider: mike
-    view_uri_template: blob/{ref}/{path}
 markdown_extensions:
     - admonition
     - pymdownx.details
@@ -96,7 +93,7 @@ nav:
                 - Execution Graphs: guides/advanced/execution_graphs.md
 
     -   Examples:
-            - Overview: examples/examples.md
+            - Overview: examples/README.md
             - E5Large: examples/E5Large/README.md
             - ESM2: examples/ESM2/README.md
             - FLUX: examples/FLUX/README.md
@@ -126,6 +123,8 @@ nav:
     -   Resources:
             -   Changelog: ChangeLog.md
             -   Known Issues: known_issues.md
-            # TODO(SPJT-453): temporary.
-            # -   Contributing: CONTRIBUTING.md
+            -   Contributing: https://github.com/intel/torch-tweak/blob/main/CONTRIBUTING.md
+            -   Commit Convention: https://github.com/intel/torch-tweak/blob/main/COMMIT_CONVENTION.md
+            -   Code of Conduct: https://github.com/intel/torch-tweak/blob/main/CODE_OF_CONDUCT.md
+            -   Security Policy: https://github.com/intel/torch-tweak/blob/main/SECURITY.md
             -   License: LICENSE.md

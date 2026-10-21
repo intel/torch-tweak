@@ -71,52 +71,47 @@ test = [
     "urllib3>=2.7.0", # sec
 ]
 doc = [
-    "GitPython >= 3.1.58",
     "mike >= 2.2.0",
     "mkdocs-htmlproofer-plugin >= 1.5.0",
     "mkdocs-material >= 9.7.6",
     "mkdocs-redirects >= 1.2.3",
     "mkdocstrings[python] >= 1.0.4",
     "mkdocstrings-python >= 2.0.5",
-    "properdocs >= 1.6.7"
+    "properdocs >= 1.6.7",
+    # Keep this pin equal to the ruff-pre-commit rev. Lint fails when they differ.
+    "ruff==0.17.1",
 ]
 dev = [
     "torch-tweak[test]",
     "torch-tweak[doc]",
-    "ipython >= 8.39.0",
-    "pdbpp >= 0.12.1",
-    "pip >= 26.1.2",
-    # Keep this pin equal to the ruff-pre-commit rev. Lint fails when they differ.
-    "ruff==0.16.10",
-    "ipykernel",
     "pre-commit",
     "pre-commit-uv",
-    "pytype",
-    "tornado>=6.5.9", # sec
     "uv>=0.11.26",
     "virtualenv>=21.7.13", # sec
 ]
 
 [build-system]
-requires = ["setuptools>=83.0.0", "setuptools_scm[toml]>=10.2.0", "wheel>=0.47.0"]
-build-backend = "setuptools.build_meta"
+requires = [
+    "hatchling>=1.27.0",
+    "hatch-vcs>=0.4.0",
+    "setuptools>=83.0.0"
+]
+build-backend = "hatchling.build"
 
-[tool.setuptools]
-include-package-data = true
+[tool.hatch.build.targets.wheel]
+packages = ["torch_tweak"]
 
-[tool.setuptools.packages.find]
-namespaces = false
-include = ["torch_tweak*"]
-
+# hatch-vcs wraps setuptools_scm, so raw-options are passed through to it verbatim.
+#
 # We're dropping here a specific git version, when building. Now, instead of a version like
 # "torch_tweak==0.1.dev1+g7c6ac7b94", we're getting "torch_tweak==0.1.dev1".
 # This is mostly to solve the CI issue, when there's unexpected git dirty state.
 #
 # We could bring more accurate version, using local, private scheme, but this can fail in some scenarios...?
 # Ref. https://github.com/pypa/setuptools-scm/issues/1084
-[tool.setuptools_scm]
-local_scheme = "no-local-version"
-fallback_version = "0.4.0"
+[tool.hatch.version]
+source = "vcs"
+raw-options = { local_scheme = "no-local-version", fallback_version = "0.4.0" }
 
 [dependency-groups]
 xpu-nightly = ["torch>=2.13.0", "triton-xpu"]
@@ -219,6 +214,3 @@ quote-style = "double"
 indent-style = "space"
 skip-magic-trailing-comma = false
 line-ending = "lf"
-
-[tool.pytype]
-disable = ["import-error", "module-attr"]

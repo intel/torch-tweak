@@ -100,16 +100,20 @@ sdist. No extra flags are needed.
 Each example is a standalone package and is built the same way:
 ```shell
 cd examples/ResNet
-uv build
+uv build --wheel
 ```
-Every example keeps its own copy of `LICENSE` and `third-party-programs.txt`
-next to its `pyproject.toml`. The copies must stay identical to the files at
-the repository root; the `Packaging` workflow fails if they drift apart.
+
+Each example's `LICENSE` and `third-party-programs.txt` entries are **symlinks**
+to the canonical files at the repository root. Hatchling includes their contents
+in the wheel's `.dist-info/licenses/` directory. Build wheels (and wheels only)
+directly from the checkout; example's sdist cannot safely carry symlinks that
+point outside its source tree.
+
 Everyday workflows:
 ```shell
 uv sync          # installs the example into .venv
 uv run tune      # entry points keep working
-pip install .    # used by CI for examples/LLM
+pip install .    # pip path, checked by the nightly workflow in a representative example
 ```
 
 ### Building the docs locally
@@ -139,14 +143,34 @@ uv run properdocs serve
 #### How staging works
 
 A few pages of the site come from files outside `docs/`: `ChangeLog.md`,
-`CONTRIBUTING.md`, `LICENSE`, and the READMEs under `examples/`. The
-`scripts/stage_docs.py` ProperDocs hook copies them into `docs/` before every
-build, including live-reload rebuilds, so you never need to copy them
-manually. `LICENSE` is staged as `docs/LICENSE.md`, and `examples/README.md`
-as `docs/examples/examples.md`.
+`LICENSE`, and the READMEs under `examples/`. The `scripts/stage_docs.py`
+ProperDocs hook copies them into `docs/` before every build, including
+live-reload rebuilds, so you never need to copy them manually. One file is
+renamed when staged:
+
+- `LICENSE` is staged as `docs/LICENSE.md`. ProperDocs renders only Markdown
+  files as pages, so without the `.md` extension it could not be listed in the
+  navigation.
 
 The copies are gitignored and overwritten on every build. Always edit the
 original files, not the copies in `docs/`.
+
+Community files such as this guide, `SECURITY.md`, `CODE_OF_CONDUCT.md` and
+`COMMIT_CONVENTION.md` are not part of the site. The navigation links to them
+on GitHub, because they always apply as they are on `main`, not per release.
+
+#### Writing links
+
+Links in `docs/` and in staged files are written for the docs site, not for
+GitHub. Link only to other pages of the site, with paths relative to the
+staged location in `docs/` (e.g. `../LICENSE.md` from `docs/learn/`). Such
+links may not work when browsing the files on GitHub. Do not link to other
+files in this repository, such as `README.md` or scripts in `examples/`,
+because the site does not contain them.
+
+CI builds the docs with `properdocs build --strict`, so broken links between
+pages fail the build. Links to external sites are not checked. Run the same
+command locally before opening a pull request.
 
 ## Code style
 

@@ -229,7 +229,7 @@ class SampleMetadata:
             ([], {'a': ['kwargs_a_0', 'kwargs_a_1'], 'e': ['kwargs_e']})
         """
         args_names: list[str] = []
-        kwargs_names: dict[str, list[Any]] = defaultdict(list)  # make pytype happy
+        kwargs_names: dict[str, list[Any]] = defaultdict(list)
         for locator, tensor_spec in self._tensor_data:
             if tensor_spec.name.startswith("args"):
                 args_names.append(tensor_spec.name)

@@ -8,11 +8,9 @@ on:
       - "torch_tweak/**"
       - "docs/**"
       - "examples/**/README.md"
-      - "scripts/rewrite_links_to_repo.py"
       - "scripts/stage_docs.py"
       - "properdocs.yml"
       - "ChangeLog.md"
-      - "CONTRIBUTING.md"
       - "LICENSE"
       - "pyproject.toml"
       - "uv.lock"
@@ -37,10 +35,12 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
+      # TODO: Change back to "3.x" once openvino releases 3.15 version
+      # ref. https://github.com/openvinotoolkit/openvino/issues/38721
       - name: Set up Python
         uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
         with:
-          python-version: "3.x"
+          python-version: "3.14"
 
       - name: Install uv
         run: pip install uv
@@ -49,4 +49,47 @@ jobs:
         run: uv sync --no-default-groups --extra doc
 
       - name: Build docs
-        run: uv run --no-default-groups --extra doc properdocs build
+        run: uv run --no-default-groups --extra doc properdocs build --strict
+
+  # Deploys with mike instead of actions/deploy-pages to keep versioned docs (one
+  # directory per version on the gh-pages branch, with a version selector).
+  # mike pushes to gh-pages, so this job needs contents: write.
+  deploy-docs:
+    name: Deploy docs
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    needs: build-docs
+    permissions:
+      contents: write
+    # The workflow-level group is per event and ref, so runs for different refs can
+    # deploy at the same time, e.g. a release pushes main and a tag together. This
+    # shared group queues all deploys, so two mike pushes to gh-pages never race,
+    # and a running deploy is not cancelled by a queued one. A newer push to the
+    # same ref still cancels the whole older run.
+    concurrency:
+      group: docs-deploy
+      cancel-in-progress: false
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+
+      # TODO: Change back to "3.x" once openvino releases 3.15 version
+      # ref. https://github.com/openvinotoolkit/openvino/issues/38721
+      - name: Set up Python
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: "3.14"
+
+      - name: Install uv
+        run: pip install uv
+
+      - name: Install doc dependencies
+        run: uv sync --no-default-groups --extra doc
+
+      - name: Deploy docs
+        env:
+          GIT_COMMITTER_NAME: ${{ secrets.GH_BB_DOCKER_USERNAME }}
+          GIT_COMMITTER_EMAIL: ${{ secrets.GH_BB_DOCKER_USERNAME }}@users.noreply.github.com
+        run: uv run --no-default-groups --extra doc mike deploy --push main

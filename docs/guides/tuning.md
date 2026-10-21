@@ -268,8 +268,9 @@ Example output from that command, with the cache directory set to `/tmp/torch-tw
 2026-10-01 06:19:51,359 - INFO -     name: First Wins Strategy
 2026-10-01 06:19:51,359 - INFO -     description: evaluate backends in order, return first working backend
 2026-10-01 06:19:51,360 - INFO -     backends:
-2026-10-01 06:19:51,360 - INFO -       OpenVINOBackend()
 2026-10-01 06:19:51,360 - INFO -       TorchInductorBackend()
+2026-10-01 06:19:51,360 - INFO -       OpenVINOBackend()
+2026-10-01 06:19:51,360 - INFO -       TorchEagerBackend()
 2026-10-01 06:19:51,360 - INFO - ✅ Tuning module: `mlp` (all graphs) completed.
 ```
 
