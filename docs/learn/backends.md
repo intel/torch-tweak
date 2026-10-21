@@ -33,6 +33,20 @@ backend = TorchInductorBackend()
 
 Guide: [Torch Inductor Backend](../guides/backends/torch_inductor_backend.md).
 
+## XPU Graph Backend
+
+The XPU graph backend records the module once while tuning and replays that recording for later inference.
+PyTorch chooses native or legacy recording. This backend uses whichever one that build records.
+A recording that fails, or that disagrees with eager, is rejected for that module and input.
+
+```python
+from torch_tweak.torch.backend import XPUGraphBackend
+
+backend = XPUGraphBackend()
+```
+
+Guide: [XPU Graph Backend](../guides/backends/xpu_graph_backend.md).
+
 ## OpenVINO Backend
 
 The OpenVINO backend converts the module to an OpenVINO model and runs it on an Intel CPU or GPU.

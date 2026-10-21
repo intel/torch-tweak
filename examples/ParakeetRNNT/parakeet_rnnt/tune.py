@@ -19,6 +19,7 @@ from torch_tweak.torch.backend import (
     TorchEagerBackend,
     TorchInductorBackend,
     TorchInductorBackendConfig,
+    XPUGraphBackend,
 )
 
 logger = getLogger(__name__)
@@ -48,6 +49,7 @@ def tune_model(
     strategy = strategy or HighestThroughputStrategy(
         backends=[
             TorchInductorBackend(TorchInductorBackendConfig(autocast_enabled=True, autocast_dtype=torch.float16)),
+            XPUGraphBackend(),
             TorchEagerBackend(),
         ]
     ).enable_find_max_batch_size(False)

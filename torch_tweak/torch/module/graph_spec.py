@@ -29,6 +29,10 @@ class GraphSpec:
     input_spec: SampleMetadata
     output_spec: SampleMetadata
 
+    def has_dynamic_axis(self) -> bool:
+        """Check if any input or output tensor has a dynamic axis."""
+        return self.input_spec.detected_dynamic_axis() or self.output_spec.detected_dynamic_axis()
+
     def update_shapes_seen(self, inputs_metadata: SampleMetadata, outputs_metadata: SampleMetadata):
         """Update input spec with other input spec."""
         self.input_spec.update_shapes_seen(inputs_metadata)

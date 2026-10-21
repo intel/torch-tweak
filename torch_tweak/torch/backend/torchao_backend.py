@@ -262,7 +262,7 @@ class TorchAOBackend(Backend):
 
     def _build(self, module: nn.Module, graph_spec: GraphSpec, data: list[Sample], cache_dir: Path) -> Backend:
         """Builds the model with torchao quantization and torch.compile."""
-        self._save_config(cache_dir)
+        self._config.save_to_file(cache_dir)
 
         self._orig_module = module
         self._data = data
@@ -296,10 +296,6 @@ class TorchAOBackend(Backend):
         self._activate()
         self._data = None
         gc.collect()
-
-    def _save_config(self, cache_dir: Path):
-        """Store the backend configuration to a file."""
-        self._config.to_json(cache_dir / "config.json")
 
     def to_dict(self):
         """Returns the state_dict of the backend."""

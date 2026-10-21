@@ -9,7 +9,11 @@ import torch
 import torch.nn as nn
 
 import torch_tweak.torch as tt
-from torch_tweak.torch.backend import TorchEagerBackend, TorchInductorBackend
+from torch_tweak.torch.backend import (
+    TorchEagerBackend,
+    TorchInductorBackend,
+    XPUGraphBackend,
+)
 
 
 def main() -> None:
@@ -19,13 +23,17 @@ def main() -> None:
     model = nn.Sequential(nn.Linear(32, 32), nn.ReLU(), nn.Linear(32, 8)).eval().to(device)
     sample = torch.randn(32, device=device)
 
-    # Skip the max-batch search. The two batch sizes below are enough to pick a backend.
+    # One batch size keeps every tensor shape static, so the XPU graph can be recorded.
     strategy = tt.HighestThroughputStrategy(
-        backends=[TorchInductorBackend(), TorchEagerBackend()],
+        backends=[
+            TorchInductorBackend(),
+            XPUGraphBackend(),
+            TorchEagerBackend(),
+        ],
     ).enable_find_max_batch_size(False)
 
     module = tt.Module(model, name="mlp", strategy=strategy)
-    tt.tune(module, sample, batch_sizes=[1, 4], device=device)
+    tt.tune(module, sample, batch_sizes=[4], device=device)
 
     results = strategy.results[-1].highest_throughput_results if strategy.results else []
     if not results:

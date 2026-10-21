@@ -158,7 +158,7 @@ class TorchInductorBackend(Backend):
 
     def _build(self, module: nn.Module, graph_spec: GraphSpec, data: list[Sample], cache_dir: Path) -> Backend:
         """Builds the model with torch.compile."""
-        self._save_config(cache_dir)
+        self._config.save_to_file(cache_dir)
 
         module.to(self._device)
         self._output_dtype = self._get_dtype(module, data)
@@ -230,12 +230,6 @@ class TorchInductorBackend(Backend):
         self._activate()
         self._data = None
         gc.collect()
-
-    def _save_config(self, cache_dir: Path):
-        """Store the backend configuration to a file."""
-        config_path = cache_dir / "config.json"
-        self._config.to_json(config_path)
-        logger.info("Config saved to %s", config_path)
 
     def to_dict(self):
         """Returns the state_dict of the backend."""
