@@ -1,5 +1,5 @@
 version = 1
-revision = 5
+revision = 3
 requires-python = ">=3.10"
 resolution-markers = [
     "python_full_version >= '3.14' and platform_machine == 'x86_64' and sys_platform == 'linux'",
@@ -164,11 +164,11 @@ wheels = [
 
 [[package]]
 name = "certifi"
-version = "2026.7.22"
+version = "2026.10.19"
 source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/a3/c2/24167ea9858356b47a87a50d39908bfdb72ceeefe0041586e704e5376b3a/certifi-2026.7.22.tar.gz", hash = "sha256:741e2c3b351ddf169a738da9f2c048608ff7f2c5cc02f1ebc6b118bb090d5d55", size = 138112, upload-time = "2026-07-22T03:35:12.644Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/a6/bd/1436c50cc46699de0230fbaacc1d1de7bfec413176099949e9d5112e88f2/certifi-2026.10.19.tar.gz", hash = "sha256:035c1e85572b141bf1c3a3eff0e33a8eb74917522f2559075ff8d2fea780a1ae", size = 137598, upload-time = "2026-10-20T02:24:16.604Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/0b/a7/71ac2cff56fec219ed242bb11b8efb69fcc4bec75db06fb7bfe35de520e6/certifi-2026.7.22-py3-none-any.whl", hash = "sha256:62f22742b58a1a33014a2b6b706588a8d7e2a88ae7bd1a6ebe8c992928483775", size = 136983, upload-time = "2026-07-22T03:35:11.276Z" },
+    { url = "https://files.pythonhosted.org/packages/c4/51/29046e48f693c54e5b7412216d447a1d8362c9653148d98c02cdf65fa733/certifi-2026.10.19-py3-none-any.whl", hash = "sha256:42d35340cc5b9ba78e818ddbff0c5b1c2b779de448a340fd1b989f5fa8670e1b", size = 136464, upload-time = "2026-10-20T02:24:15.072Z" },
 ]
 
 [[package]]
@@ -2412,7 +2412,6 @@ wheels = [
 [[package]]
 name = "torch-tweak"
 source = { editable = "." }
-default-groups = ["xpu-stable"]
 dependencies = [
     { name = "numpy", version = "2.2.6", source = { registry = "https://download.pytorch.org/whl/xpu" }, marker = "python_full_version < '3.11' or (extra == 'extra-11-torch-tweak-xpu' and extra == 'group-11-torch-tweak-xpu-nightly') or (extra == 'group-11-torch-tweak-xpu-nightly' and extra == 'group-11-torch-tweak-xpu-stable')" },
     { name = "numpy", version = "2.4.6", source = { registry = "https://download.pytorch.org/whl/xpu" }, marker = "python_full_version == '3.11.*' or (extra == 'extra-11-torch-tweak-xpu' and extra == 'group-11-torch-tweak-xpu-nightly') or (extra == 'group-11-torch-tweak-xpu-nightly' and extra == 'group-11-torch-tweak-xpu-stable')" },
@@ -2499,42 +2498,60 @@ xpu-stable = [
 
 [package.metadata]
 requires-dist = [
+    { name = "datasets", marker = "extra == 'dev'", specifier = ">=4.8.5,<6.0.0" },
     { name = "datasets", marker = "extra == 'test'", specifier = ">=4.8.5,<6.0.0" },
+    { name = "diffusers", marker = "extra == 'dev'", specifier = ">=0.40.0,<1.0" },
     { name = "diffusers", marker = "extra == 'test'", specifier = ">=0.40.0,<1.0" },
+    { name = "fsspec", marker = "extra == 'dev'", specifier = ">=2026.6.0" },
     { name = "fsspec", marker = "extra == 'test'", specifier = ">=2026.6.0" },
     { name = "fsspec", marker = "extra == 'xpu'", specifier = ">=2026.6.0" },
+    { name = "mike", marker = "extra == 'dev'", specifier = ">=2.2.0" },
     { name = "mike", marker = "extra == 'doc'", specifier = ">=2.2.0" },
+    { name = "mkdocs-htmlproofer-plugin", marker = "extra == 'dev'", specifier = ">=1.5.0" },
     { name = "mkdocs-htmlproofer-plugin", marker = "extra == 'doc'", specifier = ">=1.5.0" },
+    { name = "mkdocs-material", marker = "extra == 'dev'", specifier = ">=9.7.6" },
     { name = "mkdocs-material", marker = "extra == 'doc'", specifier = ">=9.7.6" },
+    { name = "mkdocs-redirects", marker = "extra == 'dev'", specifier = ">=1.2.3" },
     { name = "mkdocs-redirects", marker = "extra == 'doc'", specifier = ">=1.2.3" },
+    { name = "mkdocstrings", extras = ["python"], marker = "extra == 'dev'", specifier = ">=1.0.4" },
     { name = "mkdocstrings", extras = ["python"], marker = "extra == 'doc'", specifier = ">=1.0.4" },
+    { name = "mkdocstrings-python", marker = "extra == 'dev'", specifier = ">=2.0.5" },
     { name = "mkdocstrings-python", marker = "extra == 'doc'", specifier = ">=2.0.5" },
+    { name = "multidict", marker = "extra == 'dev'", specifier = ">=6.9.1" },
     { name = "multidict", marker = "extra == 'test'", specifier = ">=6.9.1" },
     { name = "numpy", specifier = ">=2" },
     { name = "openvino", specifier = ">=2026.2.1" },
+    { name = "pillow", marker = "extra == 'dev'", specifier = ">=12.3.0" },
     { name = "pillow", marker = "extra == 'test'", specifier = ">=12.3.0" },
     { name = "pre-commit", marker = "extra == 'dev'" },
     { name = "pre-commit-uv", marker = "extra == 'dev'" },
+    { name = "properdocs", marker = "extra == 'dev'", specifier = ">=1.6.7" },
     { name = "properdocs", marker = "extra == 'doc'", specifier = ">=1.6.7" },
     { name = "psutil" },
+    { name = "pyarrow", marker = "extra == 'dev'", specifier = ">=24.0.0" },
     { name = "pyarrow", marker = "extra == 'test'", specifier = ">=24.0.0" },
+    { name = "pytest", marker = "extra == 'dev'", specifier = ">=9.1.1" },
     { name = "pytest", marker = "extra == 'test'", specifier = ">=9.1.1" },
+    { name = "pytest-mock", marker = "extra == 'dev'" },
     { name = "pytest-mock", marker = "extra == 'test'" },
+    { name = "ruff", marker = "extra == 'dev'", specifier = "==0.17.0" },
     { name = "ruff", marker = "extra == 'doc'", specifier = "==0.17.0" },
+    { name = "sentencepiece", marker = "extra == 'dev'", specifier = ">=0.2.1" },
     { name = "sentencepiece", marker = "extra == 'test'", specifier = ">=0.2.1" },
     { name = "tabulate", specifier = ">=0.10.0" },
+    { name = "timm", marker = "extra == 'dev'" },
     { name = "timm", marker = "extra == 'test'" },
     { name = "torch", marker = "extra == 'xpu'", specifier = ">=2.13.0", index = "https://download.pytorch.org/whl/xpu", conflict = { package = "torch-tweak", extra = "xpu" } },
-    { name = "torch-tweak", extras = ["doc"], marker = "extra == 'dev'" },
-    { name = "torch-tweak", extras = ["test"], marker = "extra == 'dev'" },
     { name = "torchao", specifier = ">=0.17.0", index = "https://download.pytorch.org/whl/cpu" },
+    { name = "transformers", marker = "extra == 'dev'", specifier = ">=5.13.0,<6" },
     { name = "transformers", marker = "extra == 'test'", specifier = ">=5.13.0,<6" },
+    { name = "urllib3", marker = "extra == 'dev'", specifier = ">=2.7.0" },
     { name = "urllib3", marker = "extra == 'test'", specifier = ">=2.7.0" },
     { name = "uv", marker = "extra == 'dev'", specifier = ">=0.11.26" },
     { name = "virtualenv", marker = "extra == 'dev'", specifier = ">=21.7.13" },
     { name = "wrapt", specifier = "~=2.2" },
 ]
-provides-extras = ["xpu", "test", "doc", "dev"]
+provides-extras = ["dev", "doc", "test", "xpu"]
 
 [package.metadata.requires-dev]
 xpu-nightly = [
@@ -2732,12 +2749,12 @@ wheels = [
 
 [[package]]
 name = "uv"
-version = "0.13.1"
+version = "0.13.4"
 source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/ef/10/81f499de381ac81e09961e1c19255c5cf49563ac418464def4190b6c7400/uv-0.13.1.tar.gz", hash = "sha256:6df50a86b09be66a413f8f1b16258d585d4dd1cbff591077ae1e6f65c26de2eb", size = 7434239, upload-time = "2026-10-14T05:13:35.353Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/79/55/609455d21e87430c11fe734abfced50a3bdf177b2f49d41fbb19c199cbc3/uv-0.13.4.tar.gz", hash = "sha256:b0bff5b9a5061f7a35b1d0c1a94c19af134222c48eb7aadc42f85a038be1b248", size = 7482486, upload-time = "2026-10-20T15:12:06.801Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/14/0b/6602a613533602e7a083e908c4375f9b0e78a94ba2e21c29b21c41a0a611/uv-0.13.1-py3-none-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:696dcf6d807d85da978f4db8472da81dccc1254b18b52cbd1367c4d923c421e0", size = 17279385, upload-time = "2026-10-14T05:13:13.069Z" },
-    { url = "https://files.pythonhosted.org/packages/b9/0d/529a302582685e77e5e2d16de554e7c230b45c6175b0b0f234af9795d981/uv-0.13.1-py3-none-musllinux_1_1_x86_64.whl", hash = "sha256:6f1f391756385e2cd1521fe4a198e0ca764ef498dd677cb214b95a69a7ce3608", size = 19307551, upload-time = "2026-10-14T05:13:25.744Z" },
+    { url = "https://files.pythonhosted.org/packages/4b/a1/de02c0913726728eca56ee258875cbba9c7b0572c63f494fd9f55c7852e3/uv-0.13.4-py3-none-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:05e4332791b4d55b6dde8695b7fa6079b26991519f44760887c5dfbd5ca4fe53", size = 17181168, upload-time = "2026-10-20T15:11:34.583Z" },
+    { url = "https://files.pythonhosted.org/packages/1e/ec/f352ca2cc3b4b6191bb4ec8cdf4bc190eed0ba8bda4c33b7fd66c5d33cec/uv-0.13.4-py3-none-musllinux_1_1_x86_64.whl", hash = "sha256:52b5c753a7c2d5f8323a70bb4c93118988356331d0758afa6446c81f974e7196", size = 19004998, upload-time = "2026-10-20T15:11:52.628Z" },
 ]
 
 [[package]]
