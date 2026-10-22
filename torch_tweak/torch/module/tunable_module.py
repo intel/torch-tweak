@@ -260,11 +260,25 @@ class TunableModule(wrapt.CallableObjectProxy):
 
     state_dict = to_dict  # alias required by torch module.state_dict recursive call
 
+    def attach(self):
+        """Routes calls of the wrapped module through this wrapper again after `detach`."""
+        self._proxy_forward()
+
+    def detach(self):
+        """Makes the wrapped module run its original forward. Tuning results are kept."""
+        self.__wrapped__.forward = self._self_orig_forward
+
+    def offload(self):
+        """Moves the wrapped module to `device_after_tuning` when no tuned backend needs it."""
+        if self._self_state == ModuleState.TUNED:
+            self._offload(cast(TunedModule, self._self_wrapper).backends)
+
     def tune(
         self,
         device: torch.device | None = None,
         strategy: TuneStrategy | None = None,
         dry_run: bool = False,
+        offload: bool = True,
     ):
         """Tunes the module.
 
@@ -272,6 +286,7 @@ class TunableModule(wrapt.CallableObjectProxy):
             device: the device to use for tuning
             strategy: the tuning strategy to use
             dry_run: if True, only dry run the tuning
+            offload: if False, the wrapped module keeps its weights; call `offload` later
 
         Note:
             if module has already defined strategy/strategies those will take precedence over the provided one.
@@ -313,7 +328,8 @@ class TunableModule(wrapt.CallableObjectProxy):
                 try:
                     self.__wrapped__.to(device)
                     self._activate_wrapper(tuned)
-                    self._offload(backends)
+                    if offload:
+                        self._offload(backends)
                 except Exception:
                     tuned.deactivate()
                     raise

@@ -68,45 +68,66 @@ def tune(
         _clear_cache()
 
     with libraries_logging(disable_external_logging):
-        # Convert device to torch.device
-        if device is not None:
-            device = get_device(device)
+        _record_and_tune_registered_modules(
+            func,
+            dataset,
+            _validate_and_normalize_batch_sizes(batch_sizes),
+            max_num_batches_per_batch_size,
+            device,
+            dry_run=dry_run,
+            ignore_failing_modules=ignore_failing_modules,
+            offload=True,
+        )
 
-        # Validate batch sizes
-        batch_sizes = _validate_and_normalize_batch_sizes(batch_sizes)
 
-        for batch_size, args, kwargs in samples_generator(dataset, batch_sizes, max_num_batches_per_batch_size):
-            with global_context:
-                global_context.set(BATCH_SIZE_KEY, batch_size)
-                with torch.no_grad():
-                    func(*args, **kwargs)
+def _record_and_tune_registered_modules(
+    func: Callable,
+    dataset: DatasetLike | DataLoaderFactory | torch.Tensor,
+    batch_sizes: list[int],
+    max_num_batches_per_batch_size: int | None,
+    device: str | torch.device | None,
+    *,
+    dry_run: bool,
+    ignore_failing_modules: bool,
+    offload: bool,
+) -> None:
+    """Record samples by calling `func`, then tune and activate every module in MODULE_REGISTRY."""
+    # Convert device to torch.device
+    if device is not None:
+        device = get_device(device)
 
-        for module in MODULE_REGISTRY.modules.values():
-            # Before tuning, deactivate backends in other modules
-            # If any backend is activated by Torch Tweak or by the user it will affect available memory during tuning
-            for other_module in MODULE_REGISTRY.modules.values():
-                if other_module != module:
-                    other_module.deactivate()
+    for batch_size, args, kwargs in samples_generator(dataset, batch_sizes, max_num_batches_per_batch_size):
+        with global_context:
+            global_context.set(BATCH_SIZE_KEY, batch_size)
+            with torch.no_grad():
+                func(*args, **kwargs)
 
-            logger.info("════════════════════════════════════════════════════════════════")
-            logger.info("🎯 Tuning module: `%s` (all graphs)", module.name)
-            try:
-                module.tune(device=device, dry_run=dry_run)
-            except Exception:
-                # If ignore_failing_modules is False, we will raise the error and stop tuning.
-                if not ignore_failing_modules:
-                    raise
+    for module in MODULE_REGISTRY.modules.values():
+        # Before tuning, deactivate backends in other modules
+        # If any backend is activated by Torch Tweak or by the user it will affect available memory during tuning
+        for other_module in MODULE_REGISTRY.modules.values():
+            if other_module != module:
+                other_module.deactivate()
 
-                # If ignore_failing_modules is True, we use original forward for this module and continue tuning the next module.
-                logger.info("⚠️ Tuning module: `%s` failed", module.name)
-                module.enable_passthrough()
-                continue
+        logger.info("════════════════════════════════════════════════════════════════")
+        logger.info("🎯 Tuning module: `%s` (all graphs)", module.name)
+        try:
+            module.tune(device=device, dry_run=dry_run, offload=offload)
+        except Exception:
+            # If ignore_failing_modules is False, we will raise the error and stop tuning.
+            if not ignore_failing_modules:
+                raise
 
-            logger.info("✅ Tuning module: `%s` (all graphs) completed.", module.name)
+            # If ignore_failing_modules is True, we use original forward for this module and continue tuning the next module.
+            logger.info("⚠️ Tuning module: `%s` failed", module.name)
+            module.enable_passthrough()
+            continue
 
-        # Activate the backends after tuning for inference
-        if not dry_run:
-            _activate_tuned_modules()
+        logger.info("✅ Tuning module: `%s` (all graphs) completed.", module.name)
+
+    # Activate the backends after tuning for inference
+    if not dry_run:
+        _activate_tuned_modules()
 
 
 def save(

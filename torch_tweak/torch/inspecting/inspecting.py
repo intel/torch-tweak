@@ -12,7 +12,7 @@ from logging import getLogger
 import torch
 
 from torch_tweak.torch.dataloader import DataLoaderFactory, DatasetLike, ensure_enough_samples, samples_generator
-from torch_tweak.torch.inspecting.module_info import InspectedModulesInfo
+from torch_tweak.torch.inspecting.module_info import InspectedModulesInfo, ModuleInfo
 from torch_tweak.torch.inspecting.module_inspector import ModuleInspector
 from torch_tweak.torch.utils.xpu import synchronize
 from torch_tweak.utils.logging import setup_logging
@@ -56,32 +56,9 @@ def inspect(
     """
     setup_logging(format_string=LOG_FORMAT)
 
-    logger.info("Inspecting object searching for executed nn.Module members.")
-    model_inspector = ModuleInspector(depth=depth)
-    model_inspector.inspect(obj)
-
-    # If no inference function is provided, use the obj
-    if inference_function is None:
-        inference_function = obj
-
-    dataset = ensure_enough_samples(dataset, max(number_of_iterations, warmup_iterations))
-
-    # Warmup, run the model on a few samples, to make sure the model is compiled and the cache is warm
-    _warmup(inference_function, dataset, warmup_iterations)
-    _reset_total_execution_time(model_inspector)
-
-    # Run the model on the dataset for the number of iterations
-    # todo: share code with warmup
-    total_execution_time = 0.0
-    for _, args, kwargs in samples_generator(dataset, [1], max_num_batches_per_batch_size=number_of_iterations):
-        synchronize()
-        start_time = time.perf_counter()
-        with torch.no_grad():
-            inference_function(*args, **kwargs)
-        synchronize()
-        end_time = time.perf_counter()
-        total_execution_time += end_time - start_time
-
+    model_inspector, total_execution_time = run_inspection(
+        obj, dataset, inference_function, number_of_iterations, warmup_iterations, depth
+    )
     modules = model_inspector.get_modules()
 
     logger.info("Inspection done. Found %d candidate modules for tuning.", len(modules))
@@ -98,12 +75,65 @@ def inspect(
             depth,
         )
 
-    inspected_modules_info = InspectedModulesInfo(total_execution_time, number_of_iterations)
-    for module in modules:
-        inspected_modules_info.add_module(module)
+    inspected_modules_info = modules_info_for(modules, total_execution_time, number_of_iterations)
 
     model_inspector.reset()
 
+    return inspected_modules_info
+
+
+def run_inspection(
+    obj: Callable | torch.nn.Module,
+    dataset: DatasetLike | DataLoaderFactory | torch.Tensor,
+    inference_function: Callable | None,
+    number_of_iterations: int,
+    warmup_iterations: int,
+    depth: int,
+) -> tuple[ModuleInspector, float]:
+    """Run `obj` under a ModuleInspector and measure it.
+
+    Returns:
+        The inspector with forward methods already restored, and the total execution time in seconds.
+    """
+    logger.info("Inspecting object searching for executed nn.Module members.")
+    model_inspector = ModuleInspector(depth=depth)
+    model_inspector.inspect(obj)
+
+    # If no inference function is provided, use the obj
+    if inference_function is None:
+        inference_function = obj
+
+    dataset = ensure_enough_samples(dataset, max(number_of_iterations, warmup_iterations))
+
+    try:
+        # Warmup, run the model on a few samples, to make sure the model is compiled and the cache is warm
+        _warmup(inference_function, dataset, warmup_iterations)
+        _reset_total_execution_time(model_inspector)
+
+        # Run the model on the dataset for the number of iterations
+        # todo: share code with warmup
+        total_execution_time = 0.0
+        for _, args, kwargs in samples_generator(dataset, [1], max_num_batches_per_batch_size=number_of_iterations):
+            synchronize()
+            start_time = time.perf_counter()
+            with torch.no_grad():
+                inference_function(*args, **kwargs)
+            synchronize()
+            end_time = time.perf_counter()
+            total_execution_time += end_time - start_time
+    finally:
+        model_inspector.restore_forward_methods()
+
+    return model_inspector, total_execution_time
+
+
+def modules_info_for(
+    modules: list[ModuleInfo], total_execution_time: float, number_of_iterations: int
+) -> InspectedModulesInfo:
+    """Collect `modules` into an InspectedModulesInfo."""
+    inspected_modules_info = InspectedModulesInfo(total_execution_time, number_of_iterations)
+    for module in modules:
+        inspected_modules_info.add_module(module)
     return inspected_modules_info
 
 
@@ -118,6 +148,6 @@ def _warmup(obj: Callable, dataset: DatasetLike | DataLoaderFactory | torch.Tens
 
 def _reset_total_execution_time(inspector: ModuleInspector):
     """Reset the timings of the modules."""
-    for module in inspector.get_modules():
+    for module in inspector.modules:
         module.total_execution_time = 0.0
         module.execution_count = 0
