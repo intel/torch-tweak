@@ -142,3 +142,32 @@ def test_serialization(model, sample_data, tmp_path):
     sample_data = move_to_dtype(sample_data, torch.float16)
     args, kwargs = sample_data[0]
     torch.testing.assert_close(backend.infer(*args, **kwargs), loaded_backend.infer(*args, **kwargs))
+
+
+class _Cache:
+    pass
+
+
+class _ModelWithCache(nn.Module):
+    def __init__(self):
+        super().__init__()
+        self.linear = nn.Linear(IN_FEATURES, OUT_FEATURES)
+
+    def forward(self, x, cache=None):
+        return self.linear(x)
+
+
+@requires_xpu
+def test_serialization_leaves_out_samples_a_checkpoint_cannot_hold(tmp_path):
+    model = _ModelWithCache().xpu().eval()
+    x = torch.randn(1, IN_FEATURES, device="xpu")
+    data = [((x,), {"cache": _Cache()}), ((x,), {})]
+    backend = TorchInductorBackend().build(
+        model, graph_spec=Mock(spec=GraphSpec), data=data, device=torch.device("xpu"), cache_dir=tmp_path
+    )
+
+    TorchSaveTask().save(tmp_path, backend.to_dict())
+    loaded_backend = TorchInductorBackend.from_dict(model, TorchLoadTask().load(tmp_path))
+    loaded_backend.activate()
+
+    torch.testing.assert_close(loaded_backend.infer(x, cache=_Cache()), backend.infer(x, cache=_Cache()))
