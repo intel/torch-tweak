@@ -10,12 +10,15 @@ import torch.nn as nn
 
 from tests.toy_models import ToyTorchModel
 from torch_tweak.torch.backend import OpenVINOBackend, TorchEagerBackend, TorchInductorBackend
+from torch_tweak.torch.inspecting.inspecting import inspect
 from torch_tweak.torch.inspecting.module_info import ModuleInfo
 from torch_tweak.torch.inspecting.module_inspector import DictOfModulesInfo, ListOfModulesInfo
 from torch_tweak.torch.inspecting.wrapping import wrap
 from torch_tweak.torch.module.sample_metadata import SampleMetadata
-from torch_tweak.torch.module.wrapper_module import Module
+from torch_tweak.torch.module.wrapper_module import Module, ModuleState
+from torch_tweak.torch.module_registry import MODULE_REGISTRY
 from torch_tweak.torch.tune_strategy import FirstWinsStrategy, OneBackendStrategy
+from torch_tweak.torch.tuning import tune
 
 
 @pytest.fixture
@@ -62,7 +65,7 @@ def test_wrap_submodule(nested_model):
     wrapped_model = wrap(
         nested_model,
         [
-            ModuleInfo(name="linear", module=nested_model.linear, parent=parent),
+            ModuleInfo(name="linear", module=nested_model.linear, parent=parent, object_path=".linear"),
         ],
     )
 
@@ -85,8 +88,8 @@ def test_wrap_multiple_modules(nested_model):
     wrapped_model = wrap(
         nested_model,
         [
-            ModuleInfo(name="linear", module=nested_model.linear, parent=parent),
-            ModuleInfo(name="relu", module=nested_model.relu, parent=parent),
+            ModuleInfo(name="linear", module=nested_model.linear, parent=parent, object_path=".linear"),
+            ModuleInfo(name="relu", module=nested_model.relu, parent=parent, object_path=".relu"),
         ],
     )
 
@@ -219,7 +222,7 @@ def test_wrap_custom_object():
 
     strategy = FirstWinsStrategy(backends=[TorchInductorBackend(), OpenVINOBackend()])
 
-    module_info = [ModuleInfo(name="model", module=custom_obj.model, parent=parent)]
+    module_info = [ModuleInfo(name="model", module=custom_obj.model, parent=parent, object_path=".model")]
 
     # When wrapping custom object
     wrapped_obj = wrap(custom_obj, module_info, strategy=strategy)
@@ -252,7 +255,7 @@ def test_wrap_custom_object_nested():
 
     strategy = FirstWinsStrategy(backends=[TorchInductorBackend(), OpenVINOBackend()])
 
-    module_info = [ModuleInfo(name="layer", module=custom_obj.layer, parent=parent)]
+    module_info = [ModuleInfo(name="layer", module=custom_obj.layer, parent=parent, object_path=".layer")]
 
     # When wrapping custom object with nested module
     wrapped_obj = wrap(custom_obj, module_info, strategy=strategy)
@@ -280,8 +283,8 @@ def test_wrap_custom_object_multiple_modules():
     strategy = FirstWinsStrategy(backends=[TorchInductorBackend(), OpenVINOBackend()])
 
     module_info = [
-        ModuleInfo(name="model1", module=custom_obj.model1, parent=parent),
-        ModuleInfo(name="model2", module=custom_obj.model2, parent=parent),
+        ModuleInfo(name="model1", module=custom_obj.model1, parent=parent, object_path=".model1"),
+        ModuleInfo(name="model2", module=custom_obj.model2, parent=parent, object_path=".model2"),
     ]
 
     # When wrapping multiple modules
@@ -333,7 +336,7 @@ def test_wrap_custom_object_with_attributes():
 
     strategy = FirstWinsStrategy(backends=[TorchInductorBackend(), OpenVINOBackend()])
 
-    module_info = [ModuleInfo(name="model", module=custom_obj.model, parent=parent)]
+    module_info = [ModuleInfo(name="model", module=custom_obj.model, parent=parent, object_path=".model")]
 
     # When wrapping custom object with various attributes
     wrapped_obj = wrap(custom_obj, module_info, strategy=strategy)
@@ -352,7 +355,7 @@ def test_wrap_module_in_list():
     model = [nn.Linear(10, 20), nn.ReLU(), nn.Linear(20, 5)]
     parent = ListOfModulesInfo(module=model)
 
-    wrapped_model = wrap(model, [ModuleInfo(name="0", module=model[0], parent=parent)])
+    wrapped_model = wrap(model, [ModuleInfo(name="0", module=model[0], parent=parent, object_path=".0")])
     assert not isinstance(wrapped_model, Module)
     assert isinstance(wrapped_model[0], Module)
     assert not isinstance(wrapped_model[1], Module)
@@ -364,7 +367,9 @@ def test_wrap_module_in_dict():
     model = {"linear": nn.Linear(10, 20), "relu": nn.ReLU(), "linear2": nn.Linear(20, 5)}
     parent = DictOfModulesInfo(module=model)
 
-    wrapped_model = wrap(model, [ModuleInfo(name="linear", module=model["linear"], parent=parent)])
+    wrapped_model = wrap(
+        model, [ModuleInfo(name="linear", module=model["linear"], parent=parent, object_path=".linear")]
+    )
     assert not isinstance(wrapped_model, Module)
     assert isinstance(wrapped_model["linear"], Module)
     assert not isinstance(wrapped_model["relu"], Module)
@@ -388,9 +393,9 @@ def test_wrap_nested_diffrent_types():
     parent_list = ListOfModulesInfo(module=model.list, parent=parent)
 
     modules = [
-        ModuleInfo(name="linear", module=model.linear, parent=parent),
-        ModuleInfo(name="linear", module=model.dict["linear"], parent=parent_dict),
-        ModuleInfo(name="0", module=model.list[0], parent=parent_list),
+        ModuleInfo(name="linear", module=model.linear, parent=parent, object_path=".linear"),
+        ModuleInfo(name="linear", module=model.dict["linear"], parent=parent_dict, object_path=".dict.linear"),
+        ModuleInfo(name="0", module=model.list[0], parent=parent_list, object_path=".list.0"),
     ]
 
     wrapped_model = wrap(model, modules)
@@ -398,3 +403,60 @@ def test_wrap_nested_diffrent_types():
     assert isinstance(wrapped_model.linear, Module)
     assert isinstance(wrapped_model.dict["linear"], Module)
     assert isinstance(wrapped_model.list[0], Module)
+
+
+class _Block(nn.Module):
+    def __init__(self):
+        super().__init__()
+        self.mlp = nn.Linear(8, 8)
+
+    def forward(self, x):
+        return self.mlp(x)
+
+
+class _EncoderDecoder(nn.Module):
+    def __init__(self):
+        super().__init__()
+        self.enc = nn.ModuleList([_Block(), _Block()])
+        self.dec = nn.ModuleList([_Block()])
+
+    def forward(self, x):
+        for block in [*self.enc, *self.dec]:
+            x = block(x)
+        return x
+
+
+def test_wrap_names_modules_by_object_path():
+    """Siblings with the same attribute name get distinct wrapper names."""
+    model = _EncoderDecoder()
+    parent = ModuleInfo(module=model)
+    enc = ListOfModulesInfo(module=model.enc, parent=parent, object_path=".enc")
+    dec = ListOfModulesInfo(module=model.dec, parent=parent, object_path=".dec")
+
+    wrap(
+        model,
+        [
+            ModuleInfo(name="0", module=model.enc[0], parent=enc, object_path=".enc.0"),
+            ModuleInfo(name="1", module=model.enc[1], parent=enc, object_path=".enc.1"),
+            ModuleInfo(name="0", module=model.dec[0], parent=dec, object_path=".dec.0"),
+        ],
+    )
+
+    assert [model.enc[0].name, model.enc[1].name, model.dec[0].name] == ["enc.0", "enc.1", "dec.0"]
+    assert set(MODULE_REGISTRY.modules) == {"enc.0", "enc.1", "dec.0"}
+
+
+def test_tune_reaches_every_module_with_a_repeated_name(tmp_path, monkeypatch):
+    """Every wrapped `mlp` is tuned, not only the last one registered."""
+    monkeypatch.setenv("TORCH_TWEAK_CACHE_DIR", str(tmp_path))
+    model = _EncoderDecoder().eval()
+    sample = torch.randn(8)
+    modules_info = inspect(model, sample, number_of_iterations=1, warmup_iterations=1, min_depth=3)
+    strategy = FirstWinsStrategy(backends=[TorchEagerBackend()])
+
+    wrap(model, modules_info.get_modules(), strategy=strategy)
+    tune(model, sample, batch_sizes=[1, 2], device="cpu")
+
+    blocks = [*model.enc, *model.dec]
+    assert sorted(MODULE_REGISTRY.modules) == ["dec.0.mlp", "enc.0.mlp", "enc.1.mlp"]
+    assert [block.mlp.state for block in blocks] == [ModuleState.TUNED] * 3

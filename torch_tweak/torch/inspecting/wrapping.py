@@ -41,7 +41,9 @@ def wrap(
         if module_info.parent is None:
             return Module(obj, name=obj.__class__.__name__, strategy=strategy, strategies=strategies)
 
-        ait_module = Module(module_info.module, name=module_info.name, strategy=strategy, strategies=strategies)
-        module_info.parent.set_wrapped(module_info.name, ait_module)
+        # `module_info.name` repeats across siblings (`layers.0.mlp`, `layers.1.mlp`); the path does not.
+        name = module_info.object_path.lstrip(".")
+        wrapped = Module(module_info.module, name=name, strategy=strategy, strategies=strategies)
+        module_info.parent.set_wrapped(module_info.name, wrapped)
 
     return obj
