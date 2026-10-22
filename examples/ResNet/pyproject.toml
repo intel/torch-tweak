@@ -10,13 +10,13 @@ description = "Torch Tweak ResNet Example"
 readme = "README.md"
 license = "Apache-2.0"
 license-files = ["LICENSE", "third-party-programs.txt"]
-requires-python = ">=3.10"
+requires-python = ">=3.11"
 dependencies = [
     "torch-tweak[xpu]",
     "torch>=2.13.0",
     "torchvision",
     "timm",
-    "pillow>=12.3.0",
+    "pillow>=13.0.0",
 ]
 
 [tool.uv]
