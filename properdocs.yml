@@ -96,6 +96,7 @@ nav:
 
     -   Examples:
             - Overview: examples/README.md
+            - AutoTune: examples/AutoTune/README.md
             - E5Large: examples/E5Large/README.md
             - ESM2: examples/ESM2/README.md
             - FLUX: examples/FLUX/README.md

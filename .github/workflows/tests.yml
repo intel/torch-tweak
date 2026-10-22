@@ -129,6 +129,10 @@ jobs:
           uv run coverage run examples/Minimal/demo.py
           echo "::endgroup::"
 
+          echo "::group::auto_tune"
+          uv run python examples/AutoTune/demo.py
+          echo "::endgroup::"
+
           echo "::group::llm"
           cd examples/LLM
           uv sync --group coverage

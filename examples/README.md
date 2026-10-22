@@ -23,6 +23,20 @@ Tunes a tiny MLP and selects the faster of Torch Inductor and Torch Eager. This 
   - Highest-throughput backend selection
   - Intel XPU when available, otherwise CPU
 
+## AutoTune
+
+### Finding the fastest cut depth
+
+Runs `auto_tune` on a transformer encoder: a dry run, the search over cut depths, and a save and load of the winner.
+
+- **Location**: [`AutoTune`](./AutoTune/README.md)
+- **Model**: a four-layer `nn.TransformerEncoder` defined in the script
+- **Use Case**: Letting Torch Tweak decide which modules to tune
+- **Key Features**:
+  - Dry run that shows the cost of every depth
+  - Latency table of every depth against the untuned model
+  - Time budget for the search
+
 ## ResNet
 
 ### Computer Vision - Image Classification
