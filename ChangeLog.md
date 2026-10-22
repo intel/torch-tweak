@@ -7,6 +7,8 @@ SPDX-License-Identifier: Apache-2.0
 
 ## Unreleased
 
+- feat: `auto_tune` tunes a model at every depth up to `max_depth` and keeps the fastest cut.
+
 - feat (breaking): a module without a strategy is tuned with `tt.default_strategy(device)` instead of `FirstWinsStrategy`.
   Tuning measures every backend and keeps the fastest, so it takes longer.
 

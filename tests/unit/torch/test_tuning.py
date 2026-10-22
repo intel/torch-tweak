@@ -54,7 +54,7 @@ def test_tune(mocker, dry_run):
 
     # then
     assert mock_module.call_count > 0
-    mock_module.tune.assert_called_once_with(dry_run=dry_run, device=torch.device(DEFAULT_DEVICE))
+    mock_module.tune.assert_called_once_with(dry_run=dry_run, device=torch.device(DEFAULT_DEVICE), offload=True)
 
     batch_size_counter = Counter()
     for args, _ in mock_module.call_args_list:
@@ -89,7 +89,7 @@ def test_tune_with_cache_clear(mocker, clear_cache):
 
     # then
     assert mock_module.call_count > 0
-    mock_module.tune.assert_called_once_with(dry_run=False, device=torch.device(DEFAULT_DEVICE))
+    mock_module.tune.assert_called_once_with(dry_run=False, device=torch.device(DEFAULT_DEVICE), offload=True)
 
     assert spy_clear_cache.call_count == (1 if clear_cache else 0)
 
