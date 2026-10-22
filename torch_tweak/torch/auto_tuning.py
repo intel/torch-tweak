@@ -26,7 +26,7 @@ from torch_tweak.torch.inspecting.module_inspector import ModuleInspector, cut_a
 from torch_tweak.torch.inspecting.wrapping import wrap
 from torch_tweak.torch.module.wrapper_module import Module, ModuleState
 from torch_tweak.torch.module_registry import MODULE_REGISTRY
-from torch_tweak.torch.tune_strategy import FirstWinsStrategy
+from torch_tweak.torch.tune_strategy import default_strategy
 from torch_tweak.torch.tune_strategy.tune_strategy import TuneStrategy
 from torch_tweak.torch.tuning import (
     _clear_cache,
@@ -148,8 +148,8 @@ def auto_tune(
         obj: Model or pipeline to tune.
         dataset: Samples for inspection, tuning, and measurement.
         inference_function: Function that runs inference on `obj`, `obj` is called by default.
-        strategy: Strategy for every wrapped module. When None, `FirstWinsStrategy` without the search
-            for the maximum batch size is used.
+        strategy: Strategy for every wrapped module. When None, `default_strategy(device)` without the search
+            for the maximum batch size is used: every backend for the device is measured and the fastest wins.
         min_depth: Shallowest depth to try.
         max_depth: Deepest depth to try.
         batch_sizes: Batch sizes for tuning and measurement.
@@ -180,7 +180,7 @@ def auto_tune(
     if strategy is None:
         # Searching the maximum batch size of every small module at every depth costs more than the tuning
         # itself, and batch sizes far above `batch_sizes` can hang the device.
-        strategy = FirstWinsStrategy().enable_find_max_batch_size(False)
+        strategy = default_strategy(device or DEFAULT_DEVICE).enable_find_max_batch_size(False)
 
     with libraries_logging(disable_external_logging):
         inspector, total_execution_time = run_inspection(

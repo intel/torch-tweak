@@ -14,7 +14,7 @@ from torch_tweak.torch.auto_tuning import auto_tune
 from torch_tweak.torch.backend import TorchEagerBackend
 from torch_tweak.torch.module.wrapper_module import Module
 from torch_tweak.torch.module_registry import MODULE_REGISTRY
-from torch_tweak.torch.tune_strategy import FirstWinsStrategy
+from torch_tweak.torch.tune_strategy import FirstWinsStrategy, HighestThroughputStrategy, default_backends
 
 
 class _Block(nn.Module):
@@ -195,15 +195,16 @@ def test_model_is_left_untuned_when_no_depth_beats_the_baseline(mocker, model, s
     assert MODULE_REGISTRY.modules == {}
 
 
-def test_default_strategy_does_not_search_the_maximum_batch_size(mocker, model, sample):
+def test_default_strategy_measures_every_backend_for_the_device(mocker, model, sample):
     _fake_measure(mocker, [10.0, 5.0, 3.0, 1.0])
     wrap = mocker.spy(auto_tuning, "wrap")
-    mocker.patch.object(FirstWinsStrategy, "tune", side_effect=RuntimeError("not needed"))
+    mocker.patch.object(HighestThroughputStrategy, "tune", side_effect=RuntimeError("not needed"))
 
     auto_tune(model, sample, device="cpu", inspect_iterations=1, measure_iterations=1, warmup_iterations=1)
 
     strategy = wrap.call_args.kwargs["strategy"]
-    assert isinstance(strategy, FirstWinsStrategy)
+    assert isinstance(strategy, HighestThroughputStrategy)
+    assert [type(b) for b in strategy._backends] == [type(b) for b in default_backends("cpu")]
     assert not strategy.find_config.enable_find_max_batch_size
 
 

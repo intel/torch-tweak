@@ -48,7 +48,12 @@ For example, a leaf module such as `head` is in every cut below its own depth.
 Weights stay on the device during the search.
 Only the winning modules are offloaded at the end, as `tune` does.
 
-Without `strategy`, `auto_tune` uses `FirstWinsStrategy` without the search for the maximum batch size.
+Without `strategy`, `auto_tune` uses `tt.default_strategy(device)` without the search for the maximum batch size.
+It measures every backend that runs on the device and keeps the fastest one for every module.
+On XPU these are Torch Inductor, XPU graph, OpenVINO, and eager. On CPU these are Torch Inductor, OpenVINO, and eager.
+TorchAO is left out because quantization changes the results.
+
+The search for the maximum batch size is off by default.
 That search runs for every module at every depth and probes batch sizes far above `batch_sizes`.
 Pass a strategy to enable it explicitly.
 
