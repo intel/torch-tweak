@@ -26,7 +26,7 @@ from torchao.quantization import (
     quantize_,
 )
 
-from torch_tweak.torch.backend.backend import Backend, BackendConfig, BackendState
+from torch_tweak.torch.backend.backend import Backend, BackendConfig, BackendState, samples_for_checkpoint
 from torch_tweak.torch.module.graph_spec import GraphSpec
 from torch_tweak.torch.module.recording_module import Sample
 from torch_tweak.utils.trace import annotate
@@ -309,7 +309,7 @@ class TorchAOBackend(Backend):
             self.STATE_TYPE: self.__class__.__name__,
             self.STATE_CONFIG: self._config.to_dict(),
             self.STATE_ORIG_MODULE: self._orig_module.state_dict(),
-            self.STATE_DATA: self._data,
+            self.STATE_DATA: samples_for_checkpoint(self._data),
             self.STATE_DEVICE: self._device,
         }
 
