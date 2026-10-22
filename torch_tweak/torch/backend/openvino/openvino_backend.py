@@ -14,6 +14,7 @@ import numpy as np
 import openvino as ov
 import torch
 import torch.nn as nn
+import torch.utils._pytree as pytree
 
 from torch_tweak.torch.backend.backend import Backend, BackendConfig, BackendState
 from torch_tweak.torch.backend.openvino.ov_model_converter import (
@@ -50,6 +51,20 @@ def _ov_tensor_to_torch(ov_value: Any, device: torch.device, dtype: torch.dtype 
     return tensor
 
 
+def openvino_device_for_xpu(core: ov.Core, device: torch.device) -> str:
+    """Returns the OpenVINO GPU that is the same physical device as the PyTorch XPU ``device``.
+
+    OpenVINO numbers GPUs independently of PyTorch, so ``GPU`` can be an integrated GPU while PyTorch
+    runs on a discrete one.
+    """
+    uuid = str(torch.xpu.get_device_properties(device).uuid).replace("-", "")
+    gpus = [name for name in core.available_devices if name.startswith("GPU")]
+    for name in gpus:
+        if str(core.get_property(name, "DEVICE_UUID")) == uuid:
+            return name
+    raise RuntimeError(f"No OpenVINO GPU matches {device} (UUID {uuid}). OpenVINO GPUs: {gpus}.")
+
+
 @dataclass
 class OpenVINOBackendConfig(BackendConfig):
     """Configuration for OpenVINO backend.
@@ -76,7 +91,8 @@ class OpenVINOBackend(Backend):
     STATE_TYPE = "type"
     STATE_CONFIG = "config"
     STATE_OV_MODEL_DIR = "ov_model_dir"
-    STATE_OUTPUT_OBJECT = "output_object"
+    STATE_OUTPUT_SPEC = "output_spec"
+    STATE_OUTPUT_LEAVES = "output_leaves"
     STATE_GRAPH_SPEC = "graph_spec"
     STATE_DEVICE = "device"
 
@@ -133,7 +149,7 @@ class OpenVINOBackend(Backend):
             compile_config["PERFORMANCE_HINT"] = self._config.performance_hint
         ov_device = "CPU"
         if self._device.type == "xpu":
-            ov_device = "GPU"
+            ov_device = openvino_device_for_xpu(core, self._device)
         elif self._device.type != "cpu":
             raise ValueError(f"Device {self._device.type} is not supported by OpenVINO backend")
         self._compiled_model = core.compile_model(ov_model, ov_device, config=compile_config or None)
@@ -209,7 +225,8 @@ class OpenVINOBackend(Backend):
         args, kwargs = sample
         with torch.no_grad():
             output_object = module(*args, **kwargs)
-        return copy.deepcopy(output_object)
+        # `_prepare_outputs_for_return` replaces every tensor with an OpenVINO output.
+        return copy.deepcopy(pytree.tree_map_only(torch.Tensor, lambda _: torch.empty(0), output_object))
 
     def _save_config(self, cache_dir: Path):
         config_path = cache_dir / "config.json"
@@ -219,11 +236,19 @@ class OpenVINOBackend(Backend):
         """Returns the state_dict of the backend."""
         if self._ov_model_dir is None or self._graph_spec is None:
             raise RuntimeError("Backend has not been properly initialized. Please call build() first.")
+        # A checkpoint cannot hold output classes such as transformers `ModelOutput`. Their `TreeSpec`
+        # names the class instead, and loading rebuilds it from the pytree registry.
+        output_leaves, output_spec = pytree.tree_flatten(self._output_object)
+        try:
+            output_spec_str = pytree.treespec_dumps(output_spec)
+        except NotImplementedError as e:
+            raise ValueError(f"{self.STATE_OUTPUT_SPEC}: forward() output cannot be saved in a checkpoint") from e
         return {
             self.STATE_TYPE: self.__class__.__name__,
             self.STATE_CONFIG: self._config.to_dict(),
             self.STATE_OV_MODEL_DIR: self._ov_model_dir,
-            self.STATE_OUTPUT_OBJECT: self._output_object,
+            self.STATE_OUTPUT_SPEC: output_spec_str,
+            self.STATE_OUTPUT_LEAVES: output_leaves,
             self.STATE_GRAPH_SPEC: self._graph_spec.to_dict(),
             self.STATE_DEVICE: self._device,
         }
@@ -240,7 +265,8 @@ class OpenVINOBackend(Backend):
             raise ValueError("Checkpoint is missing OpenVINO model path (ov_model_dir).")
         backend._ov_model_dir = Path(state_dict[cls.STATE_OV_MODEL_DIR])
         backend._ov_model_xml = backend._ov_model_dir / OV_MODEL_XML_NAME
-        backend._output_object = state_dict[cls.STATE_OUTPUT_OBJECT]
+        output_spec = pytree.treespec_loads(state_dict[cls.STATE_OUTPUT_SPEC])
+        backend._output_object = pytree.tree_unflatten(state_dict[cls.STATE_OUTPUT_LEAVES], output_spec)
         backend._graph_spec = GraphSpec.from_dict(state_dict[cls.STATE_GRAPH_SPEC])
         backend._set_device(state_dict[cls.STATE_DEVICE])
         backend.state = BackendState.CHECKPOINT_LOADED
