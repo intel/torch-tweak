@@ -72,8 +72,12 @@ def _auto_tune(model, sample, **kwargs):
 
 
 def _fake_measure(mocker, totals):
-    """Make the baseline and the depths measure `totals`, in that order, split over two samples."""
-    latencies = [{(1, 0): total / 2, (2, 0): total / 2} for total in totals]
+    """Make the baseline and the depths measure `totals`, in that order, split over two samples.
+
+    The second baseline measurement after the depths repeats the first one. A test where no depth is
+    measured does not use it.
+    """
+    latencies = [{(1, 0): total / 2, (2, 0): total / 2} for total in [*totals, *totals[:1]]]
     return mocker.patch("torch_tweak.torch.auto_tuning._measure", side_effect=latencies)
 
 
@@ -135,6 +139,7 @@ def test_failed_depth_is_skipped_and_undone(mocker, model, sample):
             {(1, 0): 2.5, (2, 0): 2.5},
             RuntimeError("measurement failed"),
             {(1, 0): 1.5, (2, 0): 1.5},
+            {(1, 0): 5.0, (2, 0): 5.0},
         ],
     )
 
@@ -287,7 +292,7 @@ def test_result_prints_every_depth_and_the_selected_one(mocker, model, sample):
 
 
 def test_time_budget_stops_starting_new_depths(mocker, model, sample):
-    _fake_measure(mocker, [10.0, 5.0, 3.0, 1.0])
+    _fake_measure(mocker, [10.0, 5.0])
     clock = iter([0.0, 1.0, 100.0, 200.0])
     mocker.patch.object(auto_tuning.time, "monotonic", side_effect=lambda: next(clock))
 
@@ -295,3 +300,13 @@ def test_time_budget_stops_starting_new_depths(mocker, model, sample):
 
     assert [r.error for r in result.depths] == [None, auto_tuning.TIME_BUDGET_ERROR, auto_tuning.TIME_BUDGET_ERROR]
     assert result.best_depth == 0
+
+
+def test_baseline_is_the_faster_of_the_measurements_before_and_after_the_search(mocker, model, sample):
+    latencies = [{(1, 0): total / 2, (2, 0): total / 2} for total in [10.0, 5.0, 3.0, 4.0, 2.0]]
+    mocker.patch("torch_tweak.torch.auto_tuning._measure", side_effect=latencies)
+
+    result = _auto_tune(model, sample)
+
+    assert sum(result.baseline.values()) == 2.0
+    assert result.best_depth is None

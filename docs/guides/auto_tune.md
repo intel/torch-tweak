@@ -35,7 +35,7 @@ Every parameter after `dataset` is keyword-only.
 
 1. One inspection finds the executed modules and their depth, as in [Inspect](inspect.md).
 2. Every depth gives a cut. A cut equal to the previous one is skipped.
-3. The untuned model is measured as the baseline.
+3. The untuned model is measured as the baseline. It is measured again after the last depth, and the lower latency counts, so a device that is still clocking up does not favor tuning.
 4. For every cut, the modules are wrapped, tuned, and the whole model is measured on `dataset`.
    The wrappers are then detached, so the next depth starts from the original model.
 5. The depth with the lowest sum of median latencies over all samples wins.

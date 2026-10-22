@@ -140,6 +140,8 @@ def auto_tune(
 
     Depth is defined as in `inspect`. Each distinct cut is wrapped, tuned, and measured end to end
     on `dataset`. A module tuned at one depth is reused at deeper depths where it appears again.
+    The untuned model is measured before and after the search, and the lower latency is the baseline.
+    The second measurement is skipped when no depth was measured.
     The winner has the lowest sum of median latencies over all samples. A shallower depth wins
     when it is within `tie_tolerance` of the fastest one. The model is left untuned when no depth
     is faster than the untuned model.
@@ -226,19 +228,33 @@ def auto_tune(
             )
 
         results = _tune_every_depth(cuts, tune_depth, start, time_budget)
-        best = _pick_best(results, tie_tolerance)
-        MODULE_REGISTRY.clear()
-        if best is None:
-            logger.warning("No depth was tuned successfully. The model is left untuned.")
-            return AutoTuneResult(obj, None, baseline, results)
+        if any(result.latencies for result in results):
+            # The first measurement can run before the device reaches its full clock, which favors every depth.
+            logger.info("Measuring the model before tuning again.")
+            baseline = _faster(baseline, measure())
+        return _install_best(obj, cuts, tuned, baseline, results, tie_tolerance)
 
-        if best.total_latency >= sum(baseline.values()):
-            logger.warning("No depth is faster than the untuned model. The model is left untuned.")
-            return AutoTuneResult(obj, None, baseline, results)
-        logger.info("Selected depth %d.", best.depth)
-        best_modules = next(modules for depth, modules in cuts if depth == best.depth)
-        result_obj = _install(obj, best_modules, tuned)
-        return AutoTuneResult(result_obj, best.depth, baseline, results)
+
+def _install_best(
+    obj: Any,
+    cuts: list[tuple[int, list[ModuleInfo]]],
+    tuned: dict[str, Module],
+    baseline: dict[SampleKey, float],
+    results: list[DepthResult],
+    tie_tolerance: float,
+) -> AutoTuneResult:
+    """Install the best depth when it is faster than `baseline`, otherwise leave `obj` untuned."""
+    best = _pick_best(results, tie_tolerance)
+    MODULE_REGISTRY.clear()
+    if best is None:
+        logger.warning("No depth was tuned successfully. The model is left untuned.")
+        return AutoTuneResult(obj, None, baseline, results)
+    if best.total_latency >= sum(baseline.values()):
+        logger.warning("No depth is faster than the untuned model. The model is left untuned.")
+        return AutoTuneResult(obj, None, baseline, results)
+    logger.info("Selected depth %d.", best.depth)
+    best_modules = next(modules for depth, modules in cuts if depth == best.depth)
+    return AutoTuneResult(_install(obj, best_modules, tuned), best.depth, baseline, results)
 
 
 def _distinct_cuts(
@@ -399,6 +415,11 @@ def _measure(
                 times.append(time.perf_counter() - start)
         latencies[key] = statistics.median(times)
     return latencies
+
+
+def _faster(first: dict[SampleKey, float], second: dict[SampleKey, float]) -> dict[SampleKey, float]:
+    """The lower latency of every sample."""
+    return {key: min(first[key], second[key]) for key in first}
 
 
 def _pick_best(results: list[DepthResult], tie_tolerance: float) -> DepthResult | None:
