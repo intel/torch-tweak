@@ -47,10 +47,10 @@ class ModelExecutionTimeMeasuringStrategy(MeasuringStrategy):
         """Do the measurement and create a ProfilingResultEvent(s) for the model."""
         args, kwargs = sample
 
-        # Replay returns after submit. The device may still be running.
         synchronize()
         start = time.monotonic_ns()
         model(*args, **kwargs)
+        # Replay returns after submit. The device may still be running.
         synchronize()
         end = time.monotonic_ns()
 

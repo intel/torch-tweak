@@ -65,20 +65,16 @@ Do NOT activate this skill when:
 
 ### TorchAO Backend
 - **Best for**: PyTorch-native quantization on Intel GPU / XPU
-- **Simple**: `TorchAOBackend()` with no config needed
 
 ### Torch Inductor Backend
 - **Best for**: PyTorch compiler-based optimization on Intel GPU / XPU
-- **Simple**: `TorchInductorBackend()` with no config needed
 
 ### XPU Graph Backend
 - **Best for**: replaying a module that was recorded once during tuning
-- **Simple**: `XPUGraphBackend()`
 - **Rejection**: failed, empty, or incorrect recordings are dropped for that module and input
 
 ### OpenVINO Backend
 - **Best for**: an OpenVINO model on an Intel CPU or GPU
-- **Simple**: `OpenVINOBackend()` with no config needed
 - **Strengths**:
   - Converts PyTorch models to OpenVINO IR for deployment
   - Applies hardware-specific optimizations
@@ -87,7 +83,6 @@ Do NOT activate this skill when:
 
 ### Torch Eager Backend
 - **Best for**: the uncompiled baseline inside a throughput search
-- **Simple**: `TorchEagerBackend()` with no config needed
 
 ## Tuning Strategies
 
