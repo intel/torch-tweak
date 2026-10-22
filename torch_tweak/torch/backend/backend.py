@@ -17,11 +17,30 @@ from typing import Any, ClassVar
 import torch
 import torch.nn as nn
 
+from torch_tweak.torch.checkpoint.storage_tasks import is_weights_only_safe
 from torch_tweak.torch.module.graph_spec import GraphSpec
 from torch_tweak.torch.module.recording_module import Sample
 from torch_tweak.utils.hashing import hash_string
 from torch_tweak.utils.permissions import secure_file
 from torch_tweak.utils.trace import annotate
+
+logger = logging.getLogger(__name__)
+
+
+def samples_for_checkpoint(data: list[Sample] | None) -> list[Sample] | None:
+    """The samples of `data` that a checkpoint can hold.
+
+    For backends that replay samples only to compile ahead of the first call. A sample holding an
+    object such as a transformers `DynamicCache` is left out, and the first call compiles instead.
+    """
+    if data is None:
+        return None
+    safe = [sample for sample in data if is_weights_only_safe(sample)]
+    if len(safe) < len(data):
+        logger.info(
+            "%d of %d samples cannot be saved and are left out of the checkpoint.", len(data) - len(safe), len(data)
+        )
+    return safe
 
 
 class BackendState(Enum):

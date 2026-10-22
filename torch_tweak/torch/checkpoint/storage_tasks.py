@@ -117,6 +117,15 @@ def _assert_weights_only_safe(obj: Any, path: str = "state_dict") -> None:
         )
 
 
+def is_weights_only_safe(obj: Any) -> bool:
+    """Return True when a checkpoint can hold *obj*, see :class:`TorchSaveTask`."""
+    try:
+        _assert_weights_only_safe(_paths_as_str(obj))
+    except ValueError:
+        return False
+    return True
+
+
 def _paths_as_str(obj: Any) -> Any:
     """Return a copy of *obj* with every Path value replaced by its string form.
 

@@ -8,7 +8,9 @@
 import json
 from dataclasses import dataclass, field
 
-from torch_tweak.torch.backend.backend import BackendConfig
+import torch
+
+from torch_tweak.torch.backend.backend import BackendConfig, samples_for_checkpoint
 from torch_tweak.utils.hashing import hash_string
 
 
@@ -348,3 +350,15 @@ def test_empty_include_list_does_not_affect_result():
     changed_fields_without_include = config._get_changed_fields(config, default)
 
     assert changed_fields_with_include == changed_fields_without_include
+
+
+class _Opaque:
+    pass
+
+
+def test_samples_for_checkpoint_leaves_out_samples_a_checkpoint_cannot_hold():
+    safe = ((torch.ones(1),), {"use_cache": True})
+    unsafe = ((torch.ones(1),), {"past_key_values": _Opaque()})
+
+    assert samples_for_checkpoint([safe, unsafe, safe]) == [safe, safe]
+    assert samples_for_checkpoint(None) is None
