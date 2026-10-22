@@ -2429,7 +2429,7 @@ SPDX-License-Identifier: Apache-2.0
 <h2 id="overview">Overview</h2>
 <ul>
 <li><strong>Conversion</strong>: <code>torch.export</code> by default, with a legacy trace path when export cannot capture the module</li>
-<li><strong>Devices</strong>: <code>cpu</code> compiles for the OpenVINO CPU device, <code>xpu</code> compiles for the OpenVINO GPU device</li>
+<li><strong>Devices</strong>: <code>cpu</code> compiles for the OpenVINO CPU device, <code>xpu</code> compiles for the OpenVINO GPU that is the same physical device as the PyTorch XPU device</li>
 <li><strong>Compile hint</strong>: <code>LATENCY</code> (default), <code>THROUGHPUT</code>, or <code>CUMULATIVE_THROUGHPUT</code></li>
 </ul>
 <h2 id="quick-start">Quick Start</h2>
