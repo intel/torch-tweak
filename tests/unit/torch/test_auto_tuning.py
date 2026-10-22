@@ -258,3 +258,23 @@ def test_modules_that_failed_to_tune_are_not_installed(mocker, model, sample):
     assert isinstance(model.layers[0], Module)
     assert not isinstance(model.head, Module)
     assert sorted(MODULE_REGISTRY.modules) == ["layers.0", "layers.1"]
+
+
+def test_parameters_after_dataset_are_keyword_only(model, sample):
+    with pytest.raises(TypeError):
+        auto_tune(model, sample, None)
+
+
+def test_result_prints_every_depth_and_the_selected_one(mocker, model, sample):
+    _fake_measure(mocker, [10.0, 5.0, 3.0, 1.0])
+
+    result = _auto_tune(model, sample)
+
+    text = str(result)
+    assert "baseline" in text
+    assert [line.split()[0] for line in text.splitlines() if line.strip().startswith(("0 ", "1 ", "2 "))] == [
+        "0",
+        "1",
+        "2",
+    ]
+    assert "selected" in next(line for line in text.splitlines() if line.strip().startswith("2 "))

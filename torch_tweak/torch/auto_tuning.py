@@ -84,15 +84,14 @@ class AutoTuneResult:
             return {}
         return {key: min(measured, key=lambda result: result.latencies[key]).depth for key in measured[0].latencies}
 
-    def describe(self) -> None:
-        """Print the latency of every depth and the winner."""
-        print("Auto Tune Summary:")  # noqa: T201
-        print("=" * 80)  # noqa: T201
-        print(f"{'Depth':>6}  {'# modules':>10}  {'Total latency (ms)':>20}  {'Speedup':>8}  {'Status':<20}")  # noqa: T201
-        print("-" * 80)  # noqa: T201
+    def __str__(self) -> str:
+        """The latency of every depth and the winner, as a table."""
+        lines = ["Auto Tune Summary:", "=" * 80]
+        lines.append(f"{'Depth':>6}  {'# modules':>10}  {'Total latency (ms)':>20}  {'Speedup':>8}  {'Status':<20}")
+        lines.append("-" * 80)
         baseline_total = sum(self.baseline.values())
         if self.baseline:
-            print(f"{'eager':>6}  {'-':>10}  {baseline_total * 1e3:>20.3f}  {1.0:>8.2f}  {'baseline':<20}")  # noqa: T201
+            lines.append(f"{'eager':>6}  {'-':>10}  {baseline_total * 1e3:>20.3f}  {1.0:>8.2f}  {'baseline':<20}")
         for result in self.depths:
             if result.error is not None:
                 status, total, speedup = f"failed: {result.error}"[:40], "-", "-"
@@ -102,17 +101,23 @@ class AutoTuneResult:
                 status = "selected" if result.depth == self.best_depth else ""
                 total = f"{result.total_latency * 1e3:.3f}"
                 speedup = f"{baseline_total / result.total_latency:.2f}" if baseline_total else "-"
-            print(f"{result.depth:>6}  {len(result.module_paths):>10}  {total:>20}  {speedup:>8}  {status:<20}")  # noqa: T201
-        print("-" * 80)  # noqa: T201
+            lines.append(f"{result.depth:>6}  {len(result.module_paths):>10}  {total:>20}  {speedup:>8}  {status:<20}")
+        lines.append("-" * 80)
         for (batch_size, index), depth in self.best_depth_per_sample().items():
-            print(f"Fastest depth for batch size {batch_size}, batch {index}: {depth}")  # noqa: T201
-        print("=" * 80)  # noqa: T201
+            lines.append(f"Fastest depth for batch size {batch_size}, batch {index}: {depth}")
+        lines.append("=" * 80)
+        return "\n".join(lines)
+
+    def describe(self) -> None:
+        """Print the latency of every depth and the winner."""
+        print(self)  # noqa: T201
 
 
 @annotate(domain="Torch Tweak")
 def auto_tune(
     obj: Callable | torch.nn.Module,
     dataset: DatasetLike | DataLoaderFactory | torch.Tensor,
+    *,
     inference_function: Callable | None = None,
     strategy: TuneStrategy | None = None,
     min_depth: int = 0,
@@ -159,7 +164,8 @@ def auto_tune(
         clear_cache: If True, the cache will be cleared before tuning.
 
     Returns:
-        The result. Use `result.obj` for inference and for `save`.
+        The result. Use `result.obj` for inference and for `save`: when the whole model wins, `result.obj` is a
+        new `Module` and `obj` stays untuned. `print(result)` shows the latency of every depth.
     """
     setup_logging(format_string=LOG_FORMAT)
     if clear_cache:
