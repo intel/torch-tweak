@@ -44,6 +44,7 @@ LOG_FORMAT = "%(asctime)s - %(levelname)s - %(message)s"
 DEFAULT_MAX_DEPTH = 5
 DEFAULT_MEASURE_ITERATIONS = 10
 DEFAULT_TIE_TOLERANCE = 0.03
+TIME_BUDGET_ERROR = "time budget used up"
 
 SampleKey = tuple[int, int]
 """Batch size and the index of the batch among batches of that size."""
@@ -130,6 +131,7 @@ def auto_tune(
     measure_iterations: int = DEFAULT_MEASURE_ITERATIONS,
     warmup_iterations: int = DEFAULT_WARMUP_ITERATIONS,
     tie_tolerance: float = DEFAULT_TIE_TOLERANCE,
+    time_budget: float | None = None,
     dry_run: bool = False,
     disable_external_logging: bool = False,
     clear_cache: bool = False,
@@ -159,6 +161,7 @@ def auto_tune(
         measure_iterations: Number of timed runs per sample at every depth.
         warmup_iterations: Number of untimed runs before inspection and before every measurement.
         tie_tolerance: Relative latency difference treated as a tie.
+        time_budget: Seconds after which no new depth is started. The depth in progress finishes.
         dry_run: If True, only report the modules of each cut.
         disable_external_logging: If True, libraries logging will be suppressed.
         clear_cache: If True, the cache will be cleared before tuning.
@@ -167,6 +170,7 @@ def auto_tune(
         The result. Use `result.obj` for inference and for `save`: when the whole model wins, `result.obj` is a
         new `Module` and `obj` stays untuned. `print(result)` shows the latency of every depth.
     """
+    start = time.monotonic()
     setup_logging(format_string=LOG_FORMAT)
     if clear_cache:
         _clear_cache()
@@ -205,25 +209,23 @@ def auto_tune(
         baseline = measure()
 
         tuned: dict[str, Module] = {}
-        results = []
-        for depth, modules in cuts:
-            logger.info("Tuning the model cut at depth %d.", depth)
-            results.append(
-                _tune_and_measure_depth(
-                    obj,
-                    func,
-                    depth,
-                    modules,
-                    tuned,
-                    strategy,
-                    measure,
-                    dataset,
-                    batch_sizes,
-                    max_num_batches_per_batch_size,
-                    device,
-                )
+
+        def tune_depth(depth: int, modules: list[ModuleInfo]) -> DepthResult:
+            return _tune_and_measure_depth(
+                obj,
+                func,
+                depth,
+                modules,
+                tuned,
+                strategy,
+                measure,
+                dataset,
+                batch_sizes,
+                max_num_batches_per_batch_size,
+                device,
             )
 
+        results = _tune_every_depth(cuts, tune_depth, start, time_budget)
         best = _pick_best(results, tie_tolerance)
         MODULE_REGISTRY.clear()
         if best is None:
@@ -262,6 +264,24 @@ def _distinct_cuts(
         if selected and (not cuts or set(_paths(selected)) != set(_paths(cuts[-1][1]))):
             cuts.append((depth, selected))
     return cuts
+
+
+def _tune_every_depth(
+    cuts: list[tuple[int, list[ModuleInfo]]],
+    tune_depth: Callable[[int, list[ModuleInfo]], DepthResult],
+    start: float,
+    time_budget: float | None,
+) -> list[DepthResult]:
+    """Tune every cut from the shallowest. No cut is started after `time_budget` seconds from `start`."""
+    results = []
+    for depth, modules in cuts:
+        if time_budget is not None and time.monotonic() - start > time_budget:
+            logger.warning("Time budget of %ss is used up. Depth %d is not tuned.", time_budget, depth)
+            results.append(DepthResult(depth, _paths(modules), error=TIME_BUDGET_ERROR))
+            continue
+        logger.info("Tuning the model cut at depth %d.", depth)
+        results.append(tune_depth(depth, modules))
+    return results
 
 
 def _tune_and_measure_depth(

@@ -67,6 +67,7 @@ When different inputs prefer different depths, run `auto_tune` separately for ea
 | `min_execution_percentage` | None | Modules below this fraction (0 to 1) of inspected time are not wrapped |
 | `measure_iterations` | 10 | Timed runs per sample at every depth |
 | `tie_tolerance` | 0.03 | Relative latency difference treated as a tie |
+| `time_budget` | None | Seconds after which no new depth is started |
 | `dry_run` | False | Only report the modules of each cut |
 
 A depth that fails is reported in `result.depths` and skipped.
@@ -80,3 +81,7 @@ Backends such as OpenVINO move a module to CPU when they build it.
 
 Every depth runs a full tuning pass for its new modules.
 Start with `dry_run=True` to see how many modules each depth wraps.
+
+`time_budget` limits the search.
+Depths run from the shallowest, and the depth in progress always finishes.
+Depths not started are reported in `result.depths` with the error `time budget used up`.
