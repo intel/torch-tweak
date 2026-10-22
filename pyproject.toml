@@ -17,7 +17,6 @@ classifiers = [
     "Topic :: Scientific/Engineering",
     "Programming Language :: Python",
     "Programming Language :: Python :: 3",
-    "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
     "Programming Language :: Python :: 3.13",
@@ -36,7 +35,7 @@ keywords = [
     "pytorch",
     "torch",
 ]
-requires-python = ">=3.10"
+requires-python = ">=3.11"
 dependencies = [
     "numpy>=2",
     "openvino>=2026.2.1",
@@ -63,7 +62,7 @@ test = [
     "multidict>=6.9.1", # sec
     "pytest>=9.1.1",
     "pytest-mock",
-    "pillow>=12.3.0",
+    "pillow>=13.0.0",
     "pyarrow>=24.0.0", # sec
     "sentencepiece>=0.2.1",
     "timm",

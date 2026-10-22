@@ -11,7 +11,7 @@ description = "Torch Tweak ESM2 Example"
 readme = "README.md"
 license = "Apache-2.0"
 license-files = ["LICENSE", "third-party-programs.txt"]
-requires-python = ">=3.10"
+requires-python = ">=3.11"
 
 dependencies = [
     "torch-tweak[xpu]",

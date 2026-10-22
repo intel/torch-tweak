@@ -14,7 +14,7 @@ models on Intel GPUs.
 Before proceeding with the installation of Torch Tweak, ensure your system meets the following criteria:
 
 * **Operating System**: Linux (Ubuntu 22.04+ recommended)
-* **Python**: Version `3.10` or newer
+* **Python**: Version `3.11` or newer
 * **PyTorch**: Version `2.13` or newer **with XPU support**
 * **Intel GPU**: Required for XPU-accelerated tuning
 
