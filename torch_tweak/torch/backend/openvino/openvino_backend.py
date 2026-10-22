@@ -50,6 +50,20 @@ def _ov_tensor_to_torch(ov_value: Any, device: torch.device, dtype: torch.dtype 
     return tensor
 
 
+def openvino_device_for_xpu(core: ov.Core, device: torch.device) -> str:
+    """Returns the OpenVINO GPU that is the same physical device as the PyTorch XPU ``device``.
+
+    OpenVINO numbers GPUs independently of PyTorch, so ``GPU`` can be an integrated GPU while PyTorch
+    runs on a discrete one.
+    """
+    uuid = str(torch.xpu.get_device_properties(device).uuid).replace("-", "")
+    gpus = [name for name in core.available_devices if name.startswith("GPU")]
+    for name in gpus:
+        if str(core.get_property(name, "DEVICE_UUID")) == uuid:
+            return name
+    raise RuntimeError(f"No OpenVINO GPU matches {device} (UUID {uuid}). OpenVINO GPUs: {gpus}.")
+
+
 @dataclass
 class OpenVINOBackendConfig(BackendConfig):
     """Configuration for OpenVINO backend.
@@ -133,7 +147,7 @@ class OpenVINOBackend(Backend):
             compile_config["PERFORMANCE_HINT"] = self._config.performance_hint
         ov_device = "CPU"
         if self._device.type == "xpu":
-            ov_device = "GPU"
+            ov_device = openvino_device_for_xpu(core, self._device)
         elif self._device.type != "cpu":
             raise ValueError(f"Device {self._device.type} is not supported by OpenVINO backend")
         self._compiled_model = core.compile_model(ov_model, ov_device, config=compile_config or None)

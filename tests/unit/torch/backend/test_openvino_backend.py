@@ -6,6 +6,8 @@
 """Unit tests for OpenVINOBackend."""
 
 import shutil
+import uuid
+from types import SimpleNamespace
 
 import openvino as ov
 import pytest
@@ -13,7 +15,9 @@ import torch
 import torch.nn as nn
 
 from tests.toy_models import ToyTorchModel
+from tests.utilities.helpers import requires_xpu
 from torch_tweak.torch.backend.openvino import OpenVINOBackend, OpenVINOBackendConfig
+from torch_tweak.torch.backend.openvino.openvino_backend import openvino_device_for_xpu
 from torch_tweak.torch.backend.openvino.ov_model_converter import (
     OV_MODEL_BIN_NAME,
     OV_MODEL_XML_NAME,
@@ -484,3 +488,41 @@ def test_dynamo_converter_handles_positional_only_mixed_with_kwarg(tmp_path, tor
     backend = backend.build(model, graph_spec=graph_spec, data=samples, device=torch_device, cache_dir=be_cache)
 
     torch.testing.assert_close(backend.infer(a, b=b), ref, rtol=2e-3, atol=2e-3)
+
+
+class _FakeCore:
+    def __init__(self, uuids: dict[str, str]):
+        self._uuids = uuids
+        self.available_devices = ["CPU", *uuids]
+
+    def get_property(self, device: str, name: str) -> str:
+        assert name == "DEVICE_UUID"
+        return self._uuids[device]
+
+
+_XPU_UUID = uuid.UUID("868023e2-0000-0000-0300-000000000000")
+
+
+def test_openvino_device_for_xpu_picks_the_gpu_with_the_same_uuid(monkeypatch):
+    monkeypatch.setattr(torch.xpu, "get_device_properties", lambda device: SimpleNamespace(uuid=_XPU_UUID))
+    core = _FakeCore({"GPU.0": "868080a7040000000002000000000000", "GPU.1": _XPU_UUID.hex})
+
+    assert openvino_device_for_xpu(core, torch.device("xpu")) == "GPU.1"
+
+
+def test_openvino_device_for_xpu_raises_when_no_gpu_matches(monkeypatch):
+    monkeypatch.setattr(torch.xpu, "get_device_properties", lambda device: SimpleNamespace(uuid=_XPU_UUID))
+    core = _FakeCore({"GPU.0": "868080a7040000000002000000000000"})
+
+    with pytest.raises(RuntimeError, match="No OpenVINO GPU matches"):
+        openvino_device_for_xpu(core, torch.device("xpu"))
+
+
+@requires_xpu
+def test_openvino_device_for_xpu_is_the_device_pytorch_uses():
+    core = ov.Core()
+    device = torch.device("xpu", torch.xpu.current_device())
+
+    ov_device = openvino_device_for_xpu(core, device)
+
+    assert core.get_property(ov_device, "FULL_DEVICE_NAME").startswith(torch.xpu.get_device_name(device))
