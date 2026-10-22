@@ -98,7 +98,7 @@ class Module(wrapt.CallableObjectProxy):
         module.forward = self._self_proxy_forward
         self._setup_strategies(strategy, strategies)
 
-        self._self_device = get_module_device(module) or torch.device("cpu")
+        self._self_device = get_module_device(module)
         self._self_state = ModuleState.INIT
         self._self_wrapper = None
         self._self_prev_recording = None
@@ -283,7 +283,7 @@ class Module(wrapt.CallableObjectProxy):
         elif self._self_state == ModuleState.INIT or self._self_state == ModuleState.PASSTHROUGH:
             raise ValueError(f"Module: '{self._self_name}' has not recorded any samples. Cannot tune it.")
 
-        device = device or self._self_device
+        device = device or self._self_device or torch.device("cpu")
 
         recording = cast(RecordingModule, self._self_wrapper)
         backends: OrderedDict[SampleMetadata, Backend] = OrderedDict()
