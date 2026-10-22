@@ -278,3 +278,14 @@ def test_result_prints_every_depth_and_the_selected_one(mocker, model, sample):
         "2",
     ]
     assert "selected" in next(line for line in text.splitlines() if line.strip().startswith("2 "))
+
+
+def test_time_budget_stops_starting_new_depths(mocker, model, sample):
+    _fake_measure(mocker, [10.0, 5.0, 3.0, 1.0])
+    clock = iter([0.0, 1.0, 100.0, 200.0])
+    mocker.patch.object(auto_tuning.time, "monotonic", side_effect=lambda: next(clock))
+
+    result = _auto_tune(model, sample, time_budget=50.0)
+
+    assert [r.error for r in result.depths] == [None, auto_tuning.TIME_BUDGET_ERROR, auto_tuning.TIME_BUDGET_ERROR]
+    assert result.best_depth == 0
