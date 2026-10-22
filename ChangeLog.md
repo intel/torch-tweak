@@ -7,6 +7,9 @@ SPDX-License-Identifier: Apache-2.0
 
 ## Unreleased
 
+- feat (breaking): a module without a strategy is tuned with `tt.default_strategy(device)` instead of `FirstWinsStrategy`.
+  Tuning measures every backend and keeps the fastest, so it takes longer.
+
 - feat: `tt.default_strategy(device)` returns `HighestThroughputStrategy` over every backend that runs on the device.
 
 - feat (breaking): `inspect` measures module depth in executed modules.
