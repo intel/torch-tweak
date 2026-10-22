@@ -85,7 +85,7 @@ dev = [
     "torch-tweak[doc]",
     "pre-commit",
     "pre-commit-uv",
-    "uv>=0.11.26",
+    "uv>=0.13.5",
     "virtualenv>=21.7.13", # sec
 ]
 

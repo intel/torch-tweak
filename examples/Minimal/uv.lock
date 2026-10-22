@@ -834,7 +834,7 @@ requires-dist = [
     { name = "transformers", marker = "extra == 'test'", specifier = ">=5.13.0,<6" },
     { name = "urllib3", marker = "extra == 'dev'", specifier = ">=2.7.0" },
     { name = "urllib3", marker = "extra == 'test'", specifier = ">=2.7.0" },
-    { name = "uv", marker = "extra == 'dev'", specifier = ">=0.11.26" },
+    { name = "uv", marker = "extra == 'dev'", specifier = ">=0.13.5" },
     { name = "virtualenv", marker = "extra == 'dev'", specifier = ">=21.7.13" },
     { name = "wrapt", specifier = "~=2.2" },
 ]
