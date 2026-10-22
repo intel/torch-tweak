@@ -11,6 +11,7 @@ import openvino as ov
 import pytest
 import torch
 import torch.nn as nn
+from transformers.modeling_outputs import BaseModelOutputWithPooling
 
 from tests.toy_models import ToyTorchModel
 from torch_tweak.torch.backend.openvino import OpenVINOBackend, OpenVINOBackendConfig
@@ -91,6 +92,15 @@ def backend_build(backend, model, sample_data, tmp_path, torch_device):
     return backend
 
 
+def _save_and_load(model, state_dict, tmp_path):
+    ckpt_dir = tmp_path / "ckpt"
+    ckpt_dir.mkdir()
+    TorchSaveTask().save(ckpt_dir, state_dict)
+    loaded = OpenVINOBackend.from_dict(model, TorchLoadTask().load(ckpt_dir))
+    loaded.activate()
+    return loaded
+
+
 def test_openvino_backend_build_and_infer(model, sample_data, tmp_path, torch_device):
     backend = OpenVINOBackend(config=OpenVINOBackendConfig(use_dynamo=False))
     backend = backend_build(backend, model, sample_data, tmp_path, torch_device)
@@ -107,22 +117,15 @@ def test_openvino_backend_serialization(model, sample_data, tmp_path, torch_devi
     backend = backend_build(
         OpenVINOBackend(OpenVINOBackendConfig(use_dynamo=False)), model, sample_data, tmp_path, torch_device
     )
-    state_dict = backend.to_dict()
+    loaded = _save_and_load(model, backend.to_dict(), tmp_path)
 
-    ckpt_dir = tmp_path / "ckpt"
-    ckpt_dir.mkdir()
-    TorchSaveTask().save(ckpt_dir, state_dict)
-    state_dict = TorchLoadTask().load(ckpt_dir)
-    loaded = OpenVINOBackend.from_dict(model, state_dict)
-
-    loaded.activate()
     args, kwargs = sample_data[0]
     output = loaded.infer(*args, **kwargs)
     assert output.shape[0] == 1
 
 
-class _ModelOutput(dict):
-    """Stands in for transformers ModelOutput, which forward() returns for HF models.
+class _UnregisteredDictOutput(dict):
+    """A dict subclass unknown to the pytree registry.
 
     The explicit __init__ is required: torch.jit.trace, which the OpenVINO converter
     runs, refuses a dict subclass that only inherits dict.__init__, so without it the
@@ -134,23 +137,21 @@ class _ModelOutput(dict):
 
 
 class _DictSubclassOutputModel(nn.Module):
-    """Toy stand-in for a Hugging Face model: forward() returns a dict subclass."""
-
     def __init__(self):
         super().__init__()
         self.fc = nn.Linear(_KWARG_DIM, _KWARG_OUT)
 
     def forward(self, x: torch.Tensor) -> dict:
-        return _ModelOutput(self.fc(x))
+        return _UnregisteredDictOutput(self.fc(x))
 
 
 def test_openvino_backend_rejects_opaque_output_object_at_save_time(tmp_path, torch_device):
-    """A model whose forward() returns a dict subclass cannot be checkpointed.
+    """A model whose forward() returns an unregistered dict subclass cannot be checkpointed.
 
-    OpenVINOBackend keeps the raw forward() result as a template to rebuild the output
-    structure on infer(), and an arbitrary dict subclass needs its own class to be
-    imported at load time. The save has to fail with an actionable error instead of
-    writing a checkpoint that only blows up later, when it is loaded.
+    OpenVINOBackend keeps the forward() result as a template to rebuild the output
+    structure on infer(). pytree keeps an unregistered class as a leaf, and loading
+    that leaf with weights_only=True needs the class itself. The save has to fail with
+    an actionable error instead of writing a checkpoint that only fails when loaded.
     """
     model = _DictSubclassOutputModel().to(torch_device).eval()
     sample = ((torch.randn(1, _KWARG_DIM).to(torch_device),), {})
@@ -160,10 +161,53 @@ def test_openvino_backend_rejects_opaque_output_object_at_save_time(tmp_path, to
 
     ckpt_dir = tmp_path / "ckpt"
     ckpt_dir.mkdir()
-    with pytest.raises(ValueError, match=r"output_object.*weights_only=True"):
+    with pytest.raises(ValueError, match=r"output_leaves.*weights_only=True"):
         TorchSaveTask().save(ckpt_dir, backend.to_dict())
 
     assert not (ckpt_dir / STATE_DICT_FILE).exists()
+
+
+class _HFOutputModel(nn.Module):
+    def __init__(self):
+        super().__init__()
+        self.fc = nn.Linear(_KWARG_DIM, _KWARG_OUT)
+
+    def forward(self, x: torch.Tensor) -> BaseModelOutputWithPooling:
+        hidden = self.fc(x)
+        return BaseModelOutputWithPooling(last_hidden_state=hidden, pooler_output=hidden.sum(dim=-1))
+
+
+def test_openvino_backend_serializes_transformers_model_output(tmp_path, torch_device):
+    model = _HFOutputModel().to(torch_device).eval()
+    x = torch.randn(1, _KWARG_DIM).to(torch_device)
+    backend = backend_build(
+        OpenVINOBackend(OpenVINOBackendConfig(use_dynamo=False)), model, [((x,), {})], tmp_path, torch_device
+    )
+    state_dict = backend.to_dict()
+
+    output = _save_and_load(model, state_dict, tmp_path).infer(x)
+
+    assert all(leaf.numel() == 0 for leaf in state_dict[OpenVINOBackend.STATE_OUTPUT_LEAVES])
+    assert isinstance(output, BaseModelOutputWithPooling)
+    assert list(output.keys()) == ["last_hidden_state", "pooler_output"]
+    expected = backend.infer(x)
+    torch.testing.assert_close(output.last_hidden_state, expected.last_hidden_state)
+    torch.testing.assert_close(output.pooler_output, expected.pooler_output)
+
+
+def test_openvino_backend_rejects_output_with_unserializable_spec(model, sample_data, tmp_path, torch_device):
+    """`torch.return_types.max` is a pytree node without a `serialized_type_name`.
+
+    `pytree.treespec_dumps` raises NotImplementedError for such a node, and `to_dict` reports it as ValueError.
+    """
+    backend = backend_build(
+        OpenVINOBackend(OpenVINOBackendConfig(use_dynamo=False)), model, sample_data, tmp_path, torch_device
+    )
+    output_without_serialized_type_name = torch.ones(2, 2).max(dim=0)
+    backend._output_object = output_without_serialized_type_name
+
+    with pytest.raises(ValueError, match=OpenVINOBackend.STATE_OUTPUT_SPEC):
+        backend.to_dict()
 
 
 def test_openvino_backend_ir_survives_checkpoint_copy_and_zip(model, sample_data, tmp_path, torch_device):
