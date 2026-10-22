@@ -32,6 +32,7 @@ from torch_tweak.torch.checkpoint.storage_tasks import (
     _paths_as_str,
     check_checkpoint_valid,
     get_sha_sums_path,
+    is_weights_only_safe,
     torch_load_checkpoint,
 )
 from torch_tweak.utils.permissions import SECURE_DIR_MODE, SECURE_FILE_MODE
@@ -553,3 +554,19 @@ def test_get_sha_sums_path(sha_type):
     # Test SHA-256 (default)
     sha_path = get_sha_sums_path(path, sha_type)
     assert sha_path == path / (path.stem + f"_sha{sha_type}_sums.txt")
+
+
+class _Opaque:
+    pass
+
+
+@pytest.mark.parametrize(
+    ("obj", "expected"),
+    [
+        ({"x": [torch.ones(1), Path("a")]}, True),
+        ({"x": [torch.ones(1), _Opaque()]}, False),
+    ],
+    ids=["tensors-and-paths", "opaque-object"],
+)
+def test_is_weights_only_safe(obj, expected):
+    assert is_weights_only_safe(obj) is expected
