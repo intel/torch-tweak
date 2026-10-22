@@ -81,6 +81,7 @@ nav:
     -   Guides:
             - Tuning: guides/tuning.md
             - Inspect: guides/inspect.md
+            - Auto Tune: guides/auto_tune.md
             - Backends:
                 - OpenVINO Backend: guides/backends/openvino_backend.md
                 - TorchAO Backend: guides/backends/torchao_backend.md

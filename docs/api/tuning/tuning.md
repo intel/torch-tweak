@@ -14,6 +14,18 @@ NOTE: This file has been modified by Intel Corporation.
       show_root_heading: true
       heading_level: 3
 
+## auto_tune
+
+::: torch_tweak.torch.auto_tune
+    options:
+      show_root_heading: true
+      heading_level: 3
+
+::: torch_tweak.torch.AutoTuneResult
+    options:
+      show_root_heading: true
+      heading_level: 3
+
 ## save
 
 ::: torch_tweak.torch.save
