@@ -18,7 +18,7 @@ The best depth depends on the model, the backends, and the inputs, so `auto_tune
 import torch_tweak.torch as tt
 
 result = tt.auto_tune(model, input_data, strategy=tt.HighestThroughputStrategy(), max_depth=5)
-result.describe()
+print(result)
 
 model = result.obj
 tt.save(model, "tuned_model.tt")
@@ -26,6 +26,10 @@ tt.save(model, "tuned_model.tt")
 
 Use `result.obj` after tuning.
 It is a `Module` wrapper when the whole model wins, and `model` itself otherwise.
+When the whole model wins, `model` stays untuned.
+
+`print(result)` shows the latency of every depth, the speedup over the untuned model, and the selected depth.
+Every parameter after `dataset` is keyword-only.
 
 ## How It Works
 
@@ -51,7 +55,7 @@ Pass a strategy to enable it explicitly.
 ## Inputs
 
 `dataset` and `batch_sizes` are used for tuning and for measurement.
-`describe()` prints the fastest depth for every sample.
+`print(result)` also shows the fastest depth for every sample.
 When different inputs prefer different depths, run `auto_tune` separately for each group of inputs and save each result to its own checkpoint.
 
 ## Parameters
