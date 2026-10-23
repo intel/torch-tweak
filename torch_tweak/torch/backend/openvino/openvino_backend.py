@@ -117,7 +117,7 @@ class OpenVINOBackend(Backend):
     def _build(self, module: nn.Module, graph_spec: GraphSpec, data: list[Sample], cache_dir: Path) -> Backend:
         logger.info("Starting OpenVINO backend build")
         self._graph_spec = graph_spec
-        self._save_config(cache_dir)
+        self._config.save_to_file(cache_dir)
 
         module.to(self._device)
         self._output_object = self._get_output_object(module, data[0])
@@ -227,10 +227,6 @@ class OpenVINOBackend(Backend):
             output_object = module(*args, **kwargs)
         # `_prepare_outputs_for_return` replaces every tensor with an OpenVINO output.
         return copy.deepcopy(pytree.tree_map_only(torch.Tensor, lambda _: torch.empty(0), output_object))
-
-    def _save_config(self, cache_dir: Path):
-        config_path = cache_dir / "config.json"
-        self._config.to_json(config_path)
 
     def to_dict(self):
         """Returns the state_dict of the backend."""

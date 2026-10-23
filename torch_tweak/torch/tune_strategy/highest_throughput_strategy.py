@@ -24,6 +24,7 @@ from torch_tweak.torch.backend import (
     Backend,
     TorchEagerBackend,
     TorchInductorBackend,
+    XPUGraphBackend,
 )
 from torch_tweak.torch.config import (
     DEFAULT_STABILITY_PERCENTAGE,
@@ -221,6 +222,7 @@ class HighestThroughputStrategy(TuneStrategyFindMaxBatchSizeExtension):
         """Returns default backends."""
         return [
             TorchInductorBackend(),
+            XPUGraphBackend(),
             TorchEagerBackend(),
         ]
 

@@ -56,6 +56,9 @@ jobs:
         with:
           python-version: "3.14"
 
+      - name: Set up uv
+        uses: astral-sh/setup-uv@557e51de59eb14aaaba2ed9621916900a91d50c6 # v6.6.1
+
       - name: Install drivers and required packages
         run: |
           # extra proxy inherited to docker has to be removed
@@ -85,8 +88,6 @@ jobs:
             libze-intel-gpu1 \
             va-driver-all \
             vainfo
-
-          pip install uv
 
       # Install xpu (important!) and dev dependencies (they include tests' deps plus extras for CI).
       - name: Install Torch Tweak

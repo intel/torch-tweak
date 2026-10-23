@@ -123,13 +123,13 @@ class BackendConfig:
         """Returns the state_dict of the backend."""
         return asdict(self)
 
-    def to_json(self, path: Path):
-        """Saves the backend configuration to a file."""
-        config_dict = self.to_dict()
-        config_dict = self._to_json(config_dict)
-        with open(path, "w", encoding="utf-8") as f:
+    def save_to_file(self, path: Path) -> None:
+        """Saves the backend configuration to config.json in the given directory."""
+        config_path = path / "config.json"
+        config_dict = self._to_json(self.to_dict())
+        with open(config_path, "w", encoding="utf-8") as f:
             json.dump(config_dict, f, indent=2)
-        secure_file(path)
+        secure_file(config_path)
 
     def _to_json(self, obj: Any) -> Any:
         """Convert object to JSON-serializable format.
@@ -225,6 +225,8 @@ class Backend(ABC):
             try:
                 self._assert_device(device)
                 self._set_device(device)
+                if not data:
+                    raise RuntimeError(f"Backend {self.name} needs at least one sample")
                 ready_backend = self._build(module, graph_spec, data, cache_dir)
                 self.state = BackendState.ACTIVE
                 return ready_backend

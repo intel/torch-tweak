@@ -10,6 +10,7 @@ from torch_tweak.torch.backend.openvino import OpenVINOBackend, OpenVINOBackendC
 from torch_tweak.torch.backend.torch_eager import TorchEagerBackend, TorchEagerBackendConfig
 from torch_tweak.torch.backend.torch_inductor_backend import TorchInductorBackend, TorchInductorBackendConfig
 from torch_tweak.torch.backend.torchao_backend import TorchAOBackend, TorchAOBackendConfig
+from torch_tweak.torch.backend.xpu_graph_backend import XPUGraphBackend, XPUGraphBackendConfig
 
 __all__ = [
     "Backend",
@@ -21,4 +22,6 @@ __all__ = [
     "TorchAOBackendConfig",
     "TorchEagerBackend",
     "TorchEagerBackendConfig",
+    "XPUGraphBackend",
+    "XPUGraphBackendConfig",
 ]

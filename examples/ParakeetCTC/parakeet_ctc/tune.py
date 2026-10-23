@@ -15,7 +15,11 @@ from nemo.collections.asr.parts.mixins.transcription import InternalTranscribeCo
 from parakeet_ctc.cmd_args import parse_args
 from parakeet_ctc.model import get_model
 from torch_tweak.torch import FirstWinsStrategy, TuneStrategy, inspect, save, tune, wrap
-from torch_tweak.torch.backend import TorchEagerBackend, TorchInductorBackend
+from torch_tweak.torch.backend import (
+    TorchEagerBackend,
+    TorchInductorBackend,
+    XPUGraphBackend,
+)
 
 logger = getLogger(__name__)
 
@@ -81,6 +85,7 @@ def main():
     strategy = FirstWinsStrategy(
         backends=[
             TorchInductorBackend(),
+            XPUGraphBackend(),
             TorchEagerBackend(),
         ]
     )

@@ -65,15 +65,16 @@ Do NOT activate this skill when:
 
 ### TorchAO Backend
 - **Best for**: PyTorch-native quantization on Intel GPU / XPU
-- **Simple**: `TorchAOBackend()` with no config needed
 
 ### Torch Inductor Backend
 - **Best for**: PyTorch compiler-based optimization on Intel GPU / XPU
-- **Simple**: `TorchInductorBackend()` with no config needed
+
+### XPU Graph Backend
+- **Best for**: replaying a module that was recorded once during tuning
+- **Rejection**: failed, empty, or incorrect recordings are dropped for that module and input
 
 ### OpenVINO Backend
 - **Best for**: an OpenVINO model on an Intel CPU or GPU
-- **Simple**: `OpenVINOBackend()` with no config needed
 - **Strengths**:
   - Converts PyTorch models to OpenVINO IR for deployment
   - Applies hardware-specific optimizations
@@ -82,7 +83,6 @@ Do NOT activate this skill when:
 
 ### Torch Eager Backend
 - **Best for**: the uncompiled baseline inside a throughput search
-- **Simple**: `TorchEagerBackend()` with no config needed
 
 ## Tuning Strategies
 
@@ -93,8 +93,8 @@ Do NOT activate this skill when:
 ## Best Practices
 
 ### Backend Selection
-- **HighestThroughputStrategy**: TorchAO, Torch Inductor, OpenVINO, and eager. It measures each one and keeps the fastest. List order does not change the winner.
-- **FirstWinsStrategy**: default order is Torch Inductor, OpenVINO, then eager. The first backend that builds is kept. TorchAO is not in that default, because the first backend that builds wins and a quantization that builds would be kept without a speed comparison.
+- **HighestThroughputStrategy**: the default list is Torch Inductor, XPU graph, and eager. It measures each one and keeps the fastest. List order does not change the winner. TorchAO and OpenVINO are optional additions.
+- **FirstWinsStrategy**: default order is XPU graph, Torch Inductor, OpenVINO, then eager. The first backend that builds is kept. TorchAO is not in that default, because the first backend that builds wins and a quantization that builds would be kept without a speed comparison.
 
 ### Common Issues
 - **Graph breaks**: conditional logic in a module blocks tuning of that module
@@ -124,6 +124,7 @@ tt.load(model, "tuned_model.tt")
 from torch_tweak.torch.backend import (
     TorchAOBackend,
     TorchInductorBackend,
+    XPUGraphBackend,
     OpenVINOBackend,
     TorchEagerBackend,
 )
@@ -133,6 +134,7 @@ strategy = HighestThroughputStrategy(
     backends=[
         TorchAOBackend(),
         TorchInductorBackend(),
+        XPUGraphBackend(),
         OpenVINOBackend(),
         TorchEagerBackend(),
     ]

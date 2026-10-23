@@ -35,7 +35,7 @@ This page is the landing summary. The same file is the PyPI long description.
 | Feature                     | Description                                                                                                               |
 |-----------------------------|---------------------------------------------------------------------------------------------------------------------------|
 | Ease-of-use                 | Single line of code to run all possible tuning paths directly from your source code                                       |
-| Wide Backend Support        | Compatible with TorchAO, Torch Inductor, OpenVINO, and eager PyTorch                                                      |
+| Wide Backend Support        | Compatible with TorchAO, Torch Inductor, XPU graph, OpenVINO, and eager PyTorch                                           |
 | Model Tuning                | Enhance the performance of models such as ResNET and BERT for efficient inference deployment                              |
 | Pipeline Tuning             | Streamline Python code pipelines for models such as Stable Diffusion and Flux using seamless model wrapping and tuning    |
 | Correctness Testing         | Ensures tuned models produce correct outputs by validating on provided data samples                                       |
@@ -55,6 +55,7 @@ use frameworks like vLLM or SGLang for best performance. Use Torch Tweak for gen
 from torch_tweak.torch.backend import (
     TorchAOBackend,
     TorchInductorBackend,
+    XPUGraphBackend,
     OpenVINOBackend,
     TorchEagerBackend,
 )
@@ -65,13 +66,14 @@ strategy = HighestThroughputStrategy(
     backends=[
         TorchAOBackend(),
         TorchInductorBackend(),
+        XPUGraphBackend(),
         OpenVINOBackend(),
         TorchEagerBackend(),
     ]
 )
 ```
 
-TorchAO, Torch Inductor, and OpenVINO configuration is in the [backends guide](docs/learn/backends.md).
+TorchAO, Torch Inductor, XPU graph, and OpenVINO configuration is in the [backends guide](docs/learn/backends.md).
 Torch Eager accepts an optional autocast dtype and otherwise runs the module unchanged.
 Tune strategies are in [core functionalities](docs/learn/core_functionalities.md).
 

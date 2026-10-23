@@ -48,8 +48,8 @@ jobs:
         with:
           python-version: "3.x"
 
-      - name: Install uv
-        run: python3 -m pip install uv
+      - name: Set up uv
+        uses: astral-sh/setup-uv@557e51de59eb14aaaba2ed9621916900a91d50c6 # v6.6.1
 
       # Hatchling packs untracked files that are not gitignored.
       - name: Require a clean worktree

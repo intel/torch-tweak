@@ -29,8 +29,21 @@ jobs:
         with:
           python-version: "3.x"
 
-      - name: Install pre-commit
-        run: python3 -m pip install uv "pre-commit>=3.5.0"
+      - name: Set up uv
+        uses: astral-sh/setup-uv@557e51de59eb14aaaba2ed9621916900a91d50c6 # v6.6.1
+
+      - name: Install pre-commit (among other dev deps)
+        run: uv sync --extra dev --no-default-groups --no-install-project
+
+      - name: Check tool version pins
+        run: |
+          # Make sure the ruff version pinned in pyproject.toml matches the one in .pre-commit-config.yaml
+          ruff_pin=$(python3 -c 'import pathlib,re; m=re.search(r"ruff==([0-9.]+)", pathlib.Path("pyproject.toml").read_text()); print(m.group(1) if m else "")')
+          ruff_rev=$(python3 -c 'import pathlib,re; m=re.search(r"astral-sh/ruff-pre-commit.*?rev:\s*v(\S+)", pathlib.Path(".pre-commit-config.yaml").read_text(), re.S); print(m.group(1) if m else "")')
+          if [ -z "$ruff_pin" ] || [ "$ruff_pin" != "$ruff_rev" ]; then
+            echo "ruff pin '${ruff_pin:-missing}' != pre-commit rev '${ruff_rev:-missing}'"
+            exit 1
+          fi
 
       - name: Run pre-commit
         env:
@@ -39,14 +52,8 @@ jobs:
           BASE_SHA: ${{ github.event.pull_request.base.sha }}
           HEAD_SHA: ${{ github.sha }}
         run: |
-          pin=$(python3 -c 'import pathlib,re; m=re.search(r"ruff==([0-9.]+)", pathlib.Path("pyproject.toml").read_text()); print(m.group(1) if m else "")')
-          rev=$(python3 -c 'import pathlib,re; m=re.search(r"astral-sh/ruff-pre-commit.*?rev:\s*v(\S+)", pathlib.Path(".pre-commit-config.yaml").read_text(), re.S); print(m.group(1) if m else "")')
-          if [ -z "$pin" ] || [ "$pin" != "$rev" ]; then
-            echo "ruff pin '${pin:-missing}' != pre-commit rev '${rev:-missing}'"
-            exit 1
-          fi
           if [ -n "$BASE_SHA" ]; then
-            pre-commit run --from-ref "$BASE_SHA" --to-ref "$HEAD_SHA" --show-diff-on-failure
+            uv run pre-commit run --from-ref "$BASE_SHA" --to-ref "$HEAD_SHA" --show-diff-on-failure
           else
-            pre-commit run --all-files --show-diff-on-failure
+            uv run pre-commit run --all-files --show-diff-on-failure
           fi
