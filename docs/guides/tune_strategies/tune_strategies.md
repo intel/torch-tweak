@@ -24,6 +24,7 @@ Not every backend can successfully tune every model. Each backend relies on a di
 
 - **OpenVINO** requires converting the model to an OpenVINO representation. Models with unsupported operators, complex dynamic control flow, or symbolic shape constraints may fail during conversion or model compilation. Memory constraints can also prevent the model from being compiled.
 - **Torch Inductor** uses `torch.compile`, which may encounter *graph breaks* on unsupported Python constructs or operations, causing partial or failed compilation.
+- **XPU Graph** records the module for replay, so it requires static tensor shapes. A failed recording or a mismatch against eager output rejects the backend for that module and input.
 - **TorchAO** applies quantization transformations that may not support all layer types or model architectures.
 - **Torch Eager** runs the module unchanged, so it always succeeds, which makes it a useful last-resort fallback.
 
@@ -87,6 +88,7 @@ Tries backends in priority order and returns the first one that successfully bui
 
 ```python
 from torch_tweak.torch.backend import (
+    XPUGraphBackend,
     TorchAOBackend,
     TorchAOBackendConfig,
     TorchInductorBackend,
@@ -95,6 +97,7 @@ import torch_tweak.torch as tt
 
 # List backends in priority order (fastest → most compatible)
 backends = [
+    XPUGraphBackend(),
     TorchAOBackend(config=TorchAOBackendConfig(quantization="fp8wo")),  # Quantization: fast inference
     TorchInductorBackend(),  # Good performance, broader compatibility
 ]
@@ -147,12 +150,14 @@ from torch_tweak.torch.backend import (
     TorchInductorBackend,
     TorchAOBackend,
     TorchAOBackendConfig,
+    XPUGraphBackend,
 )
 import torch_tweak.torch as tt
 
 # List all candidate backends
 backends = [
     TorchInductorBackend(config=TorchInductorBackendConfig(mode="default")),
+    XPUGraphBackend(),
     TorchAOBackend(config=TorchAOBackendConfig(quantization="fp8wo")),
 ]
 
@@ -201,6 +206,6 @@ tt.tune(model, input_data)
 
 ## Next Steps
 
-- Learn about specific backends: [TorchAO](../backends/torchao_backend.md), [Inductor](../backends/torch_inductor_backend.md)
+- Learn about specific backends: [TorchAO](../backends/torchao_backend.md), [Inductor](../backends/torch_inductor_backend.md), [XPU Graph](../backends/xpu_graph_backend.md)
 - Explore [Deployment Guide](../deployment/deployment.md)
 - Review the [Tuning Guide](../tuning.md)

@@ -113,7 +113,7 @@ Tuning gives you control over the process:
 * it detects the batch axis and dynamic axes (axes that change shape independently of batch size, e.g., sequence length in LLMs)
 * allows picking modules to tune
 * you can pick a tuning strategy (e.g., best throughput) for the whole process or per-module
-* you can pick tuning backends (for example, TorchAO, Torch Inductor, OpenVINO, and eager) which will be used by the strategy
+* you can pick tuning backends (for example, XPU graph, TorchAO, Torch Inductor, OpenVINO, and eager) which will be used by the strategy
 * you can mix different backends in the same model/pipeline
 * you can manually verify the tuning process (note: Torch Tweak performs basic checks for NaNs and errors)
 * you can save the resulting artifact and later read it from disk
