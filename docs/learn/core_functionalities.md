@@ -110,8 +110,8 @@ from torch_tweak.torch.tune_strategy import FirstWinsStrategy
 
 strategy = FirstWinsStrategy(
     backends=[
-        TorchInductorBackend(),
         XPUGraphBackend(),
+        TorchInductorBackend(),
         OpenVINOBackend(),
         TorchEagerBackend(),
     ]

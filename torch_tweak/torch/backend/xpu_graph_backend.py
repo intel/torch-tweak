@@ -65,6 +65,7 @@ class XPUGraphBackend(Backend):
         self._static_args: tuple[list[Any], TreeSpec] | None = None
         self._static_kwargs: tuple[list[Any], TreeSpec] | None = None
         self._captured: Any = None
+        self._warned_eager = False
 
     def key(self) -> str:
         """Returns the key of the backend."""
@@ -110,14 +111,26 @@ class XPUGraphBackend(Backend):
 
         Returns:
             The replayed outputs. Tensor outputs are clones, so the next replay can reuse the static buffers.
+            Inputs the recording cannot take run on the original module.
         """
         with torch.no_grad():
             assert self._static_args is not None and self._static_kwargs is not None
+            if not (_fits(self._static_args, args) and _fits(self._static_kwargs, kwargs)):
+                return self._infer_eager(args, kwargs)
             _copy_into(self._static_args, args)
             _copy_into(self._static_kwargs, kwargs)
             self._graph.replay()
             # replay and this clone are both on the current stream, in submission order.
             return _clone_tree(self._captured)
+
+    def _infer_eager(self, args: tuple[Any, ...], kwargs: dict[str, Any]) -> Any:
+        """Runs the original module on inputs that differ from the recorded call."""
+        assert self._orig_module is not None
+        if not self._warned_eager:
+            logger.warning("XPU graph inputs do not match the recorded call. Running the original module.")
+            self._warned_eager = True
+        with self._autocast():
+            return self._orig_module(*args, **kwargs)
 
     def _record(self) -> None:
         """Warm up, record, and reject the graph when replay disagrees with eager."""
@@ -169,6 +182,8 @@ class XPUGraphBackend(Backend):
                 (sample_args, sample_kwargs),
                 (_perturb(sample_args), _perturb(sample_kwargs)),
             ):
+                if not (_fits(self._static_args, args) and _fits(self._static_kwargs, kwargs)):
+                    raise RuntimeError("XPU graph inputs do not match the captured call")
                 _copy_into(self._static_args, args)
                 _copy_into(self._static_kwargs, kwargs)
                 # replay may write static_args in place. Eager must see the earlier values.
@@ -234,23 +249,32 @@ def _clone_tree(tree: Any) -> Any:
     return tree_map_only(torch.Tensor, lambda tensor: tensor.detach().clone(), tree)
 
 
-def _copy_into(static: tuple[list[Any], TreeSpec], live: Any) -> None:
-    """Copies live leaves into the tensors recorded by the graph."""
+def _fits(static: tuple[list[Any], TreeSpec], live: Any) -> bool:
+    """Returns True when live can be copied into the inputs recorded by the graph."""
     static_leaves, static_spec = static
     live_leaves, live_spec = tree_flatten(live)
     if static_spec != live_spec:
-        raise RuntimeError("XPU graph inputs do not match the captured call")
+        return False
     for dst, src in zip(static_leaves, live_leaves, strict=True):
         if isinstance(dst, torch.Tensor) and isinstance(src, torch.Tensor):
             if (dst.shape, dst.dtype, dst.device) != (src.shape, src.dtype, src.device):
-                raise RuntimeError("XPU graph tensor input does not match the captured tensor")
-            dst.copy_(src)
+                return False
         elif isinstance(dst, torch.Tensor) or isinstance(src, torch.Tensor):
             # != of a tensor and a non-tensor returns a tensor.
             # The next branch would not reject this pair.
-            raise RuntimeError("XPU graph tensor input does not match the captured tensor")
+            return False
         elif dst != src:
-            raise RuntimeError("XPU graph replay cannot apply a changed non-tensor input")
+            return False
+    return True
+
+
+def _copy_into(static: tuple[list[Any], TreeSpec], live: Any) -> None:
+    """Copies live tensors into the tensors recorded by the graph. live must pass _fits."""
+    static_leaves, _ = static
+    live_leaves, _ = tree_flatten(live)
+    for dst, src in zip(static_leaves, live_leaves, strict=True):
+        if isinstance(dst, torch.Tensor):
+            dst.copy_(src)
 
 
 def _require_xpu_tensors(*trees: Any) -> None:

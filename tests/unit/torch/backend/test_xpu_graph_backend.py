@@ -102,6 +102,60 @@ def test_replay_matches_eager_on_new_inputs(dtype, model, sample_data, tmp_path)
 
 
 @requires_xpu
+def test_deactivate_then_activate_records_again(model, sample_data, tmp_path):
+    backend = backend_build(XPUGraphBackend(), torch.float32, model, sample_data, tmp_path)
+    args, kwargs = sample_data[0]
+    backend.deactivate()
+    backend.activate()
+    new_args = (torch.randn_like(args[0]),)
+    with torch.no_grad():
+        torch.testing.assert_close(backend.infer(*new_args, **kwargs), model(*new_args, **kwargs))
+
+
+@requires_xpu
+def test_deploy_after_load_records_and_drops_samples(model, sample_data, tmp_path, torch_device):
+    backend = backend_build(XPUGraphBackend(), torch.float32, model, sample_data, tmp_path)
+    backend.deactivate()
+    backend.activate()
+    TorchSaveTask().save(tmp_path, backend.to_dict())
+    loaded = XPUGraphBackend.from_dict(model, TorchLoadTask().load(tmp_path))
+    loaded.deploy(device=torch_device)
+    assert loaded._data is None
+
+    args, kwargs = sample_data[0]
+    new_args = (torch.randn_like(args[0]),)
+    with torch.no_grad():
+        torch.testing.assert_close(loaded.infer(*new_args, **kwargs), model(*new_args, **kwargs))
+
+
+@requires_xpu
+def test_larger_batch_runs_the_original_module(model, sample_data, tmp_path):
+    backend = backend_build(XPUGraphBackend(), torch.float32, model, sample_data, tmp_path)
+    args, kwargs = sample_data[0]
+    larger = (torch.randn(2 * args[0].shape[0], *args[0].shape[1:], device=args[0].device),)
+    with torch.no_grad():
+        torch.testing.assert_close(backend.infer(*larger, **kwargs), model(*larger, **kwargs))
+        torch.testing.assert_close(backend.infer(*args, **kwargs), model(*args, **kwargs))
+
+
+@requires_xpu
+def test_tuned_module_runs_a_larger_batch_on_the_original_module(torch_device, tmp_path):
+    module = LinearRelu().to(torch_device).eval()
+    wrapped = Module(
+        module,
+        "xpu-graph-larger-batch",
+        strategy=OneBackendStrategy(XPUGraphBackend()).enable_find_max_batch_size(False),
+    )
+    try:
+        tune(wrapped, torch.randn(16, device=torch_device), batch_sizes=[2], device=torch_device)
+        batch = torch.randn(4, 16, device=torch_device)
+        with torch.no_grad():
+            torch.testing.assert_close(wrapped(batch), module(batch))
+    finally:
+        MODULE_REGISTRY.clear()
+
+
+@requires_xpu
 def test_kwargs_and_tuple_output(torch_device, tmp_path):
     module = Scaled().to(torch_device).eval()
     args = (torch.randn(3, 5, device=torch_device),)
@@ -117,8 +171,11 @@ def test_kwargs_and_tuple_output(torch_device, tmp_path):
     torch.testing.assert_close(got[0], expected[0])
     torch.testing.assert_close(got[1], expected[1])
 
-    with pytest.raises(RuntimeError, match="non-tensor"):
-        backend.infer(*new_args, scale=3.0)
+    with torch.no_grad():
+        got = backend.infer(*new_args, scale=3.0)
+        expected = module(*new_args, scale=3.0)
+    torch.testing.assert_close(got[0], expected[0])
+    torch.testing.assert_close(got[1], expected[1])
 
 
 @requires_xpu
@@ -239,11 +296,13 @@ def test_default_backend_has_no_recording_switch():
     assert XPUGraphBackend().describe() == "XPUGraphBackend()"
 
 
-def test_default_strategies_list_the_graph_backend_beside_inductor():
-    for strategy in (FirstWinsStrategy(), HighestThroughputStrategy()):
-        text = strategy.describe()
-        assert text.index("TorchInductorBackend()") < text.index("XPUGraphBackend()")
-        assert "native=" not in text
+def test_first_wins_tries_the_graph_backend_before_inductor():
+    text = FirstWinsStrategy().describe()
+    assert text.index("XPUGraphBackend()") < text.index("TorchInductorBackend()")
+
+
+def test_highest_throughput_lists_the_graph_backend():
+    assert "XPUGraphBackend()" in HighestThroughputStrategy().describe()
 
 
 @requires_xpu

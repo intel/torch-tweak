@@ -29,7 +29,7 @@ from torch_tweak.utils.timer import Timer
 class FirstWinsStrategy(TuneStrategyFindMaxBatchSizeExtension):
     """Runs backends in order and keeps the first one that builds and validates.
 
-    The default order is Torch Inductor, XPU graph, OpenVINO, then eager.
+    The default order is XPU graph, Torch Inductor, OpenVINO, then eager.
     """
 
     def __init__(self, backends: Iterable[Backend] | None = None, **kwargs):
@@ -89,8 +89,8 @@ class FirstWinsStrategy(TuneStrategyFindMaxBatchSizeExtension):
     def _default_backends(self) -> list[Backend]:
         """Returns default backends."""
         return [
-            TorchInductorBackend(),
             XPUGraphBackend(),
+            TorchInductorBackend(),
             OpenVINOBackend(),
             TorchEagerBackend(),
         ]
