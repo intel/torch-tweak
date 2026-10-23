@@ -18,10 +18,11 @@ NOTE: This file has been modified by Intel Corporation.
 It provides model tuning capabilities through compilation and conversion paths that can significantly improve inference speed and efficiency
 across various AI workloads including Computer Vision, Natural Language Processing, Speech Recognition, and Generative AI.
 
-The toolkit tunes PyTorch models and pipelines through one Python API. Four backends ship with the package:
+The toolkit tunes PyTorch models and pipelines through one Python API. Five backends ship with the package:
 
 * **TorchAO** quantizes weights through PyTorch AO
 * **Torch Inductor** compiles with `torch.compile`
+* **XPU Graph** records the module once on an Intel GPU during tuning and replays it for inference; input tensor shapes must remain static
 * **OpenVINO** converts a module to an OpenVINO model and runs it on an Intel CPU or GPU
 * **Torch Eager** runs the module with no compilation, as the baseline other backends are compared against
 

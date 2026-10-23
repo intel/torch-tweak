@@ -159,10 +159,11 @@ The tuning strategy determines which backend(s) to try and how to select the bes
 
 #### FirstWinsStrategy
 
-Tries backends in priority order and returns the first one that builds and validates successfully. Not every backend can handle every model (e.g., OpenVINO may fail during model conversion, Torch Inductor may hit graph breaks), so this strategy provides automatic fallback instead of aborting.
+Tries backends in priority order and returns the first one that builds and validates successfully. Not every backend can handle every model (e.g., OpenVINO may fail during model conversion, Torch Inductor may hit graph breaks, or XPU Graph will reject inputs with dynamic tensor shapes), so this strategy provides automatic fallback instead of aborting.
 
 ```python
 strategy = tt.FirstWinsStrategy([
+    tt.backend.XPUGraphBackend(),
     tt.backend.TorchInductorBackend(),
     tt.backend.OpenVINOBackend(),
     tt.backend.TorchEagerBackend(),
@@ -203,6 +204,7 @@ Before actual tuning, this strategy tries to estimate `max_batch_size`. It does 
 strategy = tt.HighestThroughputStrategy([
     tt.backend.TorchAOBackend(),
     tt.backend.TorchInductorBackend(),
+    tt.backend.XPUGraphBackend(),
     tt.backend.OpenVINOBackend(),
     tt.backend.TorchEagerBackend(),
 ])
