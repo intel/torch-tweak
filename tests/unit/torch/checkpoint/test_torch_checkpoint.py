@@ -150,6 +150,18 @@ def test_tune_save_load_part_of_model(model_factory, sample, checkpoint):
 
 
 @requires_xpu
+def test_load_state_dict_for_module_consumes_tuned_submodule_keys(model_factory, sample):
+    model = model_factory()
+    model.linear1 = Module(model.linear1, "demo-simple1", strategy=OneBackendStrategy(TorchInductorBackend()))
+    tune(model, sample, batch_sizes=[1, 2], dry_run=False, disable_external_logging=False)
+    state_dict = model.state_dict()
+
+    TorchCheckpoint.load_state_dict_for_module(model_factory(), state_dict, device_map={})
+
+    assert list(state_dict) == ["linear2.weight", "linear2.bias"]
+
+
+@requires_xpu
 def test_tune_save_load_part_of_model_with_full_device_map(model_factory, sample, torch_device, checkpoint):
     """Test tuning, saving and loading a model with individual layers wrapped in Modules."""
 
