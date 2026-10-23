@@ -71,6 +71,7 @@ Do NOT activate this skill when:
 
 ### XPU Graph Backend
 - **Best for**: replaying a module that was recorded once during tuning
+- **Batch sizes**: recordings for 1, 2, 4, and every multiple of 8 up to `max_recorded_batch_size` (256); other sizes are padded
 - **Rejection**: failed, empty, or incorrect recordings are dropped for that module and input
 
 ### OpenVINO Backend

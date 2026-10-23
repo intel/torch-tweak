@@ -18,7 +18,7 @@ from torch_tweak.torch.module.recording_module import Sample
 from torch_tweak.torch.module.sample_metadata import SampleMetadata
 from torch_tweak.torch.module.wrapper_module import Module
 from torch_tweak.torch.module_registry import MODULE_REGISTRY
-from torch_tweak.torch.tune_strategy import OneBackendStrategy
+from torch_tweak.torch.tune_strategy import HighestThroughputStrategy, OneBackendStrategy
 from torch_tweak.torch.tuning import tune
 
 
@@ -244,22 +244,192 @@ def test_empty_recording_is_rejected(torch_device, tmp_path):
         backend.build(module, static_graph_spec(module, [(args, {})]), [(args, {})], torch_device, tmp_path)
 
 
+def seen_graph_spec(module, samples: list[tuple[int, Sample]]) -> GraphSpec:
+    """Builds the graph spec tuning records after it sees every (batch size, sample) pair."""
+    spec = None
+    for batch_size, (args, kwargs) in samples:
+        with torch.no_grad():
+            outputs = module(*args, **kwargs)
+        inputs = SampleMetadata.from_inputs(args, kwargs, batch_size=batch_size)
+        outputs = SampleMetadata.from_outputs(outputs, batch_size=batch_size)
+        if spec is None:
+            spec = GraphSpec(name="seen", input_spec=inputs, output_spec=outputs)
+        else:
+            spec.update_shapes_seen(inputs, outputs)
+    return spec
+
+
+def batched_build(module, torch_device, tmp_path, largest=64, config=None, features=16):
+    """Builds a backend on a graph spec that saw batch sizes 1 and largest."""
+    module = module.to(torch_device).eval()
+    small = ((torch.randn(1, features, device=torch_device),), {})
+    large = ((torch.randn(largest, features, device=torch_device),), {})
+    spec = seen_graph_spec(module, [(1, small), (largest, large)])
+    return XPUGraphBackend(config).build(module, spec, [small, large], torch_device, tmp_path)
+
+
+class RowMixing(nn.Module):
+    def forward(self, x):
+        return x - x.mean(dim=0, keepdim=True)
+
+
+class Stacked(nn.Module):
+    """Takes a batch stacked twice along axis 0, like classifier-free guidance."""
+
+    def __init__(self):
+        super().__init__()
+        self.linear = nn.Linear(16, 8)
+
+    def forward(self, x):
+        y = self.linear(x)
+        return torch.cat([y, y], dim=0)
+
+
 @requires_xpu
-def test_dynamic_shapes_are_rejected(torch_device, tmp_path):
-    module = LinearRelu().to(torch_device).eval()
-    small = (torch.randn(1, 16, device=torch_device),)
-    large = (torch.randn(2, 16, device=torch_device),)
+def test_batch_axis_records_the_size_grid(torch_device, tmp_path):
+    module = LinearRelu()
+    backend = batched_build(module, torch_device, tmp_path)
+    assert backend.recorded_batch_sizes == [1, 2, 4, 8, 16, 24, 32, 40, 48, 56, 64]
     with torch.no_grad():
-        small_out = module(*small)
-        large_out = module(*large)
-    input_spec = SampleMetadata.from_inputs(small, {}, batch_size=1)
-    output_spec = SampleMetadata.from_outputs(small_out, batch_size=1)
-    input_spec.update_shapes_seen(SampleMetadata.from_inputs(large, {}, batch_size=2))
-    output_spec.update_shapes_seen(SampleMetadata.from_outputs(large_out, batch_size=2))
-    spec = GraphSpec(name="dynamic", input_spec=input_spec, output_spec=output_spec)
-    backend = XPUGraphBackend()
-    with pytest.raises(RuntimeError, match="static tensor shapes"):
-        backend.build(module, spec, [(large, {})], torch_device, tmp_path)
+        for batch_size in (1, 3, 5, 8, 17, 64, 100):
+            x = torch.randn(batch_size, 16, device=torch_device)
+            torch.testing.assert_close(backend.infer(x), module(x))
+
+
+@requires_xpu
+def test_grid_stops_at_the_first_size_that_holds_the_largest_batch(torch_device, tmp_path):
+    assert batched_build(LinearRelu(), torch_device, tmp_path, largest=20).recorded_batch_sizes == [1, 2, 4, 8, 16, 24]
+    config = XPUGraphBackendConfig(max_recorded_batch_size=12)
+    backend = batched_build(LinearRelu(), torch_device, tmp_path, config=config)
+    assert backend.recorded_batch_sizes == [1, 2, 4, 8, 12]
+
+
+@requires_xpu
+def test_graphs_share_one_input_buffer(torch_device, tmp_path):
+    backend = batched_build(LinearRelu(), torch_device, tmp_path)
+    pointers = {recording.static_leaves[0].data_ptr() for recording in backend._recordings.values()}
+    assert len(pointers) == 1
+
+
+@requires_xpu
+def test_padding_does_not_leak_rows_of_a_larger_graph(torch_device, tmp_path):
+    module = LinearRelu()
+    backend = batched_build(module, torch_device, tmp_path)
+    with torch.no_grad():
+        backend.infer(torch.full((64, 16), 1e4, device=torch_device))
+        x = torch.randn(5, 16, device=torch_device)
+        torch.testing.assert_close(backend.infer(x), module(x))
+
+
+@requires_xpu
+def test_max_recorded_batch_size_caps_recording_and_chunks(torch_device, tmp_path):
+    module = LinearRelu()
+    config = XPUGraphBackendConfig(max_recorded_batch_size=4)
+    backend = batched_build(module, torch_device, tmp_path, config=config)
+    assert backend.recorded_batch_sizes == [1, 2, 4]
+    assert backend.describe() == "XPUGraphBackend(max_recorded_batch_size=4)"
+    with torch.no_grad():
+        x = torch.randn(11, 16, device=torch_device)
+        torch.testing.assert_close(backend.infer(x), module(x))
+
+
+@requires_xpu
+def test_out_of_memory_keeps_smaller_graphs(torch_device, tmp_path, monkeypatch):
+    record_size = XPUGraphBackend._record_size
+
+    def failing(self, size, *rest):
+        if size > 8:
+            raise torch.OutOfMemoryError("fake")
+        return record_size(self, size, *rest)
+
+    monkeypatch.setattr(XPUGraphBackend, "_record_size", failing)
+    module = LinearRelu()
+    backend = batched_build(module, torch_device, tmp_path)
+    assert backend.recorded_batch_sizes == [1, 2, 4, 8]
+    with torch.no_grad():
+        x = torch.randn(30, 16, device=torch_device)
+        torch.testing.assert_close(backend.infer(x), module(x))
+
+
+@requires_xpu
+def test_output_without_batch_axis_is_rejected(torch_device, tmp_path):
+    with pytest.raises(RuntimeError, match="no batch axis"):
+        batched_build(Scaled(), torch_device, tmp_path, largest=4, features=5)
+
+
+@requires_xpu
+def test_rows_that_depend_on_other_rows_are_rejected(torch_device, tmp_path):
+    with pytest.raises(RuntimeError, match="differs from eager"):
+        batched_build(RowMixing(), torch_device, tmp_path, largest=4)
+
+
+@requires_xpu
+def test_module_that_stacks_its_batch_is_rejected(torch_device, tmp_path):
+    with pytest.raises(RuntimeError, match="differs from eager"):
+        batched_build(Stacked(), torch_device, tmp_path, largest=8)
+
+
+@requires_xpu
+def test_input_with_two_rows_per_sample(torch_device, tmp_path):
+    module = LinearRelu().to(torch_device).eval()
+    small = ((torch.randn(2, 16, device=torch_device),), {})
+    large = ((torch.randn(16, 16, device=torch_device),), {})
+    spec = seen_graph_spec(module, [(1, small), (8, large)])
+    backend = XPUGraphBackend().build(module, spec, [small, large], torch_device, tmp_path)
+    assert backend.recorded_batch_sizes == [1, 2, 4, 8]
+    with torch.no_grad():
+        x = torch.randn(10, 16, device=torch_device)
+        torch.testing.assert_close(backend.infer(x), module(x))
+
+
+@requires_xpu
+def test_dynamic_axis_is_rejected(torch_device, tmp_path):
+    module = LinearRelu().to(torch_device).eval()
+    short = ((torch.randn(1, 3, 16, device=torch_device),), {})
+    long = ((torch.randn(2, 7, 16, device=torch_device),), {})
+    spec = seen_graph_spec(module, [(1, short), (2, long)])
+    with pytest.raises(RuntimeError, match="dynamic axis"):
+        XPUGraphBackend().build(module, spec, [short, long], torch_device, tmp_path)
+
+
+@requires_xpu
+def test_batch_axis_serialization(torch_device, tmp_path):
+    module = LinearRelu()
+    backend = batched_build(module, torch_device, tmp_path, largest=8)
+    TorchSaveTask().save(tmp_path, backend.to_dict())
+    loaded = XPUGraphBackend.from_dict(module, TorchLoadTask().load(tmp_path))
+    loaded.deploy(device=torch_device)
+    assert loaded.recorded_batch_sizes == [1, 2, 4, 8]
+    with torch.no_grad():
+        x = torch.randn(6, 16, device=torch_device)
+        torch.testing.assert_close(loaded.infer(x), module(x))
+
+
+@requires_xpu
+def test_tune_with_two_batch_sizes_records_the_batch_axis(torch_device, tmp_path):
+    module = LinearRelu().to(torch_device).eval()
+    reference = copy.deepcopy(module)
+    wrapped = Module(
+        module,
+        "xpu-graph-batched",
+        strategy=HighestThroughputStrategy(backends=[XPUGraphBackend()]).enable_find_max_batch_size(False),
+    )
+    try:
+        tune(
+            wrapped,
+            torch.randn(16, device=torch_device),
+            batch_sizes=[1, 8],
+            device=torch_device,
+            ignore_failing_modules=False,
+        )
+        (backend,) = wrapped._self_wrapper.backends.values()
+        assert isinstance(backend, XPUGraphBackend)
+        assert backend.recorded_batch_sizes == [1, 2, 4, 8]
+        x = torch.randn(5, 16, device=torch_device)
+        with torch.no_grad():
+            torch.testing.assert_close(wrapped(x), reference(x))
+    finally:
+        MODULE_REGISTRY.clear()
 
 
 @requires_xpu
