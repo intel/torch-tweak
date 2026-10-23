@@ -28,7 +28,7 @@ strategy = HighestThroughputStrategy(backends=[XPUGraphBackend()])
 The backend is first in the default `FirstWinsStrategy` list, before Torch Inductor.
 It is also in the default `HighestThroughputStrategy` list.
 
-PyTorch records a native SYCL graph when it was built with a SYCL compiler of 2026.1 or newer, except on PVC.
+PyTorch records a native SYCL graph when it was built with a SYCL compiler of 2026.1 or newer, except on Intel Data Center GPU Max Series.
 An older build records the legacy SYCL command graph.
 This backend uses the recording that build already performs.
 
