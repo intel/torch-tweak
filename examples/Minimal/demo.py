@@ -23,7 +23,6 @@ def main() -> None:
     model = nn.Sequential(nn.Linear(32, 32), nn.ReLU(), nn.Linear(32, 8)).eval().to(device)
     sample = torch.randn(32, device=device)
 
-    # One batch size keeps every tensor shape static, so the XPU graph can be recorded.
     strategy = tt.HighestThroughputStrategy(
         backends=[
             TorchInductorBackend(),
