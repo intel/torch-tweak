@@ -114,14 +114,22 @@ class XPUGraphBackend(Backend):
             Inputs the recording cannot take run on the original module.
         """
         with torch.no_grad():
-            assert self._static_args is not None and self._static_kwargs is not None
-            if not (_fits(self._static_args, args) and _fits(self._static_kwargs, kwargs)):
+            if not self._load_inputs(args, kwargs):
                 return self._infer_eager(args, kwargs)
-            _copy_into(self._static_args, args)
-            _copy_into(self._static_kwargs, kwargs)
             self._graph.replay()
             # replay and this clone are both on the current stream, in submission order.
             return _clone_tree(self._captured)
+
+    def _load_inputs(self, args: tuple[Any, ...], kwargs: dict[str, Any]) -> bool:
+        """Copies args and kwargs into the recorded inputs. Copies nothing and returns False when they do not fit."""
+        assert self._static_args is not None and self._static_kwargs is not None
+        live_args = _live_leaves(self._static_args, args)
+        live_kwargs = _live_leaves(self._static_kwargs, kwargs)
+        if live_args is None or live_kwargs is None:
+            return False
+        _copy_into(self._static_args[0], live_args)
+        _copy_into(self._static_kwargs[0], live_kwargs)
+        return True
 
     def _infer_eager(self, args: tuple[Any, ...], kwargs: dict[str, Any]) -> Any:
         """Runs the original module on inputs that differ from the recorded call."""
@@ -176,16 +184,13 @@ class XPUGraphBackend(Backend):
         assert self._orig_module is not None
         assert self._data
         assert self._graph is not None
-        assert self._static_args is not None and self._static_kwargs is not None
         for sample_args, sample_kwargs in self._data:
             for args, kwargs in (
                 (sample_args, sample_kwargs),
                 (_perturb(sample_args), _perturb(sample_kwargs)),
             ):
-                if not (_fits(self._static_args, args) and _fits(self._static_kwargs, kwargs)):
+                if not self._load_inputs(args, kwargs):
                     raise RuntimeError("XPU graph inputs do not match the captured call")
-                _copy_into(self._static_args, args)
-                _copy_into(self._static_kwargs, kwargs)
                 # replay may write static_args in place. Eager must see the earlier values.
                 frozen_args = _clone_tree(static_args)
                 frozen_kwargs = _clone_tree(static_kwargs)
@@ -249,29 +254,27 @@ def _clone_tree(tree: Any) -> Any:
     return tree_map_only(torch.Tensor, lambda tensor: tensor.detach().clone(), tree)
 
 
-def _fits(static: tuple[list[Any], TreeSpec], live: Any) -> bool:
-    """Returns True when live can be copied into the inputs recorded by the graph."""
+def _live_leaves(static: tuple[list[Any], TreeSpec], live: Any) -> list[Any] | None:
+    """Returns the leaves of live, or None when they cannot be copied into the inputs recorded by the graph."""
     static_leaves, static_spec = static
     live_leaves, live_spec = tree_flatten(live)
     if static_spec != live_spec:
-        return False
+        return None
     for dst, src in zip(static_leaves, live_leaves, strict=True):
         if isinstance(dst, torch.Tensor) and isinstance(src, torch.Tensor):
             if (dst.shape, dst.dtype, dst.device) != (src.shape, src.dtype, src.device):
-                return False
+                return None
         elif isinstance(dst, torch.Tensor) or isinstance(src, torch.Tensor):
             # != of a tensor and a non-tensor returns a tensor.
             # The next branch would not reject this pair.
-            return False
+            return None
         elif dst != src:
-            return False
-    return True
+            return None
+    return live_leaves
 
 
-def _copy_into(static: tuple[list[Any], TreeSpec], live: Any) -> None:
-    """Copies live tensors into the tensors recorded by the graph. live must pass _fits."""
-    static_leaves, _ = static
-    live_leaves, _ = tree_flatten(live)
+def _copy_into(static_leaves: list[Any], live_leaves: list[Any]) -> None:
+    """Copies live tensors into the tensors recorded by the graph. live_leaves comes from _live_leaves."""
     for dst, src in zip(static_leaves, live_leaves, strict=True):
         if isinstance(dst, torch.Tensor):
             dst.copy_(src)
