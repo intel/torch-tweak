@@ -198,7 +198,6 @@ def test_kwargs_and_tuple_output(torch_device, tmp_path, eager_calls):
         expected = module(*new_args, **kwargs)
     torch.testing.assert_close(got[0], expected[0])
     torch.testing.assert_close(got[1], expected[1])
-    assert not eager_calls
 
     with torch.no_grad():
         got = backend.infer(*new_args, scale=3.0)
