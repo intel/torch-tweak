@@ -16,7 +16,10 @@ from torch_tweak.torch.task.profiling.measuring_stop_strategy import (
     NumStepsMeasuringStopStrategy,
     StableWindowMeasuringStopStrategy,
 )
-from torch_tweak.torch.task.profiling.measuring_strategy import ModelExecutionTimeMeasuringStrategy
+from torch_tweak.torch.task.profiling.measuring_strategy import (
+    MeasuringStrategy,
+    ModelExecutionTimeMeasuringStrategy,
+)
 from torch_tweak.torch.task.profiling.metrics import get_throughput, is_throughput_saturated
 from torch_tweak.torch.task.profiling.profiling import ProfilingStatus, profile, profile_backend
 from torch_tweak.torch.task.profiling.profiling_stop_strategy import ThroughputSaturatedProfilingStopStrategy
@@ -260,3 +263,49 @@ def test_measurement_waits_for_the_device(mocker):
 
     assert order == ["sync", "model", "sync"]
     assert events[0].execution_time >= 0
+
+
+def test_compilation_of_a_new_batch_size_does_not_stop_profiling():
+    steady_ns = 5_000_000
+    compilation_ns = 100_000_000
+    times_ns = {
+        1: [steady_ns, steady_ns, steady_ns],
+        2: [compilation_ns, steady_ns, steady_ns, steady_ns],
+        4: [compilation_ns, steady_ns, steady_ns, steady_ns],
+        8: [compilation_ns, steady_ns, steady_ns, steady_ns],
+    }
+
+    class ScriptedExecutionTime(MeasuringStrategy):
+        def do_measurement(self, batch_size, _model, _sample, **_kwargs):
+            return [new_event(batch_size, times_ns[batch_size].pop(0))]
+
+    model = ToyTorchModel()
+    profile_config = ProfilingConfig(
+        batch_sizes=[1, 2, 4, 8],
+        measuring_strategy=ScriptedExecutionTime(),
+        measurement_stop_strategy=StableWindowMeasuringStopStrategy(window_size=3, stability_percentage=80),
+        profiling_stop_strategy=ThroughputSaturatedProfilingStopStrategy(
+            throughput_cutoff_threshold=0.05,
+            throughput_backoff_limit=0,
+        ),
+    )
+
+    result = profile(model, model.samples(), profile_config)
+
+    assert [entry.batch_size for entry in result.results.entries] == [
+        1,
+        1,
+        1,
+        2,
+        2,
+        2,
+        2,
+        4,
+        4,
+        4,
+        4,
+        8,
+        8,
+        8,
+        8,
+    ]
