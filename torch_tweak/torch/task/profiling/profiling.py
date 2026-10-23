@@ -142,7 +142,10 @@ def _profile(
 
             profiling_results.entries += new_entries
 
-            if profiling_stop_strategy.should_stop(get_inference_events(new_entries)):
+            # The first calls of a batch size can include compilation, so saturation is judged on
+            # the measured events only, the same ones get_throughput_per_batch_size uses.
+            measured = profiling_config.measurement_stop_strategy.get_events(get_inference_events(new_entries))
+            if profiling_stop_strategy.should_stop(measured):
                 break
 
         return ProfilingStatus(status=ProfilingStatus.Status.SUCCESS, results=profiling_results)
