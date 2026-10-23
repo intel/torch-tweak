@@ -5,6 +5,10 @@ SPDX-License-Identifier: Apache-2.0
 
 # Changelog
 
+## Unreleased
+
+- fix: a passthrough module without parameters keeps its inputs on their device instead of moving them to CPU.
+
 ## 0.4.0
 
 This is the first release of **Torch Tweak**. Torch Tweak is focused on Intel GPU (XPU) support.

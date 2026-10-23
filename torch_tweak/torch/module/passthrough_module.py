@@ -19,18 +19,20 @@ class PassthroughModule:
     def __init__(
         self,
         module,
-        device: str,
+        device: str | None,
     ) -> None:
         """Initializes module.
 
         Args:
                 module: module to be tuned.
-                device: Device on which tuned module has to be executed.
+                device: Device on which tuned module has to be executed. None leaves the module and its
+                    inputs where they are, for modules without parameters.
         """
         super().__init__()
         self._forward_call = module.__call__
         self._device = device
-        module.to(self._device)
+        if self._device is not None:
+            module.to(self._device)
 
     def __call__(self, *args: Any, **kwargs: Any) -> Any:
         """Native inference on wrapped module."""
@@ -39,6 +41,8 @@ class PassthroughModule:
 
     def _prepare_inputs(self, *args, **kwargs):
         """Prepare inputs for inplace inference and place them on the same device if are not."""
+        if self._device is None:
+            return args, kwargs
         sample_metadata = SampleMetadata.from_inputs(args, kwargs)
 
         for locator, tensor_spec in sample_metadata.tensor_data:
