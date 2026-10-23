@@ -260,3 +260,37 @@ def test_measurement_waits_for_the_device(mocker):
 
     assert order == ["sync", "model", "sync"]
     assert events[0].execution_time >= 0
+
+
+def test_compilation_of_a_new_batch_size_does_not_stop_profiling():
+    """The first call of a batch size compiles. Only the measured window counts for saturation."""
+    model = ToyTorchModel()
+    graph_spec = model.graph_spec(batch_sizes=[1, 2])
+    compiled = {1}
+
+    class CompilingBackend(TorchEagerBackend):
+        def __init__(self):
+            pass
+
+        def infer(self, *args, **kwargs):
+            batch_size = args[0].shape[0]
+            if batch_size not in compiled:
+                compiled.add(batch_size)
+                time.sleep(0.1)
+            time.sleep(0.005)
+            return model(*args)
+
+        def describe(self):
+            return "compiling_backend"
+
+    profile_config = ProfilingConfig(
+        batch_sizes=[1, 2, 4, 8],
+        measurement_stop_strategy=StableWindowMeasuringStopStrategy(window_size=3, stability_percentage=80),
+        profiling_stop_strategy=ThroughputSaturatedProfilingStopStrategy(throughput_cutoff_threshold=0.05),
+    )
+    samples = [(model.inputs(batch_sizes=[1]), {})]
+
+    result = profile_backend(CompilingBackend(), "test_model", graph_spec, samples, profile_config)  # type: ignore
+
+    assert result.status == ProfilingStatus.Status.SUCCESS
+    assert {entry.batch_size for entry in result.results.entries} == {1, 2, 4, 8}
