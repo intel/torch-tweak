@@ -10,7 +10,7 @@ The OpenVINO backend converts a PyTorch module to an OpenVINO model and runs it 
 ## Overview
 
 - **Conversion**: `torch.export` by default, with a legacy trace path when export cannot capture the module
-- **Devices**: `cpu` compiles for the OpenVINO CPU device, `xpu` compiles for the OpenVINO GPU device
+- **Devices**: `cpu` compiles for the OpenVINO CPU device, `xpu` compiles for the OpenVINO GPU that is the same physical device as the PyTorch XPU device
 - **Compile hint**: `LATENCY` (default), `THROUGHPUT`, or `CUMULATIVE_THROUGHPUT`
 
 ## Quick Start
