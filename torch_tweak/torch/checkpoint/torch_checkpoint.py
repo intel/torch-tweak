@@ -4,6 +4,7 @@
 # NOTE: This file has been modified by Intel Corporation.
 """Torch checkpoint module."""
 
+import logging
 from collections import OrderedDict
 from pathlib import Path
 from typing import Any
@@ -14,7 +15,11 @@ from torch.nn import Module as TorchModule
 from torch_tweak.torch.checkpoint.checkpoint import Checkpoint
 from torch_tweak.torch.checkpoint.storage import Storage
 from torch_tweak.torch.module.wrapper_module import Module as WrapperModule
+from torch_tweak.torch.module.wrapper_module import ModuleState
+from torch_tweak.torch.module_registry import MODULE_REGISTRY
 from torch_tweak.torch.utils.device import get_device
+
+logger = logging.getLogger(__name__)
 
 
 class TorchCheckpoint(Checkpoint):
@@ -40,18 +45,16 @@ class TorchCheckpoint(Checkpoint):
 
         This method handles both individual torch modules and pipelines containing modules.
         For individual modules, it directly uses the module's state_dict() method.
-        For pipelines, it extracts state dictionaries from all tuned modules in the pipeline.
-
-        The pipeline is expected to be an object with attributes that are tuned modules (WrapperModule instances).
-        Only tuned modules are saved in the state dictionary, as regular torch modules don't have tuning information.
-
-        If no tuned modules are found in the pipeline, a ValueError is raised.
+        For a pipeline, it saves each tuned module (WrapperModule instance) under its dotted path,
+        e.g. `"vae.decoder"`. Modules that are not tuned are not saved.
 
         Args:
             module_or_pipeline: The module or pipeline to save. This can be either a torch.nn.Module
-                or a pipeline object with module attributes. For pipelines, only tuned modules
-                (WrapperModule instances) will be saved.
+                or a pipeline object with module attributes.
             path: The path where the module state should be saved.
+
+        Raises:
+            ValueError: If the pipeline contains no tuned modules.
         """
         if isinstance(module_or_pipeline, TorchModule):
             state_dict = module_or_pipeline.state_dict()
@@ -107,26 +110,40 @@ class TorchCheckpoint(Checkpoint):
         return module_or_pipeline
 
     @staticmethod
-    def get_pipeline_modules(pipeline: Any) -> dict[str, torch.nn.Module]:
+    def get_pipeline_modules(pipeline: Any) -> dict[str, TorchModule | WrapperModule]:
         """Get the modules from the pipeline.
 
         Args:
             pipeline: The pipeline object to extract modules from.
 
         Returns:
-            dict: A dictionary mapping attribute names to Module objects.
+            dict: Maps the dotted path of every module the pipeline holds, e.g. `"vae.decoder"`, to the module.
+                The search does not descend into tuned modules.
         """
-        modules = {}
+        modules: dict[str, TorchModule | WrapperModule] = {}
 
+        def add_module(path: str, module: TorchModule | WrapperModule) -> None:
+            modules[path] = module
+            if isinstance(module, WrapperModule):
+                return
+            # `named_children()` yields a module held twice by one parent only once.
+            for child_name, child in module._modules.items():
+                if child is not None:
+                    add_module(f"{path}.{child_name}", child)
+
+        # TODO: search lists, dicts and plain objects as `ModuleInspector` does, so that every module
+        # `tune` tunes is also saved.
         for name, attr in vars(pipeline).items():
-            if isinstance(attr, (torch.nn.Module, WrapperModule)):
-                modules[name] = attr
+            if isinstance(attr, (TorchModule, WrapperModule)):
+                add_module(name, attr)
 
         return modules
 
     @staticmethod
     def state_dict_from_pipeline(pipeline: Any) -> dict[str, Any]:
         """Extract the state_dict from a pipeline (e.g. HF Diffusers pipeline).
+
+        Each tuned module is stored once under its dotted path, also when the pipeline reaches it by several paths.
 
         Args:
             pipeline: The pipeline to extract the state_dict from.
@@ -135,11 +152,24 @@ class TorchCheckpoint(Checkpoint):
             dict: The state_dict from the pipeline.
         """
         state_dict = OrderedDict()
-        pipeline_modules = TorchCheckpoint.get_pipeline_modules(pipeline)
+        saved_module_ids = set()
 
-        for name, module in pipeline_modules.items():
-            if isinstance(module, WrapperModule):
+        for name, module in TorchCheckpoint.get_pipeline_modules(pipeline).items():
+            if isinstance(module, WrapperModule) and id(module) not in saved_module_ids:
                 state_dict[name] = module.state_dict()
+                saved_module_ids.add(id(module))
+
+        unsaved_module_names = [
+            name
+            for name, module in MODULE_REGISTRY.modules.items()
+            if module.state == ModuleState.TUNED and id(module) not in saved_module_ids
+        ]
+        if unsaved_module_names:
+            logger.warning(
+                "Tuned modules not saved, the pipeline does not hold them in module attributes: %s",
+                ", ".join(unsaved_module_names),
+            )
+
         if not state_dict:
             raise ValueError("No tuned modules found in the pipeline")
         return state_dict
@@ -253,9 +283,9 @@ class TorchCheckpoint(Checkpoint):
     def load_state_dict_for_pipeline(pipeline, state_dict, device_map: dict[str, torch.device]):
         """Load a state dictionary into a pipeline.
 
-        This method loads the state dictionary into the pipeline by matching module names
-        in the state dictionary with attributes in the pipeline. Each matched module is
-        replaced with the tuned module.
+        This method loads the state dictionary into the pipeline by matching dotted module paths
+        in the state dictionary with modules in the pipeline. Each matched module is replaced
+        with the tuned module in every place where the pipeline holds it.
 
         Args:
             pipeline: The pipeline to load the state dictionary into.
@@ -269,19 +299,31 @@ class TorchCheckpoint(Checkpoint):
             ValueError: If a module in the state_dict is not found in the pipeline or
                         if a matched attribute is not a torch.nn.Module or WrapperModule.
         """
+        modules = TorchCheckpoint.get_pipeline_modules(pipeline)
         matched_modules = set()
+        restored_modules = {}
         for name, module_state_dict in state_dict.items():
-            if hasattr(pipeline, name):
-                module = getattr(pipeline, name)
-                if isinstance(module, (torch.nn.Module, WrapperModule)):
-                    matched_modules.add(name)
-                    setattr(
-                        pipeline,
-                        name,
-                        TorchCheckpoint.load_state_dict_for_module(module, module_state_dict, device_map, name),
-                    )
-                else:
+            module = modules.get(name)
+            if module is None:
+                if hasattr(pipeline, name):
                     raise ValueError(f"Module {name} is not a torch.nn.Module or WrapperModule")
+                continue
+
+            matched_modules.add(name)
+            if id(module) in restored_modules:
+                # Older checkpoints store an aliased module under each of its paths.
+                device_map.pop(name, None)
+                continue
+
+            restored_modules[id(module)] = TorchCheckpoint.load_state_dict_for_module(
+                module, module_state_dict, device_map, name
+            )
+
+        for path, module in modules.items():
+            if id(module) in restored_modules:
+                owner_path, _, attribute = path.rpartition(".")
+                owner = modules[owner_path] if owner_path else pipeline
+                setattr(owner, attribute, restored_modules[id(module)])
 
         unmatched_keys = set(state_dict.keys()).difference(matched_modules)
         if unmatched_keys:
