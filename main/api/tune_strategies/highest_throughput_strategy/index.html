@@ -840,6 +840,34 @@
   
   
     <li class="md-nav__item">
+      <a href="../../../guides/backends/xpu_graph_backend/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    XPU Graph Backend
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
       <a href="../../../guides/backends/torch_eager_backend/" class="md-nav__link">
         
   
@@ -1801,6 +1829,34 @@
   
   
     <li class="md-nav__item">
+      <a href="../../backends/xpu_graph_backend/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    XPU Graph Backend
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
       <a href="../../backends/torch_eager_backend/" class="md-nav__link">
         
   
@@ -2698,8 +2754,7 @@ NOTE: This file has been modified by Intel Corporation.
 
                   <details class="mkdocstrings-source">
                     <summary>Source code in <code>torch_tweak/torch/tune_strategy/highest_throughput_strategy.py</code></summary>
-                    <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#torch_tweak.torch.tune_strategy.HighestThroughputStrategy--source--__codelineno-0-72">72</a></span>
-<span class="normal"><a href="#torch_tweak.torch.tune_strategy.HighestThroughputStrategy--source--__codelineno-0-73">73</a></span>
+                    <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#torch_tweak.torch.tune_strategy.HighestThroughputStrategy--source--__codelineno-0-73">73</a></span>
 <span class="normal"><a href="#torch_tweak.torch.tune_strategy.HighestThroughputStrategy--source--__codelineno-0-74">74</a></span>
 <span class="normal"><a href="#torch_tweak.torch.tune_strategy.HighestThroughputStrategy--source--__codelineno-0-75">75</a></span>
 <span class="normal"><a href="#torch_tweak.torch.tune_strategy.HighestThroughputStrategy--source--__codelineno-0-76">76</a></span>
@@ -2723,32 +2778,33 @@ NOTE: This file has been modified by Intel Corporation.
 <span class="normal"><a href="#torch_tweak.torch.tune_strategy.HighestThroughputStrategy--source--__codelineno-0-94">94</a></span>
 <span class="normal"><a href="#torch_tweak.torch.tune_strategy.HighestThroughputStrategy--source--__codelineno-0-95">95</a></span>
 <span class="normal"><a href="#torch_tweak.torch.tune_strategy.HighestThroughputStrategy--source--__codelineno-0-96">96</a></span>
-<span class="normal"><a href="#torch_tweak.torch.tune_strategy.HighestThroughputStrategy--source--__codelineno-0-97">97</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="torch_tweak.torch.tune_strategy.HighestThroughputStrategy--source--__codelineno-0-72" name="torch_tweak.torch.tune_strategy.HighestThroughputStrategy--source--__codelineno-0-72"></a><span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
-<a id="torch_tweak.torch.tune_strategy.HighestThroughputStrategy--source--__codelineno-0-73" name="torch_tweak.torch.tune_strategy.HighestThroughputStrategy--source--__codelineno-0-73"></a>    <span class="bp">self</span><span class="p">,</span>
-<a id="torch_tweak.torch.tune_strategy.HighestThroughputStrategy--source--__codelineno-0-74" name="torch_tweak.torch.tune_strategy.HighestThroughputStrategy--source--__codelineno-0-74"></a>    <span class="n">backends</span><span class="p">:</span> <span class="n">Iterable</span><span class="p">[</span><span class="n">Backend</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-<a id="torch_tweak.torch.tune_strategy.HighestThroughputStrategy--source--__codelineno-0-75" name="torch_tweak.torch.tune_strategy.HighestThroughputStrategy--source--__codelineno-0-75"></a>    <span class="n">measurement_stop_strategy</span><span class="p">:</span> <span class="n">MeasuringStopStrategy</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-<a id="torch_tweak.torch.tune_strategy.HighestThroughputStrategy--source--__codelineno-0-76" name="torch_tweak.torch.tune_strategy.HighestThroughputStrategy--source--__codelineno-0-76"></a>    <span class="n">profiling_stop_strategy</span><span class="p">:</span> <span class="n">ProfilingStopStrategy</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-<a id="torch_tweak.torch.tune_strategy.HighestThroughputStrategy--source--__codelineno-0-77" name="torch_tweak.torch.tune_strategy.HighestThroughputStrategy--source--__codelineno-0-77"></a>    <span class="o">**</span><span class="n">kwargs</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span>
-<a id="torch_tweak.torch.tune_strategy.HighestThroughputStrategy--source--__codelineno-0-78" name="torch_tweak.torch.tune_strategy.HighestThroughputStrategy--source--__codelineno-0-78"></a><span class="p">):</span>
-<a id="torch_tweak.torch.tune_strategy.HighestThroughputStrategy--source--__codelineno-0-79" name="torch_tweak.torch.tune_strategy.HighestThroughputStrategy--source--__codelineno-0-79"></a><span class="w">    </span><span class="sd">"""Initializes strategy.</span>
-<a id="torch_tweak.torch.tune_strategy.HighestThroughputStrategy--source--__codelineno-0-80" name="torch_tweak.torch.tune_strategy.HighestThroughputStrategy--source--__codelineno-0-80"></a>
-<a id="torch_tweak.torch.tune_strategy.HighestThroughputStrategy--source--__codelineno-0-81" name="torch_tweak.torch.tune_strategy.HighestThroughputStrategy--source--__codelineno-0-81"></a><span class="sd">    Args:</span>
-<a id="torch_tweak.torch.tune_strategy.HighestThroughputStrategy--source--__codelineno-0-82" name="torch_tweak.torch.tune_strategy.HighestThroughputStrategy--source--__codelineno-0-82"></a><span class="sd">        backends: List of backends to tune.</span>
-<a id="torch_tweak.torch.tune_strategy.HighestThroughputStrategy--source--__codelineno-0-83" name="torch_tweak.torch.tune_strategy.HighestThroughputStrategy--source--__codelineno-0-83"></a><span class="sd">        measurement_stop_strategy: Measurement stop strategy.</span>
-<a id="torch_tweak.torch.tune_strategy.HighestThroughputStrategy--source--__codelineno-0-84" name="torch_tweak.torch.tune_strategy.HighestThroughputStrategy--source--__codelineno-0-84"></a><span class="sd">        profiling_stop_strategy: Profiling stop strategy.</span>
-<a id="torch_tweak.torch.tune_strategy.HighestThroughputStrategy--source--__codelineno-0-85" name="torch_tweak.torch.tune_strategy.HighestThroughputStrategy--source--__codelineno-0-85"></a><span class="sd">        kwargs: Additional arguments for the parent class</span>
-<a id="torch_tweak.torch.tune_strategy.HighestThroughputStrategy--source--__codelineno-0-86" name="torch_tweak.torch.tune_strategy.HighestThroughputStrategy--source--__codelineno-0-86"></a><span class="sd">    """</span>
-<a id="torch_tweak.torch.tune_strategy.HighestThroughputStrategy--source--__codelineno-0-87" name="torch_tweak.torch.tune_strategy.HighestThroughputStrategy--source--__codelineno-0-87"></a>    <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
-<a id="torch_tweak.torch.tune_strategy.HighestThroughputStrategy--source--__codelineno-0-88" name="torch_tweak.torch.tune_strategy.HighestThroughputStrategy--source--__codelineno-0-88"></a>    <span class="bp">self</span><span class="o">.</span><span class="n">_backends</span> <span class="o">=</span> <span class="n">backends</span> <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">_default_backends</span><span class="p">()</span>
-<a id="torch_tweak.torch.tune_strategy.HighestThroughputStrategy--source--__codelineno-0-89" name="torch_tweak.torch.tune_strategy.HighestThroughputStrategy--source--__codelineno-0-89"></a>    <span class="bp">self</span><span class="o">.</span><span class="n">_measurement_stop_strategy</span> <span class="o">=</span> <span class="n">measurement_stop_strategy</span> <span class="ow">or</span> <span class="n">StableWindowMeasuringStopStrategy</span><span class="p">(</span>
-<a id="torch_tweak.torch.tune_strategy.HighestThroughputStrategy--source--__codelineno-0-90" name="torch_tweak.torch.tune_strategy.HighestThroughputStrategy--source--__codelineno-0-90"></a>        <span class="n">window_size</span><span class="o">=</span><span class="n">DEFAULT_WINDOW_SIZE</span><span class="p">,</span>
-<a id="torch_tweak.torch.tune_strategy.HighestThroughputStrategy--source--__codelineno-0-91" name="torch_tweak.torch.tune_strategy.HighestThroughputStrategy--source--__codelineno-0-91"></a>        <span class="n">stability_percentage</span><span class="o">=</span><span class="n">DEFAULT_STABILITY_PERCENTAGE</span><span class="p">,</span>
-<a id="torch_tweak.torch.tune_strategy.HighestThroughputStrategy--source--__codelineno-0-92" name="torch_tweak.torch.tune_strategy.HighestThroughputStrategy--source--__codelineno-0-92"></a>    <span class="p">)</span>
-<a id="torch_tweak.torch.tune_strategy.HighestThroughputStrategy--source--__codelineno-0-93" name="torch_tweak.torch.tune_strategy.HighestThroughputStrategy--source--__codelineno-0-93"></a>    <span class="bp">self</span><span class="o">.</span><span class="n">_profiling_stop_strategy</span> <span class="o">=</span> <span class="n">profiling_stop_strategy</span> <span class="ow">or</span> <span class="n">ThroughputSaturatedProfilingStopStrategy</span><span class="p">(</span>
-<a id="torch_tweak.torch.tune_strategy.HighestThroughputStrategy--source--__codelineno-0-94" name="torch_tweak.torch.tune_strategy.HighestThroughputStrategy--source--__codelineno-0-94"></a>        <span class="n">throughput_cutoff_threshold</span><span class="o">=</span><span class="n">DEFAULT_THROUGHPUT_CUTOFF_THRESHOLD</span><span class="p">,</span>
-<a id="torch_tweak.torch.tune_strategy.HighestThroughputStrategy--source--__codelineno-0-95" name="torch_tweak.torch.tune_strategy.HighestThroughputStrategy--source--__codelineno-0-95"></a>        <span class="n">throughput_backoff_limit</span><span class="o">=</span><span class="n">DEFAULT_THROUGHPUT_BACKOFF_LIMIT</span><span class="p">,</span>
-<a id="torch_tweak.torch.tune_strategy.HighestThroughputStrategy--source--__codelineno-0-96" name="torch_tweak.torch.tune_strategy.HighestThroughputStrategy--source--__codelineno-0-96"></a>    <span class="p">)</span>
-<a id="torch_tweak.torch.tune_strategy.HighestThroughputStrategy--source--__codelineno-0-97" name="torch_tweak.torch.tune_strategy.HighestThroughputStrategy--source--__codelineno-0-97"></a>    <span class="bp">self</span><span class="o">.</span><span class="n">results</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">HighestThroughputStrategyResult</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
+<span class="normal"><a href="#torch_tweak.torch.tune_strategy.HighestThroughputStrategy--source--__codelineno-0-97">97</a></span>
+<span class="normal"><a href="#torch_tweak.torch.tune_strategy.HighestThroughputStrategy--source--__codelineno-0-98">98</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="torch_tweak.torch.tune_strategy.HighestThroughputStrategy--source--__codelineno-0-73" name="torch_tweak.torch.tune_strategy.HighestThroughputStrategy--source--__codelineno-0-73"></a><span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
+<a id="torch_tweak.torch.tune_strategy.HighestThroughputStrategy--source--__codelineno-0-74" name="torch_tweak.torch.tune_strategy.HighestThroughputStrategy--source--__codelineno-0-74"></a>    <span class="bp">self</span><span class="p">,</span>
+<a id="torch_tweak.torch.tune_strategy.HighestThroughputStrategy--source--__codelineno-0-75" name="torch_tweak.torch.tune_strategy.HighestThroughputStrategy--source--__codelineno-0-75"></a>    <span class="n">backends</span><span class="p">:</span> <span class="n">Iterable</span><span class="p">[</span><span class="n">Backend</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+<a id="torch_tweak.torch.tune_strategy.HighestThroughputStrategy--source--__codelineno-0-76" name="torch_tweak.torch.tune_strategy.HighestThroughputStrategy--source--__codelineno-0-76"></a>    <span class="n">measurement_stop_strategy</span><span class="p">:</span> <span class="n">MeasuringStopStrategy</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+<a id="torch_tweak.torch.tune_strategy.HighestThroughputStrategy--source--__codelineno-0-77" name="torch_tweak.torch.tune_strategy.HighestThroughputStrategy--source--__codelineno-0-77"></a>    <span class="n">profiling_stop_strategy</span><span class="p">:</span> <span class="n">ProfilingStopStrategy</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+<a id="torch_tweak.torch.tune_strategy.HighestThroughputStrategy--source--__codelineno-0-78" name="torch_tweak.torch.tune_strategy.HighestThroughputStrategy--source--__codelineno-0-78"></a>    <span class="o">**</span><span class="n">kwargs</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span>
+<a id="torch_tweak.torch.tune_strategy.HighestThroughputStrategy--source--__codelineno-0-79" name="torch_tweak.torch.tune_strategy.HighestThroughputStrategy--source--__codelineno-0-79"></a><span class="p">):</span>
+<a id="torch_tweak.torch.tune_strategy.HighestThroughputStrategy--source--__codelineno-0-80" name="torch_tweak.torch.tune_strategy.HighestThroughputStrategy--source--__codelineno-0-80"></a><span class="w">    </span><span class="sd">"""Initializes strategy.</span>
+<a id="torch_tweak.torch.tune_strategy.HighestThroughputStrategy--source--__codelineno-0-81" name="torch_tweak.torch.tune_strategy.HighestThroughputStrategy--source--__codelineno-0-81"></a>
+<a id="torch_tweak.torch.tune_strategy.HighestThroughputStrategy--source--__codelineno-0-82" name="torch_tweak.torch.tune_strategy.HighestThroughputStrategy--source--__codelineno-0-82"></a><span class="sd">    Args:</span>
+<a id="torch_tweak.torch.tune_strategy.HighestThroughputStrategy--source--__codelineno-0-83" name="torch_tweak.torch.tune_strategy.HighestThroughputStrategy--source--__codelineno-0-83"></a><span class="sd">        backends: List of backends to tune.</span>
+<a id="torch_tweak.torch.tune_strategy.HighestThroughputStrategy--source--__codelineno-0-84" name="torch_tweak.torch.tune_strategy.HighestThroughputStrategy--source--__codelineno-0-84"></a><span class="sd">        measurement_stop_strategy: Measurement stop strategy.</span>
+<a id="torch_tweak.torch.tune_strategy.HighestThroughputStrategy--source--__codelineno-0-85" name="torch_tweak.torch.tune_strategy.HighestThroughputStrategy--source--__codelineno-0-85"></a><span class="sd">        profiling_stop_strategy: Profiling stop strategy.</span>
+<a id="torch_tweak.torch.tune_strategy.HighestThroughputStrategy--source--__codelineno-0-86" name="torch_tweak.torch.tune_strategy.HighestThroughputStrategy--source--__codelineno-0-86"></a><span class="sd">        kwargs: Additional arguments for the parent class</span>
+<a id="torch_tweak.torch.tune_strategy.HighestThroughputStrategy--source--__codelineno-0-87" name="torch_tweak.torch.tune_strategy.HighestThroughputStrategy--source--__codelineno-0-87"></a><span class="sd">    """</span>
+<a id="torch_tweak.torch.tune_strategy.HighestThroughputStrategy--source--__codelineno-0-88" name="torch_tweak.torch.tune_strategy.HighestThroughputStrategy--source--__codelineno-0-88"></a>    <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+<a id="torch_tweak.torch.tune_strategy.HighestThroughputStrategy--source--__codelineno-0-89" name="torch_tweak.torch.tune_strategy.HighestThroughputStrategy--source--__codelineno-0-89"></a>    <span class="bp">self</span><span class="o">.</span><span class="n">_backends</span> <span class="o">=</span> <span class="n">backends</span> <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">_default_backends</span><span class="p">()</span>
+<a id="torch_tweak.torch.tune_strategy.HighestThroughputStrategy--source--__codelineno-0-90" name="torch_tweak.torch.tune_strategy.HighestThroughputStrategy--source--__codelineno-0-90"></a>    <span class="bp">self</span><span class="o">.</span><span class="n">_measurement_stop_strategy</span> <span class="o">=</span> <span class="n">measurement_stop_strategy</span> <span class="ow">or</span> <span class="n">StableWindowMeasuringStopStrategy</span><span class="p">(</span>
+<a id="torch_tweak.torch.tune_strategy.HighestThroughputStrategy--source--__codelineno-0-91" name="torch_tweak.torch.tune_strategy.HighestThroughputStrategy--source--__codelineno-0-91"></a>        <span class="n">window_size</span><span class="o">=</span><span class="n">DEFAULT_WINDOW_SIZE</span><span class="p">,</span>
+<a id="torch_tweak.torch.tune_strategy.HighestThroughputStrategy--source--__codelineno-0-92" name="torch_tweak.torch.tune_strategy.HighestThroughputStrategy--source--__codelineno-0-92"></a>        <span class="n">stability_percentage</span><span class="o">=</span><span class="n">DEFAULT_STABILITY_PERCENTAGE</span><span class="p">,</span>
+<a id="torch_tweak.torch.tune_strategy.HighestThroughputStrategy--source--__codelineno-0-93" name="torch_tweak.torch.tune_strategy.HighestThroughputStrategy--source--__codelineno-0-93"></a>    <span class="p">)</span>
+<a id="torch_tweak.torch.tune_strategy.HighestThroughputStrategy--source--__codelineno-0-94" name="torch_tweak.torch.tune_strategy.HighestThroughputStrategy--source--__codelineno-0-94"></a>    <span class="bp">self</span><span class="o">.</span><span class="n">_profiling_stop_strategy</span> <span class="o">=</span> <span class="n">profiling_stop_strategy</span> <span class="ow">or</span> <span class="n">ThroughputSaturatedProfilingStopStrategy</span><span class="p">(</span>
+<a id="torch_tweak.torch.tune_strategy.HighestThroughputStrategy--source--__codelineno-0-95" name="torch_tweak.torch.tune_strategy.HighestThroughputStrategy--source--__codelineno-0-95"></a>        <span class="n">throughput_cutoff_threshold</span><span class="o">=</span><span class="n">DEFAULT_THROUGHPUT_CUTOFF_THRESHOLD</span><span class="p">,</span>
+<a id="torch_tweak.torch.tune_strategy.HighestThroughputStrategy--source--__codelineno-0-96" name="torch_tweak.torch.tune_strategy.HighestThroughputStrategy--source--__codelineno-0-96"></a>        <span class="n">throughput_backoff_limit</span><span class="o">=</span><span class="n">DEFAULT_THROUGHPUT_BACKOFF_LIMIT</span><span class="p">,</span>
+<a id="torch_tweak.torch.tune_strategy.HighestThroughputStrategy--source--__codelineno-0-97" name="torch_tweak.torch.tune_strategy.HighestThroughputStrategy--source--__codelineno-0-97"></a>    <span class="p">)</span>
+<a id="torch_tweak.torch.tune_strategy.HighestThroughputStrategy--source--__codelineno-0-98" name="torch_tweak.torch.tune_strategy.HighestThroughputStrategy--source--__codelineno-0-98"></a>    <span class="bp">self</span><span class="o">.</span><span class="n">results</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">HighestThroughputStrategyResult</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
 </code></pre></div></td></tr></table></div>
                   </details>
 

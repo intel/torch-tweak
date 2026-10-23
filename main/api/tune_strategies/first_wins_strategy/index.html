@@ -840,6 +840,34 @@
   
   
     <li class="md-nav__item">
+      <a href="../../../guides/backends/xpu_graph_backend/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    XPU Graph Backend
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
       <a href="../../../guides/backends/torch_eager_backend/" class="md-nav__link">
         
   
@@ -1801,6 +1829,34 @@
   
   
     <li class="md-nav__item">
+      <a href="../../backends/xpu_graph_backend/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    XPU Graph Backend
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
       <a href="../../backends/torch_eager_backend/" class="md-nav__link">
         
   
@@ -2641,7 +2697,7 @@ NOTE: This file has been modified by Intel Corporation.
 
 
         <p>Runs backends in order and keeps the first one that builds and validates.</p>
-<p>The default order is Torch Inductor, OpenVINO, then eager.</p>
+<p>The default order is XPU graph, Torch Inductor, OpenVINO, then eager.</p>
 
         <p>Initializes strategy.</p>
 
@@ -2654,13 +2710,13 @@ NOTE: This file has been modified by Intel Corporation.
 
                   <details class="mkdocstrings-source">
                     <summary>Source code in <code>torch_tweak/torch/tune_strategy/first_wins_strategy.py</code></summary>
-                    <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#torch_tweak.torch.tune_strategy.FirstWinsStrategy--source--__codelineno-0-30">30</a></span>
-<span class="normal"><a href="#torch_tweak.torch.tune_strategy.FirstWinsStrategy--source--__codelineno-0-31">31</a></span>
-<span class="normal"><a href="#torch_tweak.torch.tune_strategy.FirstWinsStrategy--source--__codelineno-0-32">32</a></span>
-<span class="normal"><a href="#torch_tweak.torch.tune_strategy.FirstWinsStrategy--source--__codelineno-0-33">33</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="torch_tweak.torch.tune_strategy.FirstWinsStrategy--source--__codelineno-0-30" name="torch_tweak.torch.tune_strategy.FirstWinsStrategy--source--__codelineno-0-30"></a><span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">backends</span><span class="p">:</span> <span class="n">Iterable</span><span class="p">[</span><span class="n">Backend</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
-<a id="torch_tweak.torch.tune_strategy.FirstWinsStrategy--source--__codelineno-0-31" name="torch_tweak.torch.tune_strategy.FirstWinsStrategy--source--__codelineno-0-31"></a><span class="w">    </span><span class="sd">"""Initializes strategy."""</span>
-<a id="torch_tweak.torch.tune_strategy.FirstWinsStrategy--source--__codelineno-0-32" name="torch_tweak.torch.tune_strategy.FirstWinsStrategy--source--__codelineno-0-32"></a>    <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
-<a id="torch_tweak.torch.tune_strategy.FirstWinsStrategy--source--__codelineno-0-33" name="torch_tweak.torch.tune_strategy.FirstWinsStrategy--source--__codelineno-0-33"></a>    <span class="bp">self</span><span class="o">.</span><span class="n">_backends</span> <span class="o">=</span> <span class="n">backends</span> <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">_default_backends</span><span class="p">()</span>
+                    <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#torch_tweak.torch.tune_strategy.FirstWinsStrategy--source--__codelineno-0-35">35</a></span>
+<span class="normal"><a href="#torch_tweak.torch.tune_strategy.FirstWinsStrategy--source--__codelineno-0-36">36</a></span>
+<span class="normal"><a href="#torch_tweak.torch.tune_strategy.FirstWinsStrategy--source--__codelineno-0-37">37</a></span>
+<span class="normal"><a href="#torch_tweak.torch.tune_strategy.FirstWinsStrategy--source--__codelineno-0-38">38</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="torch_tweak.torch.tune_strategy.FirstWinsStrategy--source--__codelineno-0-35" name="torch_tweak.torch.tune_strategy.FirstWinsStrategy--source--__codelineno-0-35"></a><span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">backends</span><span class="p">:</span> <span class="n">Iterable</span><span class="p">[</span><span class="n">Backend</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+<a id="torch_tweak.torch.tune_strategy.FirstWinsStrategy--source--__codelineno-0-36" name="torch_tweak.torch.tune_strategy.FirstWinsStrategy--source--__codelineno-0-36"></a><span class="w">    </span><span class="sd">"""Initializes strategy."""</span>
+<a id="torch_tweak.torch.tune_strategy.FirstWinsStrategy--source--__codelineno-0-37" name="torch_tweak.torch.tune_strategy.FirstWinsStrategy--source--__codelineno-0-37"></a>    <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+<a id="torch_tweak.torch.tune_strategy.FirstWinsStrategy--source--__codelineno-0-38" name="torch_tweak.torch.tune_strategy.FirstWinsStrategy--source--__codelineno-0-38"></a>    <span class="bp">self</span><span class="o">.</span><span class="n">_backends</span> <span class="o">=</span> <span class="n">backends</span> <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">_default_backends</span><span class="p">()</span>
 </code></pre></div></td></tr></table></div>
                   </details>
 

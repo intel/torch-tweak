@@ -29,6 +29,10 @@
          <lastmod>2026-10-23</lastmod>
     </url>
     <url>
+         <loc>https://intel.github.io/torch-tweak/main/api/backends/xpu_graph_backend/</loc>
+         <lastmod>2026-10-23</lastmod>
+    </url>
+    <url>
          <loc>https://intel.github.io/torch-tweak/main/api/tune_strategies/first_wins_strategy/</loc>
          <lastmod>2026-10-23</lastmod>
     </url>
@@ -130,6 +134,10 @@
     </url>
     <url>
          <loc>https://intel.github.io/torch-tweak/main/guides/backends/torchao_backend/</loc>
+         <lastmod>2026-10-23</lastmod>
+    </url>
+    <url>
+         <loc>https://intel.github.io/torch-tweak/main/guides/backends/xpu_graph_backend/</loc>
          <lastmod>2026-10-23</lastmod>
     </url>
     <url>

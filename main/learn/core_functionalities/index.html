@@ -932,6 +932,34 @@
   
   
     <li class="md-nav__item">
+      <a href="../../guides/backends/xpu_graph_backend/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    XPU Graph Backend
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
       <a href="../../guides/backends/torch_eager_backend/" class="md-nav__link">
         
   
@@ -1884,6 +1912,34 @@
   
   
     <li class="md-nav__item">
+      <a href="../../api/backends/xpu_graph_backend/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    XPU Graph Backend
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
       <a href="../../api/backends/torch_eager_backend/" class="md-nav__link">
         
   
@@ -2496,11 +2552,12 @@ NOTE: This file has been modified by Intel Corporation.
 <a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a>
 <a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a><span class="n">strategy</span> <span class="o">=</span> <span class="n">FirstWinsStrategy</span><span class="p">(</span>
 <a id="__codelineno-5-4" name="__codelineno-5-4" href="#__codelineno-5-4"></a>    <span class="n">backends</span><span class="o">=</span><span class="p">[</span>
-<a id="__codelineno-5-5" name="__codelineno-5-5" href="#__codelineno-5-5"></a>        <span class="n">TorchInductorBackend</span><span class="p">(),</span>
-<a id="__codelineno-5-6" name="__codelineno-5-6" href="#__codelineno-5-6"></a>        <span class="n">OpenVINOBackend</span><span class="p">(),</span>
-<a id="__codelineno-5-7" name="__codelineno-5-7" href="#__codelineno-5-7"></a>        <span class="n">TorchEagerBackend</span><span class="p">(),</span>
-<a id="__codelineno-5-8" name="__codelineno-5-8" href="#__codelineno-5-8"></a>    <span class="p">]</span>
-<a id="__codelineno-5-9" name="__codelineno-5-9" href="#__codelineno-5-9"></a><span class="p">)</span>
+<a id="__codelineno-5-5" name="__codelineno-5-5" href="#__codelineno-5-5"></a>        <span class="n">XPUGraphBackend</span><span class="p">(),</span>
+<a id="__codelineno-5-6" name="__codelineno-5-6" href="#__codelineno-5-6"></a>        <span class="n">TorchInductorBackend</span><span class="p">(),</span>
+<a id="__codelineno-5-7" name="__codelineno-5-7" href="#__codelineno-5-7"></a>        <span class="n">OpenVINOBackend</span><span class="p">(),</span>
+<a id="__codelineno-5-8" name="__codelineno-5-8" href="#__codelineno-5-8"></a>        <span class="n">TorchEagerBackend</span><span class="p">(),</span>
+<a id="__codelineno-5-9" name="__codelineno-5-9" href="#__codelineno-5-9"></a>    <span class="p">]</span>
+<a id="__codelineno-5-10" name="__codelineno-5-10" href="#__codelineno-5-10"></a><span class="p">)</span>
 </code></pre></div>
 <p>That order is also the default when you construct <code>FirstWinsStrategy</code> with no backend list. The first backend that builds and validates is kept.</p>
 <h2 id="onebackendstrategy">OneBackendStrategy</h2>
@@ -2510,7 +2567,7 @@ NOTE: This file has been modified by Intel Corporation.
 <a id="__codelineno-6-3" name="__codelineno-6-3" href="#__codelineno-6-3"></a><span class="n">strategy</span> <span class="o">=</span> <span class="n">OneBackendStrategy</span><span class="p">(</span><span class="n">backend</span><span class="o">=</span><span class="n">OpenVINOBackend</span><span class="p">())</span>
 </code></pre></div>
 <h2 id="highestthroughputstrategy">HighestThroughputStrategy</h2>
-<p>Profiles all compatible backends and selects the fastest. Use this when maximum throughput matters and you can afford longer tuning time. <code>HighestThroughputStrategy()</code> with no backend list compares Torch Inductor and eager only.</p>
+<p>Profiles all compatible backends and selects the fastest. Use this when maximum throughput matters and you can afford longer tuning time. <code>HighestThroughputStrategy()</code> with no backend list compares Torch Inductor, XPU graph, and eager.</p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">torch_tweak.torch.tune_strategy</span><span class="w"> </span><span class="kn">import</span> <span class="n">HighestThroughputStrategy</span>
 <a id="__codelineno-7-2" name="__codelineno-7-2" href="#__codelineno-7-2"></a>
 <a id="__codelineno-7-3" name="__codelineno-7-3" href="#__codelineno-7-3"></a><span class="n">strategy</span> <span class="o">=</span> <span class="n">HighestThroughputStrategy</span><span class="p">(</span>

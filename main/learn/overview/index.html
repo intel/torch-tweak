@@ -908,6 +908,34 @@
   
   
     <li class="md-nav__item">
+      <a href="../../guides/backends/xpu_graph_backend/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    XPU Graph Backend
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
       <a href="../../guides/backends/torch_eager_backend/" class="md-nav__link">
         
   
@@ -1860,6 +1888,34 @@
   
   
     <li class="md-nav__item">
+      <a href="../../api/backends/xpu_graph_backend/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    XPU Graph Backend
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
       <a href="../../api/backends/torch_eager_backend/" class="md-nav__link">
         
   
@@ -2378,7 +2434,7 @@ NOTE: This file has been modified by Intel Corporation.
 <a href="https://www.python.org/downloads/"><img alt="Python" src="https://img.shields.io/badge/python-3.11+-blue.svg" /></a>
 <a href="https://pytorch.org/"><img alt="PyTorch" src="https://img.shields.io/badge/PyTorch-2.13+-blue.svg" /></a></p>
 <p><strong>Torch Tweak</strong> is an inference toolkit designed for tuning and deploying Deep Learning models with a focus on Intel XPU (GPU) accelerators. It provides model tuning capabilities through compilation and conversion paths that can significantly improve inference speed and efficiency across various AI workloads including Computer Vision, Natural Language Processing, Speech Recognition, and Generative AI.</p>
-<p>The toolkit enables seamless tuning of PyTorch models and pipelines using TorchAO, Torch Inductor, OpenVINO, and eager through a single Python API. The resulting tuned models are ready for deployment in production environments.</p>
+<p>The toolkit enables seamless tuning of PyTorch models and pipelines using TorchAO, Torch Inductor, XPU graph, OpenVINO, and eager through a single Python API. The resulting tuned models are ready for deployment in production environments.</p>
 <p>Torch Tweak works with your environment - relying first on your software versions - and selects the best-performing backend for your software and hardware setup, guiding you to supported technologies.</p>
 <p><strong>Note</strong>: This toolkit is currently in pre-release (pre-1.0) and not yet production-quality. The API is subject to change in future updates.</p>
 <h2 id="when-to-use-torch-tweak">When to Use Torch Tweak</h2>
@@ -2400,7 +2456,7 @@ NOTE: This file has been modified by Intel Corporation.
 </tr>
 <tr>
 <td>Wide Backend Support</td>
-<td>Compatible with TorchAO, Torch Inductor, OpenVINO, and eager</td>
+<td>Compatible with TorchAO, Torch Inductor, XPU graph, OpenVINO, and eager</td>
 </tr>
 <tr>
 <td>Model Tuning</td>

@@ -612,6 +612,17 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#xpu-graph-backend" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        XPU Graph Backend
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#openvino-backend" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -912,6 +923,34 @@
     
   
     Torch Inductor Backend
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../guides/backends/xpu_graph_backend/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    XPU Graph Backend
   
 
     
@@ -1884,6 +1923,34 @@
   
   
     <li class="md-nav__item">
+      <a href="../../api/backends/xpu_graph_backend/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    XPU Graph Backend
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
       <a href="../../api/backends/torch_eager_backend/" class="md-nav__link">
         
   
@@ -2372,6 +2439,17 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#xpu-graph-backend" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        XPU Graph Backend
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#openvino-backend" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -2436,25 +2514,34 @@ NOTE: This file has been modified by Intel Corporation.
 <a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a><span class="n">backend</span> <span class="o">=</span> <span class="n">TorchInductorBackend</span><span class="p">()</span>
 </code></pre></div>
 <p>Guide: <a href="../../guides/backends/torch_inductor_backend/">Torch Inductor Backend</a>.</p>
+<h2 id="xpu-graph-backend">XPU Graph Backend</h2>
+<p>The XPU graph backend records the module once while tuning and replays that recording for later inference.
+PyTorch chooses native or legacy recording. This backend uses whichever one that build records.
+A recording that fails, or that disagrees with eager, is rejected for that module and input.</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">torch_tweak.torch.backend</span><span class="w"> </span><span class="kn">import</span> <span class="n">XPUGraphBackend</span>
+<a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a>
+<a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a><span class="n">backend</span> <span class="o">=</span> <span class="n">XPUGraphBackend</span><span class="p">()</span>
+</code></pre></div>
+<p>Guide: <a href="../../guides/backends/xpu_graph_backend/">XPU Graph Backend</a>.</p>
 <h2 id="openvino-backend">OpenVINO Backend</h2>
 <p>The OpenVINO backend converts the module to an OpenVINO model and runs it on an Intel CPU or GPU.</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">torch_tweak.torch.backend</span><span class="w"> </span><span class="kn">import</span> <span class="n">OpenVINOBackend</span>
-<a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a>
-<a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a><span class="n">backend</span> <span class="o">=</span> <span class="n">OpenVINOBackend</span><span class="p">()</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">torch_tweak.torch.backend</span><span class="w"> </span><span class="kn">import</span> <span class="n">OpenVINOBackend</span>
+<a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a>
+<a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a><span class="n">backend</span> <span class="o">=</span> <span class="n">OpenVINOBackend</span><span class="p">()</span>
 </code></pre></div>
 <p>Conversion defaults to <code>torch.export</code>. For modules that <code>torch.export</code> cannot capture, switch to the
 legacy trace-based conversion and optionally change the compile hint:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">torch_tweak.torch.backend</span><span class="w"> </span><span class="kn">import</span> <span class="n">OpenVINOBackend</span><span class="p">,</span> <span class="n">OpenVINOBackendConfig</span>
-<a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a>
-<a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a><span class="n">backend</span> <span class="o">=</span> <span class="n">OpenVINOBackend</span><span class="p">(</span><span class="n">OpenVINOBackendConfig</span><span class="p">(</span><span class="n">use_dynamo</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">performance_hint</span><span class="o">=</span><span class="s2">"THROUGHPUT"</span><span class="p">))</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">torch_tweak.torch.backend</span><span class="w"> </span><span class="kn">import</span> <span class="n">OpenVINOBackend</span><span class="p">,</span> <span class="n">OpenVINOBackendConfig</span>
+<a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a>
+<a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a><span class="n">backend</span> <span class="o">=</span> <span class="n">OpenVINOBackend</span><span class="p">(</span><span class="n">OpenVINOBackendConfig</span><span class="p">(</span><span class="n">use_dynamo</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">performance_hint</span><span class="o">=</span><span class="s2">"THROUGHPUT"</span><span class="p">))</span>
 </code></pre></div>
 <p>Guide: <a href="../../guides/backends/openvino_backend/">OpenVINO Backend</a>.</p>
 <h2 id="torch-eager-backend">Torch Eager Backend</h2>
 <p>The Torch Eager backend runs the module with no compilation and no conversion. It is the baseline <code>HighestThroughputStrategy</code> compares the other backends against.</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">torch_tweak.torch.backend</span><span class="w"> </span><span class="kn">import</span> <span class="n">TorchEagerBackend</span><span class="p">,</span> <span class="n">TorchEagerBackendConfig</span>
-<a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a><span class="kn">import</span><span class="w"> </span><span class="nn">torch</span>
-<a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a>
-<a id="__codelineno-4-4" name="__codelineno-4-4" href="#__codelineno-4-4"></a><span class="n">backend</span> <span class="o">=</span> <span class="n">TorchEagerBackend</span><span class="p">(</span><span class="n">TorchEagerBackendConfig</span><span class="p">(</span><span class="n">autocast_enabled</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">autocast_dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">float16</span><span class="p">))</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">torch_tweak.torch.backend</span><span class="w"> </span><span class="kn">import</span> <span class="n">TorchEagerBackend</span><span class="p">,</span> <span class="n">TorchEagerBackendConfig</span>
+<a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a><span class="kn">import</span><span class="w"> </span><span class="nn">torch</span>
+<a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a>
+<a id="__codelineno-5-4" name="__codelineno-5-4" href="#__codelineno-5-4"></a><span class="n">backend</span> <span class="o">=</span> <span class="n">TorchEagerBackend</span><span class="p">(</span><span class="n">TorchEagerBackendConfig</span><span class="p">(</span><span class="n">autocast_enabled</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">autocast_dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">float16</span><span class="p">))</span>
 </code></pre></div>
 <p>Guide: <a href="../../guides/backends/torch_eager_backend/">Torch Eager Backend</a>.</p>
 
