@@ -36,11 +36,14 @@ class XPUGraphBackendConfig(BackendConfig):
         max_recorded_batch_size: The largest batch size recorded for a graph spec with a batch axis.
             Graphs are recorded for batch sizes 1, 2, 4, and every multiple of 8 up to this size.
             A larger batch replays in chunks of this size.
+        compile_with_inductor: If True, record the kernels Torch Inductor generates for the module
+            instead of the eager kernels. Compilation runs during the warmup before each recording.
     """
 
     autocast_enabled: bool = False
     autocast_dtype: torch.dtype | None = None
     max_recorded_batch_size: int = 256
+    compile_with_inductor: bool = False
 
     @classmethod
     def from_dict(cls, state_dict: dict[str, Any]) -> Self:
@@ -108,6 +111,8 @@ class XPUGraphBackend(Backend):
         self._layout: _Layout | None = None
         # Keyed by batch size. A graph spec without a batch axis has one recording under key 1.
         self._recordings: dict[int, _Recording] = {}
+        # The callable that warmup and recording run: the original module or its Inductor compilation.
+        self._recorded_module: Any = None
         self._pool: Any = None
         self._warned_eager = False
 
@@ -277,6 +282,9 @@ class XPUGraphBackend(Backend):
         self._orig_module.to(self._device)
         try:
             self._layout = self._detect_layout()
+            self._recorded_module = (
+                torch.compile(self._orig_module) if self._config.compile_with_inductor else self._orig_module
+            )
             self._pool = torch.xpu.graph_pool_handle()
             sizes = self._batch_sizes_to_record() if self._layout.has_batch_axis else [1]
             buffer = tree_flatten(_clone_tree(self._sample_of_size(max(sizes))))[0]
@@ -354,13 +362,14 @@ class XPUGraphBackend(Backend):
             with self._autocast(), torch.no_grad():
                 # Warmup. The first oneDNN GEMM for a shape selects an algorithm and allocates its workspace.
                 # That work stays outside the recording.
-                self._orig_module(*_clone_tree(static_args), **_clone_tree(static_kwargs))
+                # With compile_with_inductor, this call also compiles for the shape.
+                self._recorded_module(*_clone_tree(static_args), **_clone_tree(static_kwargs))
                 with warnings.catch_warnings(record=True) as caught:
                     warnings.simplefilter("always")
                     # Records this call on default_capture_stream.
                     # Exiting the block ends the recording.
                     with torch.xpu.graph(graph, pool=self._pool):
-                        captured = self._orig_module(*static_args, **static_kwargs)
+                        captured = self._recorded_module(*static_args, **static_kwargs)
             if any("XPU Graph is empty" in str(item.message) for item in caught):
                 raise RuntimeError("XPU graph capture recorded no device work")
         except Exception:
@@ -457,6 +466,7 @@ class XPUGraphBackend(Backend):
         for recording in self._recordings.values():
             recording.graph.reset()
         self._recordings = {}
+        self._recorded_module = None
         self._layout = None
         self._pool = None
 

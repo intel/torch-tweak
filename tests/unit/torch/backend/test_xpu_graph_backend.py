@@ -393,6 +393,25 @@ def test_dynamic_axis_is_rejected(torch_device, tmp_path):
 
 
 @requires_xpu
+def test_compile_with_inductor_records_the_compiled_kernels(torch_device, tmp_path):
+    torch._dynamo.reset()
+    torch._dynamo.utils.counters.clear()
+    module = LinearRelu()
+    config = XPUGraphBackendConfig(compile_with_inductor=True)
+    backend = batched_build(module, torch_device, tmp_path, largest=16, config=config)
+
+    assert torch._dynamo.utils.counters["stats"]["unique_graphs"] > 0
+    assert backend.recorded_batch_sizes == [1, 2, 4, 8, 16]
+    assert backend.describe() == "XPUGraphBackend(compile_with_inductor=True)"
+    # Replay runs the recorded kernels without calling the compiled module.
+    backend._recorded_module = None
+    with torch.no_grad():
+        for batch_size in (1, 3, 16, 20):
+            x = torch.randn(batch_size, 16, device=torch_device)
+            torch.testing.assert_close(backend.infer(x), module(x), rtol=1e-4, atol=1e-4)
+
+
+@requires_xpu
 def test_batch_axis_serialization(torch_device, tmp_path):
     module = LinearRelu()
     backend = batched_build(module, torch_device, tmp_path, largest=8)
