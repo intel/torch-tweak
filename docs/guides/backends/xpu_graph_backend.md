@@ -46,6 +46,22 @@ from torch_tweak.torch.backend import XPUGraphBackend, XPUGraphBackendConfig
 backend = XPUGraphBackend(XPUGraphBackendConfig(max_recorded_batch_size=64))
 ```
 
+## Inductor Kernels
+
+`compile_with_inductor=True` records the kernels Torch Inductor generates instead of the eager kernels.
+Replay then runs the fused Inductor kernels without launching each one from Python.
+On CUDA, `torch.compile(mode="reduce-overhead")` does the same with CUDA graphs. That mode has no effect on XPU.
+
+Compilation runs during the warmup before each recording.
+Inductor compiles about three times for all recorded sizes: once for the largest size, once with a dynamic batch axis, and once for batch size 1.
+Replay is still checked against the eager module.
+
+```python
+from torch_tweak.torch.backend import XPUGraphBackend, XPUGraphBackendConfig
+
+backend = XPUGraphBackend(XPUGraphBackendConfig(compile_with_inductor=True))
+```
+
 ## Quick Start
 
 ```python
