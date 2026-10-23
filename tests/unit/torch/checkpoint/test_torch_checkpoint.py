@@ -150,6 +150,18 @@ def test_tune_save_load_part_of_model(model_factory, sample, checkpoint):
 
 
 @requires_xpu
+def test_load_state_dict_for_module_consumes_tuned_submodule_keys(model_factory, sample):
+    model = model_factory()
+    model.linear1 = Module(model.linear1, "demo-simple1", strategy=OneBackendStrategy(TorchInductorBackend()))
+    tune(model, sample, batch_sizes=[1, 2], dry_run=False, disable_external_logging=False)
+    state_dict = model.state_dict()
+
+    TorchCheckpoint.load_state_dict_for_module(model_factory(), state_dict, device_map={})
+
+    assert list(state_dict) == ["linear2.weight", "linear2.bias"]
+
+
+@requires_xpu
 def test_tune_save_load_part_of_model_with_full_device_map(model_factory, sample, torch_device, checkpoint):
     """Test tuning, saving and loading a model with individual layers wrapped in Modules."""
 
@@ -204,6 +216,58 @@ def test_tune_save_load_part_of_model_with_invalid_device_map(model_factory, sam
             wrap_partial_model,
             checkpoint,
             device_map={"linear123": torch_device},
+        )
+
+
+class _NestedToyModel(torch.nn.Module):
+    def __init__(self):
+        super().__init__()
+        self.inner = ToyTorchModel(is_linear=True)
+
+    def forward(self, x):
+        return self.inner(x)
+
+
+def _wrap_inner_layers(model):
+    model.inner.linear1 = Module(
+        model.inner.linear1, "demo-simple1", strategy=OneBackendStrategy(TorchInductorBackend())
+    )
+    model.inner.linear2 = Module(
+        model.inner.linear2, "demo-simple2", strategy=OneBackendStrategy(TorchInductorBackend())
+    )
+    return model
+
+
+@requires_xpu
+@pytest.mark.parametrize(
+    "device_map_keys",
+    [
+        pytest.param(["inner.linear1", "inner.linear2"], id="full_device_map"),
+        pytest.param(["inner.linear1"], id="partial_device_map"),
+    ],
+)
+def test_tune_save_load_nested_part_of_model_with_device_map(sample, torch_device, checkpoint, device_map_keys):
+    """Test that a tuned module nested two levels deep is addressed by its dotted path."""
+    _tune_save_load_helper(
+        lambda: _NestedToyModel().xpu(),
+        sample,
+        "nested_model_test.tt",
+        _wrap_inner_layers,
+        checkpoint,
+        device_map=dict.fromkeys(device_map_keys, torch_device),
+    )
+
+
+@requires_xpu
+def test_tune_save_load_nested_part_of_model_rejects_leaf_name_in_device_map(sample, torch_device, checkpoint):
+    with pytest.raises(ValueError, match="Some modules in the device_map were not found: .*"):
+        _tune_save_load_helper(
+            lambda: _NestedToyModel().xpu(),
+            sample,
+            "nested_model_test.tt",
+            _wrap_inner_layers,
+            checkpoint,
+            device_map={"linear1": torch_device},
         )
 
 
