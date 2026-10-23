@@ -9,6 +9,8 @@
 2. Runs all backends with given max batch size.
 3. Finds the highest throughput for each backend.
 4. Returns the backend with the highest throughput.
+   When another backend is faster for some batch sizes, returns a BatchSizeRouterBackend
+   that sends those batch sizes to it.
 """
 
 from collections.abc import Iterable
@@ -20,7 +22,8 @@ from typing import Any
 import torch
 import torch.nn as nn
 
-from torch_tweak.torch.backend import Backend
+from torch_tweak.torch.backend import Backend, BatchSizeRouterBackend
+from torch_tweak.torch.backend.batch_size_router_backend import Route
 from torch_tweak.torch.config import (
     DEFAULT_STABILITY_PERCENTAGE,
     DEFAULT_THROUGHPUT_BACKOFF_LIMIT,
@@ -29,7 +32,10 @@ from torch_tweak.torch.config import (
 )
 from torch_tweak.torch.module.graph_spec import GraphSpec
 from torch_tweak.torch.module.recording_module import Sample
-from torch_tweak.torch.task.find_max_batch_size import calculate_highest_throughput_for_backend
+from torch_tweak.torch.task.find_max_batch_size import (
+    calculate_highest_throughput_for_backend,
+    get_throughput_per_batch_size,
+)
 from torch_tweak.torch.task.profiling import (
     MeasuringStopStrategy,
     ModelExecutionTimeMeasuringStrategy,
@@ -39,6 +45,7 @@ from torch_tweak.torch.task.profiling import (
     StableWindowMeasuringStopStrategy,
     ThroughputSaturatedProfilingStopStrategy,
 )
+from torch_tweak.torch.task.profiling.events import get_inference_events
 from torch_tweak.torch.tune_strategy.default_backends import default_backends
 from torch_tweak.torch.tune_strategy.extension import TuneStrategyFindMaxBatchSizeExtension
 from torch_tweak.utils.logging import control_output, log
@@ -123,6 +130,7 @@ class HighestThroughputStrategy(TuneStrategyFindMaxBatchSizeExtension):
         best_backend = None
         best_throughput = float("-inf")
         best_batch_size = 1
+        throughputs: list[tuple[Backend, dict[int, float]]] = []
 
         backends = list(self._backends or default_backends(device))
 
@@ -150,6 +158,10 @@ class HighestThroughputStrategy(TuneStrategyFindMaxBatchSizeExtension):
                         )
                     )
                     measurements += results.entries
+                    per_batch_size = get_throughput_per_batch_size(
+                        get_inference_events(results.entries), self._measurement_stop_strategy
+                    )
+                    throughputs.append((backend, dict(per_batch_size)))
                     log(
                         "✅ backend profiled - throughput: %.2f samples/s, batch size: %s",
                         throughput,
@@ -193,6 +205,9 @@ class HighestThroughputStrategy(TuneStrategyFindMaxBatchSizeExtension):
                 measurements=measurements,
             )
         )
+        routes = _routes_by_batch_size(throughputs, best_backend)
+        if len(routes) > 1:
+            best_backend = BatchSizeRouterBackend(routes, graph_spec.input_spec)
         best_backend.activate()
         log("🎯 Strategy %s execution finished:", self.__class__.__name__, sink=self._sink)
         log(
@@ -227,3 +242,32 @@ class HighestThroughputStrategy(TuneStrategyFindMaxBatchSizeExtension):
             "backends:",
             *[f"  {backend}" for backend in backends],
         ]
+
+
+# Another backend takes a batch size from the best backend only when it is this much faster.
+# The margin keeps measurement noise from splitting the routes.
+ROUTE_SPEEDUP = 1.1
+
+
+def _routes_by_batch_size(throughputs: list[tuple[Backend, dict[int, float]]], best: Backend) -> list[Route]:
+    """Returns (largest batch size, backend) routes. A single route means best runs every batch size.
+
+    throughputs holds samples per second by batch size for every profiled backend.
+    A batch size between two profiled ones goes to the route of the larger one.
+    """
+    best_per_batch_size = next(per_batch_size for backend, per_batch_size in throughputs if backend is best)
+    routes: list[Route] = []
+    for batch_size in sorted(best_per_batch_size):
+        winner, top = best, best_per_batch_size[batch_size]
+        for backend, per_batch_size in throughputs:
+            throughput = per_batch_size.get(batch_size, 0.0)
+            if throughput > top and throughput > ROUTE_SPEEDUP * best_per_batch_size[batch_size]:
+                winner, top = backend, throughput
+        if routes and routes[-1][1] is winner:
+            routes[-1] = (batch_size, winner)
+        else:
+            routes.append((batch_size, winner))
+    if not routes:
+        return [(None, best)]
+    routes[-1] = (None, routes[-1][1])
+    return routes

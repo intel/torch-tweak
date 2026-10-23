@@ -58,6 +58,8 @@ strategy = HighestThroughputStrategy(backends=[XPUGraphBackend()])
 On XPU the backend is first in `default_backends(device)`, before Torch Inductor.
 `FirstWinsStrategy`, `HighestThroughputStrategy`, and `tt.default_strategy(device)` use that list when no backends are given.
 On CPU the list leaves this backend out.
+An XPU graph often wins at small batch sizes and loses at large ones.
+`HighestThroughputStrategy` then sends small batches to it and large batches to the faster backend.
 
 PyTorch records a native SYCL graph when it was built with a SYCL compiler of 2026.1 or newer, except on Intel Data Center GPU Max Series.
 An older build records the legacy SYCL command graph.
