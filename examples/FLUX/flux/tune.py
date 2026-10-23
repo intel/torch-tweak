@@ -17,6 +17,7 @@ from torch_tweak.torch.backend import (
     OpenVINOBackendConfig,
     TorchEagerBackend,
     TorchInductorBackend,
+    XPUGraphBackend,
 )
 
 logger = getLogger(__name__)
@@ -58,6 +59,7 @@ def tune_model(
         strategy = tt.FirstWinsStrategy(
             backends=[
                 TorchInductorBackend(),
+                XPUGraphBackend(),
                 OpenVINOBackend(
                     OpenVINOBackendConfig(
                         use_dynamo=False,

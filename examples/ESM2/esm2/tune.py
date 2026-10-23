@@ -11,7 +11,11 @@ import torch
 from transformers import AutoTokenizer, EsmForMaskedLM
 
 import torch_tweak.torch as tt
-from torch_tweak.torch.backend import TorchEagerBackend, TorchInductorBackend
+from torch_tweak.torch.backend import (
+    TorchEagerBackend,
+    TorchInductorBackend,
+    XPUGraphBackend,
+)
 
 DEVICE = torch.device("xpu")
 MODEL_NAME = "facebook/esm2_t33_650M_UR50D"
@@ -61,6 +65,7 @@ def tune(
         strategy = tt.FirstWinsStrategy(
             backends=[
                 TorchInductorBackend(),
+                XPUGraphBackend(),
                 TorchEagerBackend(),
             ]
         )

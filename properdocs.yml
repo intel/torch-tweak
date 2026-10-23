@@ -85,6 +85,7 @@ nav:
                 - OpenVINO Backend: guides/backends/openvino_backend.md
                 - TorchAO Backend: guides/backends/torchao_backend.md
                 - Torch Inductor Backend: guides/backends/torch_inductor_backend.md
+                - XPU Graph Backend: guides/backends/xpu_graph_backend.md
                 - Torch Eager Backend: guides/backends/torch_eager_backend.md
             - Tune Strategies: guides/tune_strategies/tune_strategies.md
             - Deployment: guides/deployment/deployment.md
@@ -114,6 +115,7 @@ nav:
                     -   OpenVINO Backend: api/backends/openvino_backend.md
                     -   TorchAO Backend: api/backends/torchao_backend.md
                     -   Torch Inductor Backend: api/backends/torch_inductor_backend.md
+                    -   XPU Graph Backend: api/backends/xpu_graph_backend.md
                     -   Torch Eager Backend: api/backends/torch_eager_backend.md
             -   Tuning Strategies API:
                     -   FirstWinsStrategy: api/tune_strategies/first_wins_strategy.md

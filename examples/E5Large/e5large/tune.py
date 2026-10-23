@@ -11,7 +11,11 @@ from pathlib import Path
 
 import torch
 from torch_tweak.torch import HighestThroughputStrategy, inspect, save, tune, wrap
-from torch_tweak.torch.backend import TorchEagerBackend, TorchInductorBackend
+from torch_tweak.torch.backend import (
+    TorchEagerBackend,
+    TorchInductorBackend,
+    XPUGraphBackend,
+)
 from torch_tweak.torch.config import config as global_config
 
 from .cmd_args import get_parser
@@ -97,6 +101,7 @@ def tune_model(
             backends=[
                 TorchEagerBackend(),
                 TorchInductorBackend(),
+                XPUGraphBackend(),
             ]
         ).enable_find_max_batch_size(True),
     )

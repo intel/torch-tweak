@@ -110,6 +110,7 @@ from torch_tweak.torch.tune_strategy import FirstWinsStrategy
 
 strategy = FirstWinsStrategy(
     backends=[
+        XPUGraphBackend(),
         TorchInductorBackend(),
         OpenVINOBackend(),
         TorchEagerBackend(),
@@ -131,7 +132,7 @@ strategy = OneBackendStrategy(backend=OpenVINOBackend())
 
 ## HighestThroughputStrategy
 
-Profiles all compatible backends and selects the fastest. Use this when maximum throughput matters and you can afford longer tuning time. `HighestThroughputStrategy()` with no backend list compares Torch Inductor and eager only.
+Profiles all compatible backends and selects the fastest. Use this when maximum throughput matters and you can afford longer tuning time. `HighestThroughputStrategy()` with no backend list compares Torch Inductor, XPU graph, and eager.
 
 ```python
 from torch_tweak.torch.tune_strategy import HighestThroughputStrategy

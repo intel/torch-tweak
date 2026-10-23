@@ -9,6 +9,7 @@ from abc import ABC, abstractmethod
 from collections.abc import Callable
 
 from torch_tweak.torch.task.profiling.events import ProfilingResultEvent
+from torch_tweak.torch.utils.xpu import synchronize
 
 
 class MeasuringStrategy(ABC):
@@ -46,8 +47,11 @@ class ModelExecutionTimeMeasuringStrategy(MeasuringStrategy):
         """Do the measurement and create a ProfilingResultEvent(s) for the model."""
         args, kwargs = sample
 
+        synchronize()
         start = time.monotonic_ns()
         model(*args, **kwargs)
+        # Replay returns after submit. The device may still be running.
+        synchronize()
         end = time.monotonic_ns()
 
         ModelExecutionTimeMeasuringStrategy.counter += 1
