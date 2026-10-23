@@ -20,6 +20,16 @@ from torch_tweak.torch.module.wrapper_module import Module
 from torch_tweak.torch.tune_strategy.one_backend_strategy import OneBackendStrategy
 from torch_tweak.torch.tuning import tune
 
+DEVICE_MAP_KEYS = [
+    pytest.param([], id="no_device_map"),
+    pytest.param(["linear1", "linear2"], id="full_device_map"),
+    pytest.param(["linear1"], id="partial_device_map"),
+]
+
+
+def expect_device_map_not_found():
+    return pytest.raises(ValueError, match="Some modules in the device_map were not found")
+
 
 @pytest.fixture
 def checkpoint(tmp_path):
@@ -33,7 +43,7 @@ def checkpoint(tmp_path):
 
 @pytest.fixture
 def model_factory():
-    return lambda: ToyTorchModel(is_linear=True).xpu()
+    return lambda: ToyTorchModel().xpu()
 
 
 @pytest.fixture
@@ -51,18 +61,17 @@ def sample(model_factory):
     yield model_factory().sample().xpu()
 
 
-def _tune_save_load_helper(model_factory, samples, output_dir, wrap_model_fn, checkpoint, device_map=None):
-    """Helper function to handle common tune-save-load-verify workflow.
+def _tune_save_load_helper(model_factory, samples, checkpoint_name, wrap_model_fn, checkpoint, device_map=None):
+    """Tune a wrapped model, save it, load it into a fresh model and compare predictions.
 
     Args:
         model_factory: Function that creates a fresh model instance.
         samples (torch.Tensor): Input samples for model inference.
-        output_dir (Path): Directory to save the tuned model.
+        checkpoint_name (str): File name of the checkpoint inside the storage root.
         wrap_model_fn: Function that takes a model and returns a wrapped version
             ready for tuning.
-
-    Returns:
-        None
+        checkpoint (TorchCheckpoint): Checkpoint used to save and load the model.
+        device_map (dict | None): Device map passed to `checkpoint.load`.
 
     Raises:
         AssertionError: If model predictions after load don't match expected results.
@@ -73,16 +82,26 @@ def _tune_save_load_helper(model_factory, samples, output_dir, wrap_model_fn, ch
         expected = model(test_data)
 
     wrapped_model = wrap_model_fn(model)
-    tune(wrapped_model, samples, batch_sizes=[1, 2], dry_run=False, disable_external_logging=False)
-    checkpoint.save(wrapped_model, output_dir)
+    tune(wrapped_model, samples, batch_sizes=[1, 2])
+    checkpoint.save(wrapped_model, checkpoint_name)
 
     # create a new model instance and load the tuned model
     model = model_factory()
-    model_loaded = checkpoint.load(model, output_dir, device_map=device_map)
+    model_loaded = checkpoint.load(model, checkpoint_name, device_map=device_map)
 
     with torch.no_grad():
         preds = model_loaded(test_data)
     torch.testing.assert_close(preds, expected, rtol=1e-3, atol=1e-3)
+
+
+def _wrap_whole_model(model, backend=None):
+    return Module(model, "demo-simple", strategy=OneBackendStrategy(backend or TorchInductorBackend()))
+
+
+def _wrap_linear_layers(model):
+    model.linear1 = Module(model.linear1, "demo-simple1", strategy=OneBackendStrategy(TorchInductorBackend()))
+    model.linear2 = Module(model.linear2, "demo-simple2", strategy=OneBackendStrategy(TorchInductorBackend()))
+    return model
 
 
 @requires_xpu
@@ -95,242 +114,113 @@ def _tune_save_load_helper(model_factory, samples, output_dir, wrap_model_fn, ch
 )  # cover both compiled and eager backends
 def test_tune_save_load_whole_model(model_factory, sample, backend, checkpoint):
     """Test tuning, saving and loading a whole model wrapped in a single Module."""
-
-    def wrap_whole_model(model):
-        return Module(model, "demo-simple", strategy=OneBackendStrategy(backend))
-
-    _tune_save_load_helper(model_factory, sample, "top_model_test.tt", wrap_whole_model, checkpoint)
+    _tune_save_load_helper(
+        model_factory, sample, "top_model_test.tt", lambda model: _wrap_whole_model(model, backend), checkpoint
+    )
 
 
 @requires_xpu
 def test_tune_save_load_whole_model_with_device_map(model_factory, sample, torch_device, checkpoint):
-    """Test tuning, saving and loading a whole model wrapped in a single Module."""
-
-    def wrap_whole_model(model):
-        return Module(model, "demo-simple", strategy=OneBackendStrategy(TorchInductorBackend()))
-
+    """Test loading a whole tuned model with a device_map entry for the top module."""
     _tune_save_load_helper(
-        model_factory,
-        sample,
-        "top_model_test.tt",
-        wrap_whole_model,
-        checkpoint,
-        device_map={"": torch_device},
+        model_factory, sample, "top_model_test.tt", _wrap_whole_model, checkpoint, device_map={"": torch_device}
     )
 
 
 @requires_xpu
 def test_tune_save_load_whole_model_with_invalid_device_map(model_factory, sample, torch_device, checkpoint):
-    """Test tuning, saving and loading a whole model wrapped in a single Module."""
-
-    def wrap_whole_model(model):
-        return Module(model, "demo-simple", strategy=OneBackendStrategy(TorchInductorBackend()))
-
-    with pytest.raises(ValueError, match="Some modules in the device_map were not found: .*"):
+    """Test that loading a whole tuned model rejects an unknown device_map key."""
+    with expect_device_map_not_found():
         _tune_save_load_helper(
             model_factory,
             sample,
             "top_model_test.tt",
-            wrap_whole_model,
+            _wrap_whole_model,
             checkpoint,
             device_map={"linear123": torch_device},
         )
 
 
 @requires_xpu
-def test_tune_save_load_part_of_model(model_factory, sample, checkpoint):
+@pytest.mark.parametrize("device_map_keys", DEVICE_MAP_KEYS)
+def test_tune_save_load_part_of_model(model_factory, sample, torch_device, checkpoint, device_map_keys):
     """Test tuning, saving and loading a model with individual layers wrapped in Modules."""
-
-    def wrap_partial_model(model):
-        model.linear1 = Module(model.linear1, "demo-simple1", strategy=OneBackendStrategy(TorchInductorBackend()))
-        model.linear2 = Module(model.linear2, "demo-simple2", strategy=OneBackendStrategy(TorchInductorBackend()))
-        return model
-
-    _tune_save_load_helper(model_factory, sample, "partial_model_test.tt", wrap_partial_model, checkpoint)
-
-
-@requires_xpu
-def test_tune_save_load_part_of_model_with_full_device_map(model_factory, sample, torch_device, checkpoint):
-    """Test tuning, saving and loading a model with individual layers wrapped in Modules."""
-
-    def wrap_partial_model(model):
-        model.linear1 = Module(model.linear1, "demo-simple1", strategy=OneBackendStrategy(TorchInductorBackend()))
-        model.linear2 = Module(model.linear2, "demo-simple2", strategy=OneBackendStrategy(TorchInductorBackend()))
-        return model
-
     _tune_save_load_helper(
         model_factory,
         sample,
         "partial_model_test.tt",
-        wrap_partial_model,
+        _wrap_linear_layers,
         checkpoint,
-        device_map={"linear1": torch_device, "linear2": torch_device},
-    )
-
-
-@requires_xpu
-def test_tune_save_load_part_of_model_with_partial_device_map(model_factory, sample, torch_device, checkpoint):
-    """Test tuning, saving and loading a model with individual layers wrapped in Modules."""
-
-    def wrap_partial_model(model):
-        model.linear1 = Module(model.linear1, "demo-simple1", strategy=OneBackendStrategy(TorchInductorBackend()))
-        model.linear2 = Module(model.linear2, "demo-simple2", strategy=OneBackendStrategy(TorchInductorBackend()))
-        return model
-
-    _tune_save_load_helper(
-        model_factory,
-        sample,
-        "partial_model_test.tt",
-        wrap_partial_model,
-        checkpoint,
-        device_map={"linear1": torch_device},
+        device_map=dict.fromkeys(device_map_keys, torch_device),
     )
 
 
 @requires_xpu
 def test_tune_save_load_part_of_model_with_invalid_device_map(model_factory, sample, torch_device, checkpoint):
-    """Test tuning, saving and loading a model with individual layers wrapped in Modules."""
-
-    def wrap_partial_model(model):
-        model.linear1 = Module(model.linear1, "demo-simple1", strategy=OneBackendStrategy(TorchInductorBackend()))
-        model.linear2 = Module(model.linear2, "demo-simple2", strategy=OneBackendStrategy(TorchInductorBackend()))
-        return model
-
-    with pytest.raises(ValueError, match="Some modules in the device_map were not found: .*"):
+    """Test that loading a model with tuned layers rejects an unknown device_map key."""
+    with expect_device_map_not_found():
         _tune_save_load_helper(
             model_factory,
             sample,
             "partial_model_test.tt",
-            wrap_partial_model,
+            _wrap_linear_layers,
             checkpoint,
             device_map={"linear123": torch_device},
         )
 
 
 @requires_xpu
-def test_tune_save_load_pipeline(pipeline_factory, sample, checkpoint):
-    """Test tuning, saving and loading a pipeline."""
-
-    def wrap_pipeline(pipeline):
-        pipeline.linear1 = Module(pipeline.linear1, "demo-simple3", strategy=OneBackendStrategy(TorchInductorBackend()))
-        pipeline.linear2 = Module(pipeline.linear2, "demo-simple4", strategy=OneBackendStrategy(TorchInductorBackend()))
-        return pipeline
-
-    _tune_save_load_helper(pipeline_factory, sample, "pipeline_test.tt", wrap_pipeline, checkpoint)
-
-
-@requires_xpu
-def test_tune_save_load_pipeline_with_full_device_map(pipeline_factory, sample, torch_device, checkpoint):
-    """Test tuning, saving and loading a pipeline."""
-
-    def wrap_pipeline(pipeline):
-        pipeline.linear1 = Module(pipeline.linear1, "demo-simple3", strategy=OneBackendStrategy(TorchInductorBackend()))
-        pipeline.linear2 = Module(pipeline.linear2, "demo-simple4", strategy=OneBackendStrategy(TorchInductorBackend()))
-        return pipeline
-
+@pytest.mark.parametrize("device_map_keys", DEVICE_MAP_KEYS)
+def test_tune_save_load_pipeline(pipeline_factory, sample, torch_device, checkpoint, device_map_keys):
+    """Test tuning, saving and loading a pipeline whose attributes are tuned modules."""
     _tune_save_load_helper(
         pipeline_factory,
         sample,
         "pipeline_test.tt",
-        wrap_pipeline,
+        _wrap_linear_layers,
         checkpoint,
-        device_map={"linear1": torch_device, "linear2": torch_device},
-    )
-
-
-@requires_xpu
-def test_tune_save_load_pipeline_with_partial_device_map(pipeline_factory, sample, torch_device, checkpoint):
-    """Test tuning, saving and loading a pipeline."""
-
-    def wrap_pipeline(pipeline):
-        pipeline.linear1 = Module(pipeline.linear1, "demo-simple3", strategy=OneBackendStrategy(TorchInductorBackend()))
-        pipeline.linear2 = Module(pipeline.linear2, "demo-simple4", strategy=OneBackendStrategy(TorchInductorBackend()))
-        return pipeline
-
-    _tune_save_load_helper(
-        pipeline_factory,
-        sample,
-        "pipeline_test.tt",
-        wrap_pipeline,
-        checkpoint,
-        device_map={"linear1": torch_device},
+        device_map=dict.fromkeys(device_map_keys, torch_device),
     )
 
 
 @requires_xpu
 def test_tune_save_load_pipeline_with_invalid_device_map(pipeline_factory, sample, torch_device, checkpoint):
-    """Test tuning, saving and loading a pipeline."""
-
-    def wrap_pipeline(pipeline):
-        pipeline.linear1 = Module(pipeline.linear1, "demo-simple3", strategy=OneBackendStrategy(TorchInductorBackend()))
-        pipeline.linear2 = Module(pipeline.linear2, "demo-simple4", strategy=OneBackendStrategy(TorchInductorBackend()))
-        return pipeline
-
-    with pytest.raises(ValueError, match="Some modules in the device_map were not found: .*"):
+    """Test that loading a pipeline rejects an unknown device_map key."""
+    with expect_device_map_not_found():
         _tune_save_load_helper(
             pipeline_factory,
             sample,
             "pipeline_test.tt",
-            wrap_pipeline,
+            _wrap_linear_layers,
             checkpoint,
             device_map={"linear123": torch_device},
         )
 
 
 @requires_xpu
-def test_tune_save_load_complex_pipeline(complex_pipeline_factory, sample, torch_device, checkpoint):
-    """Test tuning, saving and loading a pipeline."""
+@pytest.mark.parametrize(
+    "device_map_keys", [pytest.param([""], id="device_map"), pytest.param([], id="empty_device_map")]
+)
+def test_tune_save_load_complex_pipeline_layers(
+    complex_pipeline_factory, sample, torch_device, checkpoint, device_map_keys
+):
+    """Test saving and loading each tuned layer of a pipeline component separately."""
+    device_map = dict.fromkeys(device_map_keys, torch_device)
     pipeline = complex_pipeline_factory()
     test_data = sample.repeat(10, 1)  # make a bs=10
     with torch.no_grad():
         expected = pipeline(test_data)
 
-    pipeline.net.linear1 = Module(
-        pipeline.net.linear1, "demo-simple3", strategy=OneBackendStrategy(TorchInductorBackend())
-    )
-    pipeline.net.linear2 = Module(
-        pipeline.net.linear2, "demo-simple4", strategy=OneBackendStrategy(TorchInductorBackend())
-    )
-
-    tune(pipeline, sample, batch_sizes=[1, 2], dry_run=False, disable_external_logging=False)
+    _wrap_linear_layers(pipeline.net)
+    tune(pipeline, sample, batch_sizes=[1, 2])
 
     checkpoint.save(pipeline.net.linear1, "linear1_test.tt")
     checkpoint.save(pipeline.net.linear2, "linear2_test.tt")
 
     # create a new model instance and load the tuned model
     pipeline = complex_pipeline_factory()
-    pipeline.net.linear1 = checkpoint.load(pipeline.net.linear1, "linear1_test.tt", device_map={"": torch_device})
-    pipeline.net.linear2 = checkpoint.load(pipeline.net.linear2, "linear2_test.tt", device_map={"": torch_device})
-
-    with torch.no_grad():
-        preds = pipeline(test_data)
-    torch.testing.assert_close(preds, expected, rtol=1e-4, atol=1e-4)
-
-
-@requires_xpu
-def test_tune_save_load_complex_pipeline_with_device_map(complex_pipeline_factory, sample, torch_device, checkpoint):
-    """Test tuning, saving and loading a pipeline."""
-    pipeline = complex_pipeline_factory()
-    test_data = sample.repeat(10, 1)  # make a bs=10
-    with torch.no_grad():
-        expected = pipeline(test_data)
-
-    pipeline.net.linear1 = Module(
-        pipeline.net.linear1, "demo-simple3", strategy=OneBackendStrategy(TorchInductorBackend())
-    )
-    pipeline.net.linear2 = Module(
-        pipeline.net.linear2, "demo-simple4", strategy=OneBackendStrategy(TorchInductorBackend())
-    )
-
-    tune(pipeline, sample, batch_sizes=[1, 2], dry_run=False, disable_external_logging=False)
-
-    checkpoint.save(pipeline.net.linear1, "linear1_test.tt")
-    checkpoint.save(pipeline.net.linear2, "linear2_test.tt")
-
-    # create a new model instance and load the tuned model
-    pipeline = complex_pipeline_factory()
-    pipeline.net.linear1 = checkpoint.load(pipeline.net.linear1, "linear1_test.tt", device_map={})
-    pipeline.net.linear2 = checkpoint.load(pipeline.net.linear2, "linear2_test.tt", device_map={})
+    pipeline.net.linear1 = checkpoint.load(pipeline.net.linear1, "linear1_test.tt", device_map=device_map)
+    pipeline.net.linear2 = checkpoint.load(pipeline.net.linear2, "linear2_test.tt", device_map=device_map)
 
     with torch.no_grad():
         preds = pipeline(test_data)
@@ -374,13 +264,17 @@ def test_state_dict_from_pipeline(pipeline_factory):
 
 
 @requires_xpu
-def test_load_state_dict_for_pipeline(pipeline_factory):
+def test_load_state_dict_for_pipeline_unknown_module(pipeline_factory):
+    with pytest.raises(ValueError, match="Some modules in the state_dict were not found in the pipeline"):
+        TorchCheckpoint.load_state_dict_for_pipeline(pipeline_factory(), {"missing": {}}, device_map={})
+
+
+@requires_xpu
+def test_load_state_dict_for_pipeline_non_module_attribute(pipeline_factory):
     pipeline = pipeline_factory()
-    pipeline.linear1 = Mock(spec=Module)
-    # second module is still torch.nn.Module i.e. not tuned
-    state_dict = TorchCheckpoint.state_dict_from_pipeline(pipeline)
-    assert isinstance(state_dict, dict)
-    assert len(state_dict) == 1
+    pipeline.config = "not a module"
+    with pytest.raises(ValueError, match="Module config is not a torch.nn.Module or WrapperModule"):
+        TorchCheckpoint.load_state_dict_for_pipeline(pipeline, {"config": {}}, device_map={})
 
 
 @requires_xpu
