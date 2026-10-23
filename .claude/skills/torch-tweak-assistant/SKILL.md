@@ -94,7 +94,7 @@ Do NOT activate this skill when:
 
 ### Backend Selection
 - **HighestThroughputStrategy**: the default list is Torch Inductor, XPU graph, and eager. It measures each one and keeps the fastest. List order does not change the winner. TorchAO and OpenVINO are optional additions.
-- **FirstWinsStrategy**: default order is Torch Inductor, XPU graph, OpenVINO, then eager. The first backend that builds is kept. TorchAO is not in that default, because the first backend that builds wins and a quantization that builds would be kept without a speed comparison.
+- **FirstWinsStrategy**: default order is XPU graph, Torch Inductor, OpenVINO, then eager. The first backend that builds is kept. TorchAO is not in that default, because the first backend that builds wins and a quantization that builds would be kept without a speed comparison.
 
 ### Common Issues
 - **Graph breaks**: conditional logic in a module blocks tuning of that module

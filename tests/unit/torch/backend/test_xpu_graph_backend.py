@@ -4,6 +4,7 @@
 
 import copy
 import inspect
+from collections.abc import Iterator
 
 import pytest
 import torch
@@ -51,7 +52,7 @@ class TinyConv(nn.Module):
 
 
 @pytest.fixture(autouse=True)
-def eager_calls(request, monkeypatch) -> list[tuple]:
+def eager_calls(request, monkeypatch) -> Iterator[list[tuple]]:
     """Records the inputs XPUGraphBackend runs on the original module.
 
     The fallback output equals eager, so a test that compares to eager cannot see it.
@@ -149,38 +150,6 @@ def test_deploy_after_load_records_and_drops_samples(model, sample_data, tmp_pat
     new_args = (torch.randn_like(args[0]),)
     with torch.no_grad():
         torch.testing.assert_close(loaded.infer(*new_args, **kwargs), model(*new_args, **kwargs))
-
-
-@requires_xpu
-def test_larger_batch_runs_the_original_module(model, sample_data, tmp_path, eager_calls):
-    backend = backend_build(XPUGraphBackend(), torch.float32, model, sample_data, tmp_path)
-    args, kwargs = sample_data[0]
-    larger = (torch.randn(2 * args[0].shape[0], *args[0].shape[1:], device=args[0].device),)
-    with torch.no_grad():
-        torch.testing.assert_close(backend.infer(*larger, **kwargs), model(*larger, **kwargs))
-        assert [call[0].shape for call in eager_calls] == [larger[0].shape]
-        torch.testing.assert_close(backend.infer(*args, **kwargs), model(*args, **kwargs))
-    assert len(eager_calls) == 1
-
-
-@requires_xpu
-def test_tuned_module_runs_a_larger_batch_on_the_original_module(torch_device, tmp_path, eager_calls):
-    module = LinearRelu().to(torch_device).eval()
-    # tune routes later calls of module through the selected backend.
-    reference = copy.deepcopy(module)
-    wrapped = Module(
-        module,
-        "xpu-graph-larger-batch",
-        strategy=OneBackendStrategy(XPUGraphBackend()).enable_find_max_batch_size(False),
-    )
-    try:
-        tune(wrapped, torch.randn(16, device=torch_device), batch_sizes=[2], device=torch_device)
-        batch = torch.randn(4, 16, device=torch_device)
-        with torch.no_grad():
-            torch.testing.assert_close(wrapped(batch), reference(batch))
-        assert [call[0].shape for call in eager_calls] == [batch.shape]
-    finally:
-        MODULE_REGISTRY.clear()
 
 
 @requires_xpu
@@ -348,7 +317,7 @@ def test_serialization(model, sample_data, tmp_path):
 
 
 @requires_xpu
-def test_tune_module(torch_device, tmp_path):
+def test_tune_module(torch_device, tmp_path, eager_calls):
     torch.manual_seed(0)
     module = LinearRelu().to(torch_device).eval()
     # tune routes later calls of module through the selected backend.
@@ -361,8 +330,11 @@ def test_tune_module(torch_device, tmp_path):
     )
     try:
         tune(wrapped, sample, batch_sizes=[2], device=torch_device, ignore_failing_modules=False)
+        larger = torch.randn(4, 16, device=torch_device)
         batch = torch.randn(2, 16, device=torch_device)
         with torch.no_grad():
+            torch.testing.assert_close(wrapped(larger), reference(larger))
             torch.testing.assert_close(wrapped(batch), reference(batch))
+        assert [call[0].shape for call in eager_calls] == [larger.shape]
     finally:
         MODULE_REGISTRY.clear()
