@@ -73,6 +73,9 @@ def _tune_save_load_helper(model_factory, samples, checkpoint_name, wrap_model_f
         checkpoint (TorchCheckpoint): Checkpoint used to save and load the model.
         device_map (dict | None): Device map passed to `checkpoint.load`.
 
+    Returns:
+        The loaded model.
+
     Raises:
         AssertionError: If model predictions after load don't match expected results.
     """
@@ -92,6 +95,7 @@ def _tune_save_load_helper(model_factory, samples, checkpoint_name, wrap_model_f
     with torch.no_grad():
         preds = model_loaded(test_data)
     torch.testing.assert_close(preds, expected, rtol=1e-3, atol=1e-3)
+    return model_loaded
 
 
 def _wrap_whole_model(model, backend=None):
@@ -102,6 +106,16 @@ def _wrap_linear_layers(model):
     model.linear1 = Module(model.linear1, "demo-simple1", strategy=OneBackendStrategy(TorchInductorBackend()))
     model.linear2 = Module(model.linear2, "demo-simple2", strategy=OneBackendStrategy(TorchInductorBackend()))
     return model
+
+
+def _wrap_net_layers(pipeline):
+    _wrap_linear_layers(pipeline.net)
+    return pipeline
+
+
+def _alias_net_linear1(pipeline):
+    pipeline.linear1 = pipeline.net.linear1
+    return pipeline
 
 
 @requires_xpu
@@ -225,6 +239,113 @@ def test_tune_save_load_complex_pipeline_layers(
     with torch.no_grad():
         preds = pipeline(test_data)
     torch.testing.assert_close(preds, expected, rtol=1e-4, atol=1e-4)
+
+
+@requires_xpu
+@pytest.mark.parametrize(
+    "device_map_keys",
+    [
+        pytest.param([], id="no_device_map"),
+        pytest.param(["net.linear1", "net.linear2"], id="full_device_map"),
+        pytest.param(["net.linear1"], id="partial_device_map"),
+    ],
+)
+def test_tune_save_load_pipeline_with_nested_tuned_modules(
+    complex_pipeline_factory, sample, torch_device, checkpoint, device_map_keys
+):
+    """Test tuning, saving and loading a pipeline whose attribute contains tuned modules."""
+    _tune_save_load_helper(
+        complex_pipeline_factory,
+        sample,
+        "nested_pipeline_test.tt",
+        _wrap_net_layers,
+        checkpoint,
+        device_map=dict.fromkeys(device_map_keys, torch_device),
+    )
+
+
+@requires_xpu
+def test_tune_save_load_pipeline_with_nested_tuned_modules_rejects_leaf_name_in_device_map(
+    complex_pipeline_factory, sample, torch_device, checkpoint
+):
+    """Test that a nested tuned module is addressed by its full path, not by its attribute name."""
+    with expect_device_map_not_found():
+        _tune_save_load_helper(
+            complex_pipeline_factory,
+            sample,
+            "nested_pipeline_test.tt",
+            _wrap_net_layers,
+            checkpoint,
+            device_map={"linear1": torch_device},
+        )
+
+
+@requires_xpu
+def test_state_dict_from_pipeline_stores_only_nested_tuned_modules(complex_pipeline_factory, sample):
+    """Test that only the tuned module is saved, not the rest of its pipeline component."""
+    pipeline = complex_pipeline_factory()
+    pipeline.net.linear1 = Module(
+        pipeline.net.linear1, "demo-simple1", strategy=OneBackendStrategy(TorchInductorBackend())
+    )
+    tune(pipeline, sample, batch_sizes=[1, 2])
+
+    state_dict = TorchCheckpoint.state_dict_from_pipeline(pipeline)
+
+    assert list(state_dict) == ["net.linear1"]
+    assert list(state_dict["net.linear1"]) == [""]
+
+
+@requires_xpu
+def test_tune_save_load_pipeline_with_aliased_nested_tuned_module(complex_pipeline_factory, sample, checkpoint):
+    """Test that a tuned module reachable by two pipeline paths is saved once and restored as one module."""
+    pipeline = _alias_net_linear1(_wrap_net_layers(complex_pipeline_factory()))
+    tune(pipeline, sample, batch_sizes=[1, 2])
+    assert list(TorchCheckpoint.state_dict_from_pipeline(pipeline)) == ["net.linear1", "net.linear2"]
+
+    pipeline = _tune_save_load_helper(
+        lambda: _alias_net_linear1(complex_pipeline_factory()),
+        sample,
+        "aliased_pipeline_test.tt",
+        lambda pipeline: _alias_net_linear1(_wrap_net_layers(pipeline)),
+        checkpoint,
+    )
+
+    assert isinstance(pipeline.net.linear1, Module)
+    assert pipeline.linear1 is pipeline.net.linear1
+
+
+class _Vae(torch.nn.Module):
+    def __init__(self):
+        super().__init__()
+        self.decoder = torch.nn.Linear(2, 2)
+
+
+class _PipelineWithDecoderAlias:
+    def __init__(self):
+        self.vae = _Vae()
+        self.decoder = self.vae.decoder
+
+
+def test_load_state_dict_for_pipeline_restores_duplicate_alias_keys_once(monkeypatch):
+    """Test loading a checkpoint that stores an aliased module under each of its paths."""
+    restored = _PipelineWithDecoderAlias()
+    replacement = torch.nn.Linear(2, 2)
+    calls = []
+
+    def load_module(module, state_dict, device_map, module_name):
+        calls.append(module_name)
+        device_map.pop(module_name, None)
+        return replacement
+
+    monkeypatch.setattr(TorchCheckpoint, "load_state_dict_for_module", staticmethod(load_module))
+    device_map = {"decoder": torch.device("cpu"), "vae.decoder": torch.device("cpu")}
+
+    TorchCheckpoint.load_state_dict_for_pipeline(restored, {"decoder": {}, "vae.decoder": {}}, device_map)
+
+    assert calls == ["decoder"]
+    assert restored.decoder is replacement
+    assert restored.vae.decoder is replacement
+    assert device_map == {}
 
 
 @requires_xpu
