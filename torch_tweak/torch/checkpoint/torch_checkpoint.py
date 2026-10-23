@@ -79,7 +79,9 @@ class TorchCheckpoint(Checkpoint):
             module_or_pipeline: The module or pipeline to load the state into. This can be
                 either a torch.nn.Module or a pipeline object with module attributes.
             path: The path from where the module state should be loaded.
-            device_map: The device map to load module to.
+            device_map: Maps dotted paths of tuned modules to devices, e.g. `"inner.linear1"` for `linear1`
+                inside `inner`. For a pipeline, a path starts with the pipeline attribute name.
+                The key `""` is the module itself.
 
         Returns:
             The loaded module, which may be either the original module type or a wrapped module
@@ -172,7 +174,7 @@ class TorchCheckpoint(Checkpoint):
                 The dictionary should have keys that correspond to the module structure,
                 with tuned module states stored in a format recognized by WrapperModule.
             device_map (dict): The device map to load module to.
-            module_name (str): The name of the module for device map matching.
+            module_name (str): The name of the module in its pipeline, prefixed to `device_map` keys of submodules.
 
         Returns:
             torch.nn.Module: The module with tuned components loaded from the state dictionary.
@@ -192,6 +194,7 @@ class TorchCheckpoint(Checkpoint):
             parent_module: TorchModule | None = None,
             prefix: str = "",
             module_name: str = "",
+            module_path: str = "",
         ) -> None:
             """Traverses the module and replaces torch modules with tuned modules.
 
@@ -203,12 +206,13 @@ class TorchCheckpoint(Checkpoint):
                 device_map: The device map to load modules to.
                 parent_module: The parent module.
                 prefix: The prefix of the module.
-                module_name: The name of the module.
+                module_name: The attribute name of the module in `parent_module`.
+                module_path: The dotted path of the module, used as the `device_map` key.
             """
             stored_object = local_state_dict.get(prefix, {})
             if WrapperModule.is_state_dict_valid(stored_object):
                 # This is a tuned module, replace with wrapper module
-                device = device_map.pop(module_name, None)
+                device = device_map.pop(module_path, None)
 
                 wrapper_module = WrapperModule.from_dict(module, stored_object, device)
                 if parent_module is None:
@@ -230,6 +234,7 @@ class TorchCheckpoint(Checkpoint):
                             parent_module=module,
                             prefix=prefix + child_name + ".",
                             module_name=child_name,
+                            module_path=f"{module_path}.{child_name}" if module_path else child_name,
                             device_map=device_map,
                         )
 
@@ -238,6 +243,7 @@ class TorchCheckpoint(Checkpoint):
             local_state_dict=state_dict,
             device_map=device_map,
             module_name=module_name,
+            module_path=module_name,
         )
 
         # Handle original torch modules not tuned, strict=False because wrapped module keys removed.

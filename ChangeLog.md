@@ -8,6 +8,7 @@ SPDX-License-Identifier: Apache-2.0
 ## Unreleased
 
 - fix: `load` removes the entries of nested tuned modules before it loads the rest of the `state_dict`.
+- fix: `device_map` keys for nested tuned modules are full dotted paths, e.g. `inner.linear1`. The attribute name alone, e.g. `linear1`, now matches only a direct submodule.
 
 ## 0.4.0
 
