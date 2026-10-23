@@ -80,10 +80,10 @@ def tune_model(
             device="xpu",
         )
 
-    # NOTE: without min_depth=2, inspector finds a wrapper module `pipeline._modules["0"]` and fails with incorrect input in tunning
+    # NOTE: without depth=2, inspector finds a wrapper module `pipeline._modules["0"]` and fails with incorrect input in tuning
     #     with error: RuntimeError: Only Tensors created explicitly by the user (graph leaves) support the deepcopy protocol at the moment. @ torch/_tensor.py", line 136, in __deepcopy__
     #     during make_batch and deepcopy of arguments with all kwags arguments passed as dict in args[0]
-    inspected_modules_info = inspect(model, input_texts, inference_function=call_wrapper, min_depth=2)
+    inspected_modules_info = inspect(model, input_texts, inference_function=call_wrapper, depth=2)
     inspected_modules_info.describe()
 
     # NOTE: workaround for SentenceTransformer to work with tuned model see below first dirty hack

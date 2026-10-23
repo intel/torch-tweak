@@ -42,8 +42,7 @@ modules_info = tt.inspect(
     inference_function=None,  # Optional custom inference function
     number_of_iterations=10,  # Iterations for profiling
     warmup_iterations=5,  # Warmup iterations
-    min_depth=0,  # Minimum depth for module search
-    max_depth=5,  # Maximum depth for module search
+    depth=0,  # Depth at which the model is cut into modules
 )
 ```
 
@@ -133,24 +132,38 @@ modules_info = tt.inspect(
 )
 ```
 
-#### min_depth (Default: 0)
+#### Module depth
 
-Minimum depth level for module discovery. Increase if root-level modules don't work:
+The depth of a module is the number of executed modules above it.
+Depth 0 holds the outermost executed modules.
+That is the model itself, or the executed components of a pipeline object.
+Containers such as `nn.ModuleList`, lists, and dicts do not add a level.
+Modules whose `forward` never ran do not add a level either.
+
+For a model whose `forward` loops over `self.layers` (an `nn.ModuleList`) and then calls `self.head`:
+
+| Depth | Modules |
+|---|---|
+| 0 | `model` |
+| 1 | `layers.0`, `layers.1`, `head` |
+| 2 | `layers.0.mlp`, `layers.1.mlp` |
+
+#### depth (Default: 0)
+
+Depth at which the model is cut into modules for tuning.
+Every executed module at `depth` is returned.
+A shallower executed module without executed children is returned too, so no part of the model is left out.
+In the example above, `depth=2` returns `layers.0.mlp`, `layers.1.mlp`, and `head`.
+
+Increase it when the outermost modules cannot be tuned:
 
 ```python
-# Start from root level (default)
-modules_info = tt.inspect(model, input_data, min_depth=0)
+# Cut at the outermost executed modules (default)
+modules_info = tt.inspect(model, input_data, depth=0)
 
-# Skip root, inspect children
-modules_info = tt.inspect(model, input_data, min_depth=1)
-modules_info = tt.inspect(model, input_data, min_depth=2)
+# Cut one level deeper
+modules_info = tt.inspect(model, input_data, depth=1)
 ```
-
-#### max_depth (Default: 5)
-
-If a nested (child) module has a larger depth than `max_depth` it will be skipped from inspection.
-
-Both `min_depth` and `max_depth` narrow the inspection search to a reasonable range.
 
 ## Working with InspectedModulesInfo
 
@@ -211,8 +224,8 @@ transformer_modules = [m for m in modules_info.get_modules() if "transformer" in
 ### Issue: No modules found
 
 ```python
-# Solution: Increase min_depth or check object structure
-modules_info = tt.inspect(model, input_data, min_depth=1)
+# Solution: Change depth or check object structure
+modules_info = tt.inspect(model, input_data, depth=1)
 ```
 
 ## Summary

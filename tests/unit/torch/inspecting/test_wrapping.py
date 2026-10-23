@@ -451,7 +451,7 @@ def test_tune_reaches_every_module_with_a_repeated_name(tmp_path, monkeypatch):
     monkeypatch.setenv("TORCH_TWEAK_CACHE_DIR", str(tmp_path))
     model = _EncoderDecoder().eval()
     sample = torch.randn(8)
-    modules_info = inspect(model, sample, number_of_iterations=1, warmup_iterations=1, min_depth=3)
+    modules_info = inspect(model, sample, number_of_iterations=1, warmup_iterations=1, depth=2)
     strategy = FirstWinsStrategy(backends=[TorchEagerBackend()])
 
     wrap(model, modules_info.get_modules(), strategy=strategy)

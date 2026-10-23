@@ -80,7 +80,7 @@ def tune_model(
     call_wrapper(audio=str(audio_path))
 
     logger.info("Inspecting model...")
-    inspected_modules_info = inspect(pipeline, input_data, inference_function=call_wrapper, min_depth=1)
+    inspected_modules_info = inspect(pipeline, input_data, inference_function=call_wrapper, depth=1)
     inspected_modules_info.describe()
 
     modules = inspected_modules_info.get_modules(min_execution_percentage=0.01)
