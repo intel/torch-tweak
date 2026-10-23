@@ -5,6 +5,10 @@ SPDX-License-Identifier: Apache-2.0
 
 # Changelog
 
+## Unreleased
+
+- fix: `load` removes the entries of nested tuned modules before it loads the rest of the `state_dict`.
+
 ## 0.4.0
 
 This is the first release of **Torch Tweak**. Torch Tweak is focused on Intel GPU (XPU) support.

@@ -224,13 +224,11 @@ class TorchCheckpoint(Checkpoint):
                 # This is an original torch module
                 for child_name, child_module in module.named_children():
                     if child_module is not None:
-                        child_prefix = prefix + child_name + "."
-                        child_state_dict = {k: v for k, v in local_state_dict.items() if k.startswith(child_prefix)}
                         replace_tuned_module(
                             module=child_module,
-                            local_state_dict=child_state_dict,
+                            local_state_dict=local_state_dict,
                             parent_module=module,
-                            prefix=child_prefix,
+                            prefix=prefix + child_name + ".",
                             module_name=child_name,
                             device_map=device_map,
                         )
