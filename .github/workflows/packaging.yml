@@ -5,8 +5,12 @@ name: Packaging
 # identical to the canonical copies at the repository root.
 # Build backends stay silent when those files go missing, so the artifacts are
 # inspected explicitly.
+#
+# Also called by release.yml, which publishes the core distributions from the
+# uploaded "dist" artifact.
 
 on:
+  workflow_call:
   workflow_dispatch:
   push:
     branches: [main]
@@ -19,6 +23,7 @@ on:
       - "examples/*/third-party-programs.txt"
       - ".github/scripts/check_dist_licenses.py"
       - ".github/workflows/packaging.yml"
+      - ".github/workflows/release.yml"
   pull_request:
     paths: *packaging-paths
 
@@ -42,11 +47,13 @@ jobs:
         with:
           # The core package version is derived from the git history.
           fetch-depth: 0
+          persist-credentials: false
 
       - name: Set up Python
         uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
         with:
-          python-version: "3.x"
+          # Keeping this pinned, so we have stable release environment
+          python-version: "3.14"
 
       - name: Set up uv
         uses: astral-sh/setup-uv@557e51de59eb14aaaba2ed9621916900a91d50c6 # v6.6.1
@@ -73,3 +80,10 @@ jobs:
 
       - name: Verify license files in all distributions
         run: python3 .github/scripts/check_dist_licenses.py dist/core/* dist/examples/*.whl
+
+      - name: Upload core distributions
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: dist
+          path: dist/core/
+          if-no-files-found: error
