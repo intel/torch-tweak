@@ -2477,7 +2477,7 @@ Recording is not repeated for each inference call.</p>
 </code></pre></div>
 <p>The backend is first in the default <code>FirstWinsStrategy</code> list, before Torch Inductor.
 It is also in the default <code>HighestThroughputStrategy</code> list.</p>
-<p>PyTorch records a native SYCL graph when it was built with a SYCL compiler of 2026.1 or newer, except on PVC.
+<p>PyTorch records a native SYCL graph when it was built with a SYCL compiler of 2026.1 or newer, except on Intel Data Center GPU Max Series.
 An older build records the legacy SYCL command graph.
 This backend uses the recording that build already performs.</p>
 <h2 id="next-steps">Next Steps</h2>

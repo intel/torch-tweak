@@ -2819,6 +2819,7 @@ NOTE: This file has been modified by Intel Corporation.
 <ul>
 <li><strong>OpenVINO</strong> requires converting the model to an OpenVINO representation. Models with unsupported operators, complex dynamic control flow, or symbolic shape constraints may fail during conversion or model compilation. Memory constraints can also prevent the model from being compiled.</li>
 <li><strong>Torch Inductor</strong> uses <code>torch.compile</code>, which may encounter <em>graph breaks</em> on unsupported Python constructs or operations, causing partial or failed compilation.</li>
+<li><strong>XPU Graph</strong> records the module for replay, so it requires static tensor shapes. A failed recording or a mismatch against eager output rejects the backend for that module and input.</li>
 <li><strong>TorchAO</strong> applies quantization transformations that may not support all layer types or model architectures.</li>
 <li><strong>Torch Eager</strong> runs the module unchanged, so it always succeeds, which makes it a useful last-resort fallback.</li>
 </ul>
@@ -2898,24 +2899,26 @@ NOTE: This file has been modified by Intel Corporation.
 <p>Tries backends in priority order and returns the first one that successfully builds and validates. If a backend fails, the strategy moves on to the next candidate instead of aborting. If all backends fail, the error is caught and the original model is used as-is. The default order is XPU graph, Torch Inductor, OpenVINO, then eager. Put a backend earlier only when you want that one to win as soon as it builds.</p>
 <h3 id="usage_1">Usage</h3>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">torch_tweak.torch.backend</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
-<a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>    <span class="n">TorchAOBackend</span><span class="p">,</span>
-<a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a>    <span class="n">TorchAOBackendConfig</span><span class="p">,</span>
-<a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a>    <span class="n">TorchInductorBackend</span><span class="p">,</span>
-<a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a><span class="p">)</span>
-<a id="__codelineno-1-6" name="__codelineno-1-6" href="#__codelineno-1-6"></a><span class="kn">import</span><span class="w"> </span><span class="nn">torch_tweak.torch</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">tt</span>
-<a id="__codelineno-1-7" name="__codelineno-1-7" href="#__codelineno-1-7"></a>
-<a id="__codelineno-1-8" name="__codelineno-1-8" href="#__codelineno-1-8"></a><span class="c1"># List backends in priority order (fastest → most compatible)</span>
-<a id="__codelineno-1-9" name="__codelineno-1-9" href="#__codelineno-1-9"></a><span class="n">backends</span> <span class="o">=</span> <span class="p">[</span>
-<a id="__codelineno-1-10" name="__codelineno-1-10" href="#__codelineno-1-10"></a>    <span class="n">TorchAOBackend</span><span class="p">(</span><span class="n">config</span><span class="o">=</span><span class="n">TorchAOBackendConfig</span><span class="p">(</span><span class="n">quantization</span><span class="o">=</span><span class="s2">"fp8wo"</span><span class="p">)),</span>  <span class="c1"># Quantization: fast inference</span>
-<a id="__codelineno-1-11" name="__codelineno-1-11" href="#__codelineno-1-11"></a>    <span class="n">TorchInductorBackend</span><span class="p">(),</span>  <span class="c1"># Good performance, broader compatibility</span>
-<a id="__codelineno-1-12" name="__codelineno-1-12" href="#__codelineno-1-12"></a><span class="p">]</span>
-<a id="__codelineno-1-13" name="__codelineno-1-13" href="#__codelineno-1-13"></a>
-<a id="__codelineno-1-14" name="__codelineno-1-14" href="#__codelineno-1-14"></a><span class="c1"># Create strategy</span>
-<a id="__codelineno-1-15" name="__codelineno-1-15" href="#__codelineno-1-15"></a><span class="n">strategy</span> <span class="o">=</span> <span class="n">tt</span><span class="o">.</span><span class="n">FirstWinsStrategy</span><span class="p">(</span><span class="n">backends</span><span class="o">=</span><span class="n">backends</span><span class="p">)</span>
-<a id="__codelineno-1-16" name="__codelineno-1-16" href="#__codelineno-1-16"></a>
-<a id="__codelineno-1-17" name="__codelineno-1-17" href="#__codelineno-1-17"></a><span class="c1"># Use in tuning</span>
-<a id="__codelineno-1-18" name="__codelineno-1-18" href="#__codelineno-1-18"></a><span class="n">model</span> <span class="o">=</span> <span class="n">tt</span><span class="o">.</span><span class="n">Module</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="s2">"my-model"</span><span class="p">,</span> <span class="n">strategy</span><span class="o">=</span><span class="n">strategy</span><span class="p">)</span>
-<a id="__codelineno-1-19" name="__codelineno-1-19" href="#__codelineno-1-19"></a><span class="n">tt</span><span class="o">.</span><span class="n">tune</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">input_data</span><span class="p">)</span>
+<a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>    <span class="n">XPUGraphBackend</span><span class="p">,</span>
+<a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a>    <span class="n">TorchAOBackend</span><span class="p">,</span>
+<a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a>    <span class="n">TorchAOBackendConfig</span><span class="p">,</span>
+<a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a>    <span class="n">TorchInductorBackend</span><span class="p">,</span>
+<a id="__codelineno-1-6" name="__codelineno-1-6" href="#__codelineno-1-6"></a><span class="p">)</span>
+<a id="__codelineno-1-7" name="__codelineno-1-7" href="#__codelineno-1-7"></a><span class="kn">import</span><span class="w"> </span><span class="nn">torch_tweak.torch</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">tt</span>
+<a id="__codelineno-1-8" name="__codelineno-1-8" href="#__codelineno-1-8"></a>
+<a id="__codelineno-1-9" name="__codelineno-1-9" href="#__codelineno-1-9"></a><span class="c1"># List backends in priority order (fastest → most compatible)</span>
+<a id="__codelineno-1-10" name="__codelineno-1-10" href="#__codelineno-1-10"></a><span class="n">backends</span> <span class="o">=</span> <span class="p">[</span>
+<a id="__codelineno-1-11" name="__codelineno-1-11" href="#__codelineno-1-11"></a>    <span class="n">XPUGraphBackend</span><span class="p">(),</span>
+<a id="__codelineno-1-12" name="__codelineno-1-12" href="#__codelineno-1-12"></a>    <span class="n">TorchAOBackend</span><span class="p">(</span><span class="n">config</span><span class="o">=</span><span class="n">TorchAOBackendConfig</span><span class="p">(</span><span class="n">quantization</span><span class="o">=</span><span class="s2">"fp8wo"</span><span class="p">)),</span>  <span class="c1"># Quantization: fast inference</span>
+<a id="__codelineno-1-13" name="__codelineno-1-13" href="#__codelineno-1-13"></a>    <span class="n">TorchInductorBackend</span><span class="p">(),</span>  <span class="c1"># Good performance, broader compatibility</span>
+<a id="__codelineno-1-14" name="__codelineno-1-14" href="#__codelineno-1-14"></a><span class="p">]</span>
+<a id="__codelineno-1-15" name="__codelineno-1-15" href="#__codelineno-1-15"></a>
+<a id="__codelineno-1-16" name="__codelineno-1-16" href="#__codelineno-1-16"></a><span class="c1"># Create strategy</span>
+<a id="__codelineno-1-17" name="__codelineno-1-17" href="#__codelineno-1-17"></a><span class="n">strategy</span> <span class="o">=</span> <span class="n">tt</span><span class="o">.</span><span class="n">FirstWinsStrategy</span><span class="p">(</span><span class="n">backends</span><span class="o">=</span><span class="n">backends</span><span class="p">)</span>
+<a id="__codelineno-1-18" name="__codelineno-1-18" href="#__codelineno-1-18"></a>
+<a id="__codelineno-1-19" name="__codelineno-1-19" href="#__codelineno-1-19"></a><span class="c1"># Use in tuning</span>
+<a id="__codelineno-1-20" name="__codelineno-1-20" href="#__codelineno-1-20"></a><span class="n">model</span> <span class="o">=</span> <span class="n">tt</span><span class="o">.</span><span class="n">Module</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="s2">"my-model"</span><span class="p">,</span> <span class="n">strategy</span><span class="o">=</span><span class="n">strategy</span><span class="p">)</span>
+<a id="__codelineno-1-21" name="__codelineno-1-21" href="#__codelineno-1-21"></a><span class="n">tt</span><span class="o">.</span><span class="n">tune</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">input_data</span><span class="p">)</span>
 </code></pre></div>
 <h3 id="how-it-works">How It Works</h3>
 <ol>
@@ -2952,23 +2955,25 @@ NOTE: This file has been modified by Intel Corporation.
 <a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a>    <span class="n">TorchInductorBackend</span><span class="p">,</span>
 <a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a>    <span class="n">TorchAOBackend</span><span class="p">,</span>
 <a id="__codelineno-2-5" name="__codelineno-2-5" href="#__codelineno-2-5"></a>    <span class="n">TorchAOBackendConfig</span><span class="p">,</span>
-<a id="__codelineno-2-6" name="__codelineno-2-6" href="#__codelineno-2-6"></a><span class="p">)</span>
-<a id="__codelineno-2-7" name="__codelineno-2-7" href="#__codelineno-2-7"></a><span class="kn">import</span><span class="w"> </span><span class="nn">torch_tweak.torch</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">tt</span>
-<a id="__codelineno-2-8" name="__codelineno-2-8" href="#__codelineno-2-8"></a>
-<a id="__codelineno-2-9" name="__codelineno-2-9" href="#__codelineno-2-9"></a><span class="c1"># List all candidate backends</span>
-<a id="__codelineno-2-10" name="__codelineno-2-10" href="#__codelineno-2-10"></a><span class="n">backends</span> <span class="o">=</span> <span class="p">[</span>
-<a id="__codelineno-2-11" name="__codelineno-2-11" href="#__codelineno-2-11"></a>    <span class="n">TorchInductorBackend</span><span class="p">(</span><span class="n">config</span><span class="o">=</span><span class="n">TorchInductorBackendConfig</span><span class="p">(</span><span class="n">mode</span><span class="o">=</span><span class="s2">"default"</span><span class="p">)),</span>
-<a id="__codelineno-2-12" name="__codelineno-2-12" href="#__codelineno-2-12"></a>    <span class="n">TorchAOBackend</span><span class="p">(</span><span class="n">config</span><span class="o">=</span><span class="n">TorchAOBackendConfig</span><span class="p">(</span><span class="n">quantization</span><span class="o">=</span><span class="s2">"fp8wo"</span><span class="p">)),</span>
-<a id="__codelineno-2-13" name="__codelineno-2-13" href="#__codelineno-2-13"></a><span class="p">]</span>
-<a id="__codelineno-2-14" name="__codelineno-2-14" href="#__codelineno-2-14"></a>
-<a id="__codelineno-2-15" name="__codelineno-2-15" href="#__codelineno-2-15"></a><span class="c1"># Create strategy</span>
-<a id="__codelineno-2-16" name="__codelineno-2-16" href="#__codelineno-2-16"></a><span class="n">strategy</span> <span class="o">=</span> <span class="n">tt</span><span class="o">.</span><span class="n">HighestThroughputStrategy</span><span class="p">(</span>
-<a id="__codelineno-2-17" name="__codelineno-2-17" href="#__codelineno-2-17"></a>    <span class="n">backends</span><span class="o">=</span><span class="n">backends</span><span class="p">,</span>
-<a id="__codelineno-2-18" name="__codelineno-2-18" href="#__codelineno-2-18"></a><span class="p">)</span>
-<a id="__codelineno-2-19" name="__codelineno-2-19" href="#__codelineno-2-19"></a>
-<a id="__codelineno-2-20" name="__codelineno-2-20" href="#__codelineno-2-20"></a><span class="c1"># Use in tuning</span>
-<a id="__codelineno-2-21" name="__codelineno-2-21" href="#__codelineno-2-21"></a><span class="n">model</span> <span class="o">=</span> <span class="n">tt</span><span class="o">.</span><span class="n">Module</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="s2">"my-model"</span><span class="p">,</span> <span class="n">strategy</span><span class="o">=</span><span class="n">strategy</span><span class="p">)</span>
-<a id="__codelineno-2-22" name="__codelineno-2-22" href="#__codelineno-2-22"></a><span class="n">tt</span><span class="o">.</span><span class="n">tune</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">input_data</span><span class="p">)</span>
+<a id="__codelineno-2-6" name="__codelineno-2-6" href="#__codelineno-2-6"></a>    <span class="n">XPUGraphBackend</span><span class="p">,</span>
+<a id="__codelineno-2-7" name="__codelineno-2-7" href="#__codelineno-2-7"></a><span class="p">)</span>
+<a id="__codelineno-2-8" name="__codelineno-2-8" href="#__codelineno-2-8"></a><span class="kn">import</span><span class="w"> </span><span class="nn">torch_tweak.torch</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">tt</span>
+<a id="__codelineno-2-9" name="__codelineno-2-9" href="#__codelineno-2-9"></a>
+<a id="__codelineno-2-10" name="__codelineno-2-10" href="#__codelineno-2-10"></a><span class="c1"># List all candidate backends</span>
+<a id="__codelineno-2-11" name="__codelineno-2-11" href="#__codelineno-2-11"></a><span class="n">backends</span> <span class="o">=</span> <span class="p">[</span>
+<a id="__codelineno-2-12" name="__codelineno-2-12" href="#__codelineno-2-12"></a>    <span class="n">TorchInductorBackend</span><span class="p">(</span><span class="n">config</span><span class="o">=</span><span class="n">TorchInductorBackendConfig</span><span class="p">(</span><span class="n">mode</span><span class="o">=</span><span class="s2">"default"</span><span class="p">)),</span>
+<a id="__codelineno-2-13" name="__codelineno-2-13" href="#__codelineno-2-13"></a>    <span class="n">XPUGraphBackend</span><span class="p">(),</span>
+<a id="__codelineno-2-14" name="__codelineno-2-14" href="#__codelineno-2-14"></a>    <span class="n">TorchAOBackend</span><span class="p">(</span><span class="n">config</span><span class="o">=</span><span class="n">TorchAOBackendConfig</span><span class="p">(</span><span class="n">quantization</span><span class="o">=</span><span class="s2">"fp8wo"</span><span class="p">)),</span>
+<a id="__codelineno-2-15" name="__codelineno-2-15" href="#__codelineno-2-15"></a><span class="p">]</span>
+<a id="__codelineno-2-16" name="__codelineno-2-16" href="#__codelineno-2-16"></a>
+<a id="__codelineno-2-17" name="__codelineno-2-17" href="#__codelineno-2-17"></a><span class="c1"># Create strategy</span>
+<a id="__codelineno-2-18" name="__codelineno-2-18" href="#__codelineno-2-18"></a><span class="n">strategy</span> <span class="o">=</span> <span class="n">tt</span><span class="o">.</span><span class="n">HighestThroughputStrategy</span><span class="p">(</span>
+<a id="__codelineno-2-19" name="__codelineno-2-19" href="#__codelineno-2-19"></a>    <span class="n">backends</span><span class="o">=</span><span class="n">backends</span><span class="p">,</span>
+<a id="__codelineno-2-20" name="__codelineno-2-20" href="#__codelineno-2-20"></a><span class="p">)</span>
+<a id="__codelineno-2-21" name="__codelineno-2-21" href="#__codelineno-2-21"></a>
+<a id="__codelineno-2-22" name="__codelineno-2-22" href="#__codelineno-2-22"></a><span class="c1"># Use in tuning</span>
+<a id="__codelineno-2-23" name="__codelineno-2-23" href="#__codelineno-2-23"></a><span class="n">model</span> <span class="o">=</span> <span class="n">tt</span><span class="o">.</span><span class="n">Module</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="s2">"my-model"</span><span class="p">,</span> <span class="n">strategy</span><span class="o">=</span><span class="n">strategy</span><span class="p">)</span>
+<a id="__codelineno-2-24" name="__codelineno-2-24" href="#__codelineno-2-24"></a><span class="n">tt</span><span class="o">.</span><span class="n">tune</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">input_data</span><span class="p">)</span>
 </code></pre></div>
 <h3 id="how-it-works_1">How It Works</h3>
 <ol>
@@ -3004,7 +3009,7 @@ NOTE: This file has been modified by Intel Corporation.
 </ol>
 <h2 id="next-steps">Next Steps</h2>
 <ul>
-<li>Learn about specific backends: <a href="../../backends/torchao_backend/">TorchAO</a>, <a href="../../backends/torch_inductor_backend/">Inductor</a></li>
+<li>Learn about specific backends: <a href="../../backends/torchao_backend/">TorchAO</a>, <a href="../../backends/torch_inductor_backend/">Inductor</a>, <a href="../../backends/xpu_graph_backend/">XPU Graph</a></li>
 <li>Explore <a href="../../deployment/deployment/">Deployment Guide</a></li>
 <li>Review the <a href="../../tuning/">Tuning Guide</a></li>
 </ul>
