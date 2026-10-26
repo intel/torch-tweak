@@ -1293,6 +1293,8 @@ xpu = [
 
 [package.metadata]
 requires-dist = [
+    { name = "coverage", marker = "extra == 'dev'", specifier = ">=7.17.0" },
+    { name = "coverage", marker = "extra == 'test'", specifier = ">=7.17.0" },
     { name = "datasets", marker = "extra == 'dev'", specifier = ">=4.8.5,<6.0.0" },
     { name = "datasets", marker = "extra == 'test'", specifier = ">=4.8.5,<6.0.0" },
     { name = "diffusers", marker = "extra == 'dev'", specifier = ">=0.40.0,<1.0" },
@@ -1349,6 +1351,10 @@ requires-dist = [
 provides-extras = ["dev", "doc", "test", "xpu"]
 
 [package.metadata.requires-dev]
+coverage = [
+    { name = "coverage", specifier = ">=7.17.0" },
+    { name = "diff-cover", specifier = ">=10.6.0" },
+]
 xpu-nightly = [
     { name = "torch", specifier = ">=2.13.0", index = "https://download.pytorch.org/whl/nightly/xpu", conflict = { package = "torch-tweak", group = "xpu-nightly" } },
     { name = "triton-xpu", index = "https://download.pytorch.org/whl/nightly/xpu", conflict = { package = "torch-tweak", group = "xpu-nightly" } },

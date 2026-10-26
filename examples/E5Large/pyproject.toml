@@ -18,6 +18,10 @@ dependencies = [
     "sentence_transformers>=6,<7",
 ]
 
+[dependency-groups]
+# Used by CI to measure torch_tweak coverage while running the example.
+coverage = ["coverage>=7.17.0"]
+
 [tool.uv]
 index-strategy = "unsafe-best-match"
 
