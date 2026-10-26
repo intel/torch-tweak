@@ -631,7 +631,7 @@ def _original_content_before_pr(
 ) -> str | None:
     """Content of *filepath* before this PR: fixed baseline first, else tip of base_ref."""
     baseline_path = original_filepath or filepath
-    return _git_show(UPSTREAM_BASELINE_SHA, baseline_path) or _git_show(_resolve_ref(base_ref), filepath)
+    return _git_show(UPSTREAM_BASELINE_SHA, baseline_path) or _git_show(_resolve_ref(base_ref), baseline_path)
 
 
 def _check_spdx_license_identifier_retention(original: str, head: str) -> list[str]:
