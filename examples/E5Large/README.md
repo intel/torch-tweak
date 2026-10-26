@@ -69,5 +69,4 @@ uv run inference --prompt "query: What is the capital city of France?"
 
 ## Model Details
 
-Can be found in following pages:
-* https://huggingface.co/intfloat/e5-large-v2
+* [Hugging Face Model](https://huggingface.co/intfloat/e5-large-v2)

@@ -88,6 +88,5 @@ The service uses dynamic batching - requests are grouped and processed together 
 
 ## Model Details
 
-Can be found in following pages:
-* https://huggingface.co/nvidia/parakeet-rnnt-1.1b
-* https://docs.nvidia.com/nemo-framework/user-guide/24.09/nemotoolkit/asr/models.html
+* [Hugging Face Model](https://huggingface.co/nvidia/parakeet-rnnt-1.1b)
+* [Nemo Documentation](https://docs.nvidia.com/nemo-framework/user-guide/24.09/nemotoolkit/asr/models.html)

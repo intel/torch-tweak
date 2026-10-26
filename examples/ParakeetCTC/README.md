@@ -72,6 +72,5 @@ uv run inference
 
 ## Model Details
 
-Can be found in following pages:
-* https://huggingface.co/nvidia/parakeet-ctc-0.6b
-* https://docs.nvidia.com/nemo-framework/user-guide/24.09/nemotoolkit/asr/models.html
+* [Hugging Face Model](https://huggingface.co/nvidia/parakeet-ctc-0.6b)
+* [Nemo Documentation](https://docs.nvidia.com/nemo-framework/user-guide/24.09/nemotoolkit/asr/models.html)

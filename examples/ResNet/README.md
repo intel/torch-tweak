@@ -60,6 +60,5 @@ uv run inference --model-name resnet50 --image-path your_image
 
 ## Model Details
 
-Can be found in following pages:
-* https://pytorch.org/vision/stable/models.html#classification
-* https://huggingface.co/timm
+* [Hugging Face Model](https://huggingface.co/timm)
+* [Pytorch Documentation](https://pytorch.org/vision/stable/models.html#classification)
