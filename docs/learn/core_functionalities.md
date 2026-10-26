@@ -133,6 +133,7 @@ strategy = OneBackendStrategy(backend=OpenVINOBackend())
 ## HighestThroughputStrategy
 
 Profiles all compatible backends and selects the fastest. Use this when maximum throughput matters and you can afford longer tuning time. `HighestThroughputStrategy()` with no backend list compares Torch Inductor, XPU graph, and eager.
+When different backends win at different batch sizes, it returns a `BatchSizeRouterBackend` that sends each call to the backend tuned for its batch size.
 
 ```python
 from torch_tweak.torch.tune_strategy import HighestThroughputStrategy

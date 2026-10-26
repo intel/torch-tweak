@@ -35,7 +35,8 @@ Guide: [Torch Inductor Backend](../guides/backends/torch_inductor_backend.md).
 
 ## XPU Graph Backend
 
-The XPU graph backend records the module once while tuning and replays that recording for later inference.
+The XPU graph backend records the module while tuning and replays that recording for later inference.
+A module with a batch axis gets recordings for batch sizes 1, 2, 4, and every multiple of 8, and other batch sizes are padded.
 PyTorch chooses native or legacy recording. This backend uses whichever one that build records.
 A recording that fails, or that disagrees with eager, is rejected for that module and input.
 
