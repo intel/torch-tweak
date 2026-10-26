@@ -12,6 +12,7 @@ on:
       - "conftest.py"
       - "uv.lock"
       - ".github/workflows/tests.yml"
+      - ".github/scripts/coverage_summary.py"
   pull_request:
     paths: *tests-paths
 
@@ -42,6 +43,10 @@ jobs:
         --device=/dev/dri
       volumes:
         - ${{ github.workspace }}:${{ github.workspace }}
+    env:
+      # Shared by tests and examples (which run in their own venvs), so all data lands in one place.
+      COVERAGE_RCFILE: ${{ github.workspace }}/torch-tweak/pyproject.toml
+      COVERAGE_FILE: ${{ github.workspace }}/torch-tweak/.coverage
 
     steps:
       - name: Checkout Torch Tweak repository
@@ -104,7 +109,7 @@ jobs:
         working-directory: torch-tweak
         run: |
           # Uses [tool.pytest.ini_options] testpaths and --doctest-modules from pyproject.toml.
-          uv run pytest -v -m "not functional and not nightly"
+          uv run coverage run -m pytest -v -m "not functional and not nightly"
 
       - name: Run functional tests
         env:
@@ -112,33 +117,156 @@ jobs:
           TORCH_TWEAK_TESTS_LOG_LEVEL: DEBUG
         working-directory: torch-tweak
         run: |
-          uv run pytest -m functional
+          uv run coverage run -m pytest -m functional
 
+      # Examples call their console scripts' modules directly, so coverage.py can wrap them.
       - name: Run examples
         env:
           ONEAPI_DEVICE_SELECTOR: level_zero:gpu
         working-directory: torch-tweak
         run: |
           echo "::group::minimal"
-          uv run python examples/Minimal/demo.py
+          uv run coverage run examples/Minimal/demo.py
           echo "::endgroup::"
 
           echo "::group::llm"
           cd examples/LLM
-          uv sync
-          uv run tune --model_id microsoft/Phi-3-mini-4k-instruct
-          uv run benchmark --model_id microsoft/Phi-3-mini-4k-instruct --sequence_lengths "128,1024"
+          uv sync --group coverage
+          uv run --group coverage coverage run -m llm.tune --model_id microsoft/Phi-3-mini-4k-instruct
+          uv run --group coverage coverage run -m llm.benchmark --model_id microsoft/Phi-3-mini-4k-instruct --sequence_lengths "128,1024"
           cd -
           echo "::endgroup::"
 
           echo "::group::e5large"
           cd examples/E5Large
-          uv sync
-          uv run tune
-          uv run inference --prompt "query: What is the capital city of France?"
+          uv sync --group coverage
+          uv run --group coverage coverage run -m e5large.tune
+          uv run --group coverage coverage run -m e5large.inference --prompt "query: What is the capital city of France?"
           cd -
           echo "::endgroup::"
+
+      - name: Upload coverage data
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: coverage-data
+          path: torch-tweak/.coverage.*
+          include-hidden-files: true
+          if-no-files-found: error
+          retention-days: 7
 
       - name: Debug CI platform information
         if: ${{ always() }}
         run: ./torch-tweak/.github/scripts/get_system_info.sh
+
+  coverage:
+    name: Coverage
+    needs: tests
+    runs-on: ${{ github.repository_owner == 'intel' && 'intel-ubuntu-latest' || 'ubuntu-latest' }}
+    timeout-minutes: 10
+    permissions:
+      contents: read
+      # Needed to find and download the baseline report from the latest successful run on main.
+      actions: read
+
+    steps:
+      - name: Checkout Torch Tweak repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          # diff-cover needs the PR base commit.
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        with:
+          python-version: "3.x"
+
+      - name: Set up uv
+        uses: astral-sh/setup-uv@07a047e608db84b3d8c06cd9a7c7dcc9c355c18e # v10.3.2
+
+      - name: Download coverage data
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: coverage-data
+          path: coverage-data
+
+      # Only coverage and diff-cover from uv.lock; the project itself and torch are not needed here.
+      - name: Install coverage tools
+        run: uv sync --locked --only-group coverage
+
+      - name: Combine coverage data and build reports
+        run: |
+          uv run --no-sync coverage combine coverage-data/
+          uv run --no-sync coverage json -o coverage.json
+          uv run --no-sync coverage xml -o coverage.xml
+          uv run --no-sync coverage html -d htmlcov
+          uv run --no-sync coverage report --skip-covered --sort=cover
+
+      # On main this artifact becomes the baseline for subsequent PRs.
+      - name: Upload coverage report
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: coverage-report
+          path: |
+            coverage.json
+            coverage.xml
+            htmlcov/
+          retention-days: 90
+
+      - name: Download baseline coverage from main
+        id: baseline
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          read -r run_id head_sha < <(gh run list \
+            --repo "$GITHUB_REPOSITORY" --workflow tests.yml --branch main --event push --status success \
+            --limit 1 --json databaseId,headSha --jq '.[0] | "\(.databaseId) \(.headSha)"') || true
+          if [ -n "${run_id:-}" ] && gh run download "$run_id" --repo "$GITHUB_REPOSITORY" \
+              --name coverage-report --dir baseline; then
+            echo "label=main @ ${head_sha:0:7}" >> "$GITHUB_OUTPUT"
+          else
+            echo "::warning title=Coverage::No baseline coverage report found on main"
+          fi
+
+      - name: Measure coverage of changed lines
+        if: github.event_name == 'pull_request'
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+        run: |
+          uv run --no-sync diff-cover coverage.xml \
+            --compare-branch "$BASE_SHA" \
+            --include 'torch_tweak/**' \
+            --format json:diff-cover.json,markdown:diff-cover.md
+
+      # Threshold to fail PR if total line coverage drops by: 5%
+      - name: Publish coverage summary
+        id: summary
+        env:
+          BASELINE_LABEL: ${{ steps.baseline.outputs.label }}
+          FAIL_THRESHOLD_PARAM: ${{ github.event_name == 'pull_request' && '--fail-threshold 5' || '' }}
+        run: |
+          python .github/scripts/coverage_summary.py \
+            --current coverage.json \
+            --baseline baseline/coverage.json \
+            --baseline-label "${BASELINE_LABEL:-main}" \
+            --diff-cover diff-cover.json \
+            --diff-cover-markdown diff-cover.md \
+            ${FAIL_THRESHOLD_PARAM}
+
+          # Export value of the code coverage %
+          export COV_OUT=$(python -c 'import json; print(json.load(open("coverage.json"))["totals"]["percent_covered"])')
+          echo "calculated coverage=${COV_OUT}\%"
+          echo "COV_OUT=$COV_OUT" >> $GITHUB_OUTPUT
+
+      # Only update the badge on push (event is passed only for total coverage)
+      - name: Update coverity badge
+        if: ${{ success() && inputs.trigger == 'push' }}
+        uses: Schneegans/dynamic-badges-action@28b0fa8bdeb46170ac397105ece0c1fe58f68910 # v1.9.0
+        with:
+          auth: ${{ secrets.BB_GIST_TOKEN }}
+          gistID: cfa745c6e219d84dec39841a981daea7
+          filename: tt_coverage_badge.svg
+          label: Coverage
+          message: ${{ steps.summary.outputs.COV_OUT }}%
+          valColorRange: ${{ steps.summary.outputs.COV_OUT }}
+          minColorRange: 50 # if <= this value = color: red
+          maxColorRange: 90 # if >= this value = color: green
