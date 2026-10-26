@@ -69,6 +69,10 @@ _UPSTREAM_COPYRIGHT_RE = re.compile(
     r"SPDX-FileCopyrightText:\s*Copyright\s*\(c\)\s*\d+\s*NVIDIA",
 )
 
+# Rule 1 also covers this tag: accidental deletion/edit must be caught, same as the
+# NVIDIA copyright line above.
+_SPDX_LICENSE_IDENTIFIER_RE = re.compile(r"SPDX-License-Identifier:\s*\S+")
+
 _INTEL_COPYRIGHT_RE = re.compile(
     r"Copyright\s*\(c\)\s*\d+\s*Intel Corporation",
 )
@@ -152,6 +156,10 @@ def _intel_hint(filepath: str, body: str) -> str:
 
 def _upstream_copyright_lines(text: str) -> list[str]:
     return [ln.rstrip("\n") for ln in text.splitlines() if _UPSTREAM_COPYRIGHT_RE.search(ln)]
+
+
+def _spdx_license_lines(text: str) -> list[str]:
+    return [ln.rstrip("\n") for ln in text.splitlines() if _SPDX_LICENSE_IDENTIFIER_RE.search(ln)]
 
 
 # ---------------------------------------------------------------------------
@@ -596,23 +604,36 @@ def _check_non_python_upstream_attribution(filepath: str, head: str) -> list[str
     return errors
 
 
-def _upstream_lines_in_original(
+def _original_content_before_pr(
     filepath: str,
     base_ref: str,
     original_filepath: str | None,
-) -> list[str] | None:
-    """Baseline upstream header lines for upstream files, or ``None`` if path has no history.
-
-    Look up the upstream-original content from the fixed baseline first.
-    Fall back to origin/<base_ref> for files added after the baseline commit.
-    """
+) -> str | None:
+    """Content of *filepath* before this PR: fixed baseline first, else tip of base_ref."""
     baseline_path = original_filepath or filepath
-    original = _file_at_git_ref(UPSTREAM_BASELINE_SHA, baseline_path) or _file_at_git_ref(
-        _resolve_git_ref(base_ref), filepath
+    return _file_at_git_ref(UPSTREAM_BASELINE_SHA, baseline_path) or _file_at_git_ref(
+        _resolve_git_ref(base_ref), baseline_path
     )
-    if original is None:
-        return None
-    return _upstream_copyright_lines(original)
+
+
+def _check_spdx_license_identifier_retention(original: str, head: str) -> list[str]:
+    """Rule 1, extended to SPDX-License-Identifier: it must survive verbatim too."""
+    head_lines_stripped = {ln.strip() for ln in head.splitlines()}
+    return [
+        f"  Original SPDX-License-Identifier line missing or altered.\n  Expected verbatim: {orig_line.strip()!r}"
+        for orig_line in _spdx_license_lines(original)
+        if orig_line.strip() not in head_lines_stripped
+    ]
+
+
+def _check_upstream_copyright_retention(upstream_in_original: list[str], head: str) -> list[str]:
+    """Rule 1: every original upstream copyright line must survive verbatim."""
+    head_lines_stripped = {ln.strip() for ln in head.splitlines()}
+    return [
+        f"  Original upstream copyright line missing or altered.\n  Expected verbatim: {orig_line.strip()!r}"
+        for orig_line in upstream_in_original
+        if orig_line.strip() not in head_lines_stripped
+    ]
 
 
 def _notebook_preamble(content: str) -> str:
@@ -698,23 +719,18 @@ def _check_modified(
     if head is None:
         return []
 
-    upstream_in_original = _upstream_lines_in_original(filepath, base_ref, original_filepath)
-    if upstream_in_original is None:
+    original = _original_content_before_pr(filepath, base_ref, original_filepath)
+    if original is None:
         return []
+
+    upstream_in_original = _upstream_copyright_lines(original)
+    errors: list[str] = _check_spdx_license_identifier_retention(original, head)
 
     # No upstream copyright in original - not an upstream file, nothing to enforce.
     if not upstream_in_original:
-        return check_header(filepath) if _is_python(filepath) else []
+        return errors + (check_header(filepath) if _is_python(filepath) else [])
 
-    errors: list[str] = []
-    head_lines_stripped = {ln.strip() for ln in head.splitlines()}
-
-    # Every original upstream copyright line must survive verbatim.
-    for orig_line in upstream_in_original:
-        if orig_line.strip() not in head_lines_stripped:
-            errors.append(
-                f"  Original upstream copyright line missing or altered.\n  Expected verbatim: {orig_line.strip()!r}"
-            )
+    errors.extend(_check_upstream_copyright_retention(upstream_in_original, head))
 
     if _is_python(filepath):
         errors.extend(check_header(filepath))
