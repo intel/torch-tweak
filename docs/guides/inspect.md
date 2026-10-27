@@ -43,6 +43,7 @@ modules_info = tt.inspect(
     number_of_iterations=10,  # Iterations for profiling
     warmup_iterations=5,  # Warmup iterations
     depth=0,  # Depth at which the model is cut into modules
+    warn_if_no_modules=True,  # Warn when the walk stops before any module is registered
 )
 ```
 
@@ -163,6 +164,16 @@ modules_info = tt.inspect(model, input_data, depth=0)
 
 # Cut one level deeper
 modules_info = tt.inspect(model, input_data, depth=1)
+```
+
+#### warn_if_no_modules (Default: True)
+
+Warn when the walk stops before any module is registered.
+The message says how far the walk went and to increase `depth`.
+Pass `False` to silence that warning.
+
+```python
+modules_info = tt.inspect(model, input_data, warn_if_no_modules=False)
 ```
 
 ## Working with InspectedModulesInfo

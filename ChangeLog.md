@@ -13,6 +13,8 @@ SPDX-License-Identifier: Apache-2.0
   `depth` keeps shallower executed modules without executed children, so a cut covers the whole model.
   `max_depth` is removed, the traversal limit follows from `depth`.
   A diffusers pipeline that used `min_depth=1` to reach its components now uses `depth=0`.
+  `inspect` warns when the walk stops before any module is registered.
+  `warn_if_no_modules=False` turns that warning off.
 
 ## 0.4.0
 

@@ -127,6 +127,7 @@ class ModuleInspector:
         # One depth level allows two path segments: the module and a container, as in `layers.0`.
         # EXTRA_PATH_SEGMENTS covers further containers and modules that never run.
         self._max_path_depth = 2 * (depth + 1) + EXTRA_PATH_SEGMENTS
+        self._stopped_at_path_limit = False
         self._execution_parent_module: list[ModuleInfo] = []  # used for logging the execution path only
         if _get_inspect_debug():
             self._debug_inspecting_functions()
@@ -150,6 +151,7 @@ class ModuleInspector:
 
         self._module_info.clear()
         self._original_forward.clear()
+        self._stopped_at_path_limit = False
 
     def get_modules(self) -> list[ModuleInfo]:
         """Get executed modules that cut the model at `depth`.
@@ -174,6 +176,7 @@ class ModuleInspector:
         """
         # Check recursion depth
         if context.path_depth > self._max_path_depth:
+            self._stopped_at_path_limit = True
             return
 
         # Skip Python built-in objects

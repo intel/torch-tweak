@@ -32,6 +32,7 @@ def inspect(
     number_of_iterations: int = DEFAULT_INSPECT_ITERATIONS,
     warmup_iterations: int = DEFAULT_WARMUP_ITERATIONS,
     depth: int = 0,
+    warn_if_no_modules: bool = True,
 ) -> InspectedModulesInfo:
     """Inspect provided callable object searching for nn.Module members executed as part of forward pass.
 
@@ -47,6 +48,8 @@ def inspect(
         depth: Depth at which the model is cut into modules. Executed modules at this depth are returned,
             together with shallower executed modules that have no executed children.
             Increase it when the outermost modules cannot be tuned.
+        warn_if_no_modules: Warn when the walk stops at the path limit before any module is registered.
+            The path limit is calculated from `depth`. Increase `depth` to walk further.
 
     Returns:
         InspectedModulesInfo object.
@@ -82,6 +85,18 @@ def inspect(
     modules = model_inspector.get_modules()
 
     logger.info("Inspection done. Found %d candidate modules for tuning.", len(modules))
+    if (
+        warn_if_no_modules
+        and not modules
+        and not model_inspector._module_info
+        and model_inspector._stopped_at_path_limit
+    ):
+        logger.warning(
+            "No modules found. The walk stopped at path depth %d, calculated from depth=%d. "
+            "Increase depth to walk further.",
+            model_inspector._max_path_depth,
+            depth,
+        )
 
     inspected_modules_info = InspectedModulesInfo(total_execution_time, number_of_iterations)
     for module in modules:

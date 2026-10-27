@@ -357,6 +357,55 @@ def test_get_modules_after_inspection_with_min_execution_percentage(custom_objec
     assert executed_modules[0].execution_count == TEST_NUMBER_OF_ITERATIONS * custom_object.num_iterations
 
 
+@pytest.fixture
+def module_past_default_path_limit():
+    """A linear at path depth 7. Default depth=0 stops at path depth 6."""
+    return {
+        "nested": {
+            "nested": {
+                "nested": {
+                    "nested": {
+                        "nested": {
+                            "nested": {"module": nn.Linear(4, 4)},
+                        },
+                    },
+                },
+            },
+        },
+    }
+
+
+def _echo(tensor):
+    return tensor
+
+
+def test_inspect_warns_when_the_walk_stops_before_any_module(module_past_default_path_limit, capsys):
+    modules_info = inspect(module_past_default_path_limit, torch.zeros(1, 4), inference_function=_echo)
+
+    assert modules_info.get_modules() == []
+    assert (
+        "No modules found. The walk stopped at path depth 6, calculated from depth=0. Increase depth to walk further."
+    ) in capsys.readouterr().out
+
+
+def test_inspect_warning_can_be_disabled(module_past_default_path_limit, capsys):
+    modules_info = inspect(
+        module_past_default_path_limit,
+        torch.zeros(1, 4),
+        inference_function=_echo,
+        warn_if_no_modules=False,
+    )
+
+    assert modules_info.get_modules() == []
+    assert "No modules found" not in capsys.readouterr().out
+
+
+def test_inspect_does_not_warn_when_a_module_is_found(simple_model, sample_dataset, capsys):
+    inspect(simple_model, sample_dataset, number_of_iterations=1, warmup_iterations=1)
+
+    assert "No modules found" not in capsys.readouterr().out
+
+
 def test_get_modules_after_inspection_with_limit(custom_object, sample_dataset):
     """Test getting executed modules with a limit."""
     # When inspecting custom object with various attributes
