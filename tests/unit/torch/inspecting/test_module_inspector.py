@@ -264,20 +264,62 @@ def test_inspect_list_with_non_module_items():
     assert len(inspector._module_info) == 1
 
 
-def test_inspect_recursion_depth_limit():
-    """Test that recursion depth is properly limited."""
-    # Create a deeply nested structure
-    deep_dict = {}
-    current = deep_dict
-    for _ in range(10):
-        current["nested"] = {"module": nn.Linear(10, 10)}
-        current = current["nested"]
+@pytest.fixture
+def deep_linears():
+    """Linears placed along one nested path."""
+    m1 = nn.Linear(10, 10)
+    m2 = nn.Linear(10, 10)
+    m3 = nn.Linear(10, 10)
+    m4 = nn.Linear(10, 10)
+    m5 = nn.Linear(10, 10)
+    m6 = nn.Linear(10, 10)
+    return m1, m2, m3, m4, m5, m6
 
+
+@pytest.fixture
+def deep_dict(deep_linears):
+    """One nested dict. Comments are `path_depth` of each linear."""
+    m1, m2, m3, m4, m5, m6 = deep_linears
+    return {
+        "nested": {  # path_depth 1
+            "module": m1,  # path_depth 2
+            "nested": {  # path_depth 2
+                "module": m2,  # path_depth 3
+                "nested": {  # path_depth 3
+                    "module": m3,  # path_depth 4
+                    "nested": {  # path_depth 4
+                        "module": m4,  # path_depth 5
+                        "nested": {  # path_depth 5
+                            "module": m5,  # path_depth 6
+                            "nested": {  # path_depth 6
+                                "module": m6,  # path_depth 7
+                            },
+                        },
+                    },
+                },
+            },
+        },
+    }
+
+
+def test_inspect_recursion_depth_limit(deep_dict, deep_linears):
+    """Test that recursion depth is properly limited."""
+    m1, m2, m3, m4, m5, _m6 = deep_linears
     inspector = ModuleInspector()
     inspector.inspect(deep_dict)
 
-    # Should still work without infinite recursion
-    assert len(inspector._module_info) == 5  # dict is not included as it is not a nn.Module
+    assert inspector._max_path_depth == 6
+    assert {id(module) for module in inspector._module_info} == {id(m1), id(m2), id(m3), id(m4), id(m5)}
+
+
+def test_get_modules_is_empty_when_module_is_past_max_path_depth(deep_dict, deep_linears):
+    """A module past the calculated path limit is not returned."""
+    m6 = deep_linears[5]
+    inspector = ModuleInspector()
+    inspector.inspect(deep_dict)
+    m6(torch.randn(1, 10))
+
+    assert inspector.get_modules() == []
 
 
 def test_inspect_duplicate_objects():

@@ -23,6 +23,8 @@ dot notation, even for dictionaries and lists. (e.g., '.list.0.layers`,
 The depth of a module is the number of executed modules above it in the object
 tree, see `ModuleInfo.depth`. Containers such as lists, dicts, `nn.ModuleList`,
 and modules whose forward never ran do not count.
+The walk stops at a path depth calculated from `depth`.
+Modules past that path are not registered.
 
 Environment variables that could be used:
 
@@ -158,10 +160,10 @@ class ModuleInspector:
         Returns:
             Modules in inspection order.
         """
-        depth = self._depth
         executed = [m for m in self._module_info.values() if m.forward_called]
-        with_executed_children = {id(m.executed_parent) for m in executed if m.executed_parent is not None}
-        return [m for m in executed if m.depth == depth or (m.depth < depth and id(m) not in with_executed_children)]
+        candidates = [m for m in executed if m.depth <= self._depth]
+        parents = {id(m.executed_parent) for m in candidates if m.executed_parent is not None}
+        return [m for m in candidates if id(m) not in parents]
 
     def _inspect_object(self, obj: Any, *, context: InspectContext) -> None:
         """Inspect an object and its members for PyTorch modules.
