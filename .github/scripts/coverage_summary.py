@@ -85,7 +85,9 @@ def main() -> int:
     parser.add_argument("--baseline-label", default="main", help="label of the baseline, e.g. 'main @ abc1234'")
     parser.add_argument("--diff-cover", type=Path, help="diff-cover json report of changed lines")
     parser.add_argument("--diff-cover-markdown", type=Path, help="diff-cover markdown report to embed")
-    parser.add_argument("--fail-threshold", type=float, help="fail when total coverage drops by more then this %")
+    parser.add_argument(
+        "--fail-threshold", type=float, help="fail when total coverage drops by more then this percentage"
+    )
     args = parser.parse_args()
 
     current = load_json(args.current)
@@ -129,10 +131,13 @@ def main() -> int:
             lines.append("| **Changed lines** (diff-cover) | — | no measured lines changed | — |")
             notice.append("changed lines: none measured")
 
+    lines.append("")
+    lines.append("> HTML coverage report is available in the `coverage-report` artifact.")
+    lines.append("> Download it down below and open `htmlcov\\index.html` to view the report.")
+    lines.append("")
+
     fail_threshold = args.fail_threshold
     failed = delta is not None and fail_threshold is not None and delta < -fail_threshold
-    # XXX
-    failed = True
     if failed:
         lines += [
             "",

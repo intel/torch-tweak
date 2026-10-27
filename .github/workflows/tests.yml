@@ -162,7 +162,7 @@ jobs:
   coverage:
     name: Coverage
     needs: tests
-    runs-on: ubuntu-latest
+    runs-on: ${{ github.repository_owner == 'intel' && 'intel-ubuntu-latest' || 'ubuntu-latest' }}
     timeout-minutes: 10
     permissions:
       contents: read
@@ -240,6 +240,7 @@ jobs:
 
       # Threshold to fail PR if total line coverage drops by: 5%
       - name: Publish coverage summary
+        id: summary
         env:
           BASELINE_LABEL: ${{ steps.baseline.outputs.label }}
           FAIL_THRESHOLD_PARAM: ${{ github.event_name == 'pull_request' && '--fail-threshold 5' || '' }}
@@ -251,3 +252,23 @@ jobs:
             --diff-cover diff-cover.json \
             --diff-cover-markdown diff-cover.md \
             ${FAIL_THRESHOLD_PARAM}
+
+          # Export value of the code coverage %
+          export COV_OUT=$(python -c 'import json; print(json.load(open(\"coverage.json\"))["totals"]["percent_covered"])')
+          echo "calculated coverage=${COV_OUT}\%"
+          echo "COV_OUT=$COV_OUT" >> $GITHUB_OUTPUT
+
+      # Only update the badge on push (event is passed only for total coverage)
+      - name: Update coverity badge
+        # XXX
+        # if: ${{ success() && inputs.trigger == 'push' }}
+        uses: Schneegans/dynamic-badges-action@28b0fa8bdeb46170ac397105ece0c1fe58f68910 # v1.9.0
+        with:
+          auth: ${{ secrets.BB_GIST_TOKEN }}
+          gistID: cfa745c6e219d84dec39841a981daea7
+          filename: tt_coverage_badge.svg
+          label: Coverage
+          message: ${{ steps.summary.outputs.COV_OUT }}%
+          valColorRange: ${{ steps.summary.outputs.COV_OUT }}
+          minColorRange: 50 # if <= this value = color: red
+          maxColorRange: 90 # if >= this value = color: green
