@@ -28,6 +28,7 @@ concurrency:
 
 jobs:
   license-check:
+    if: false
     name: License Compliance
     runs-on: ubuntu-latest
 

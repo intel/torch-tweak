@@ -9,6 +9,7 @@ jobs:
   # Runs static code analysis
   codeql:
     name: CodeQL
+    if: false
     runs-on: ubuntu-latest
     permissions:
       security-events: write

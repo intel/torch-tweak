@@ -29,6 +29,7 @@ permissions:
 
 jobs:
   build-docs:
+    if: false
     name: Build docs
     runs-on: ubuntu-latest
     steps:

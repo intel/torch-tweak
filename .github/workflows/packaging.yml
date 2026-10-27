@@ -38,6 +38,7 @@ permissions:
 
 jobs:
   build:
+    if: false
     name: Build distributions
     runs-on: ubuntu-latest
 

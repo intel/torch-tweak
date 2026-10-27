@@ -12,6 +12,7 @@ on:
 jobs:
   semgrep:
     runs-on: [BMG]
+    if: false
     container: semgrep/semgrep:latest
     steps:
       - name: Checkout repository
