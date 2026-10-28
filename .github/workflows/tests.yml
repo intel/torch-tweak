@@ -253,7 +253,7 @@ jobs:
             ${FAIL_THRESHOLD_PARAM}
 
           # Export value of the code coverage %
-          export COV_OUT=$(python -c 'import json; print(json.load(open(\"coverage.json\"))["totals"]["percent_covered"])')
+          export COV_OUT=$(python -c 'import json; print(json.load(open("coverage.json"))["totals"]["percent_covered"])')
           echo "calculated coverage=${COV_OUT}\%"
           echo "COV_OUT=$COV_OUT" >> $GITHUB_OUTPUT
 

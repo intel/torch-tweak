@@ -131,11 +131,6 @@ def main() -> int:
             lines.append("| **Changed lines** (diff-cover) | — | no measured lines changed | — |")
             notice.append("changed lines: none measured")
 
-    lines.append("")
-    lines.append("> HTML coverage report is available in the `coverage-report` artifact.")
-    lines.append("> Download it down below and open `htmlcov\\index.html` to view the report.")
-    lines.append("")
-
     fail_threshold = args.fail_threshold
     failed = delta is not None and fail_threshold is not None and delta < -fail_threshold
     if failed:
@@ -154,6 +149,11 @@ def main() -> int:
     if diff_md is not None and diff_md.is_file():
         lines += ["", "<details><summary>diff-cover report</summary>", ""]
         lines += [diff_md.read_text(encoding="utf-8").strip(), "", "</details>"]
+
+    lines.append("")
+    lines.append("**HTML coverage report** is available in the `coverage-report` artifact.")
+    lines.append("Download it down below and open `htmlcov\\index.html` to view the report.")
+    lines.append("")
 
     output = "\n".join(lines) + "\n"
     summary_path = os.environ.get("GITHUB_STEP_SUMMARY")
