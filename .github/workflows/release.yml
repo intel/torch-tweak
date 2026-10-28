@@ -120,9 +120,9 @@ jobs:
     name: Verify package from ${{ inputs.target }}
     needs: publish
     runs-on: [BMG]
-    timeout-minutes: 30
+    timeout-minutes: 60
     container:
-      image: ubuntu-latest
+      image: ubuntu:26.04
       options: >-
         --device=/dev/dri
       volumes:
@@ -132,13 +132,15 @@ jobs:
       - name: Remove leftovers from previous runs
         run: rm -rf dist published
 
-      # Only the example script, so nothing can import torch_tweak from sources.
-      - name: Checkout the minimal example
+      # Only the scripts, so nothing can import torch_tweak from sources.
+      - name: Checkout the check scripts
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           path: torch-tweak
           persist-credentials: false
-          sparse-checkout: examples/Minimal/demo.py
+          sparse-checkout: |
+            .github/scripts/check_installed_package.py
+            examples/Minimal/demo.py
           sparse-checkout-cone-mode: false
 
       - name: Download built distributions
@@ -229,27 +231,10 @@ jobs:
         env:
           VERSION: ${{ needs.publish.outputs.version }}
           ONEAPI_DEVICE_SELECTOR: level_zero:gpu
-        run: |
-          /tmp/venv/bin/python - <<'EOF'
-          import os
-          import sys
-
-          import torch
-
-          import torch_tweak
-
-          print(f"torch_tweak {torch_tweak.__version__} from {torch_tweak.__file__}")
-          print(f"torch {torch.__version__}, xpu build {torch.version.xpu}")
-          if torch_tweak.__version__ != os.environ["VERSION"]:
-              sys.exit("Installed torch_tweak version does not match the release.")
-          if "site-packages" not in torch_tweak.__file__:
-              sys.exit("torch_tweak is not imported from the installed wheel.")
-          if torch.version.xpu is None:
-              sys.exit("Installed torch is not an XPU build.")
-          if not torch.xpu.is_available():
-              sys.exit("XPU device is not available.")
-          print(f"XPU device: {torch.xpu.get_device_name(0)}")
-          EOF
+        run: >-
+          /tmp/venv/bin/python
+          "${GITHUB_WORKSPACE}/torch-tweak/.github/scripts/check_installed_package.py"
+          --version "${VERSION}"
 
       - name: Run the minimal example
         working-directory: /tmp
