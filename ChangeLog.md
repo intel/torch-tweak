@@ -7,6 +7,8 @@ SPDX-License-Identifier: Apache-2.0
 
 ## Unreleased
 
+- feat: `tt.default_strategy(device)` returns `HighestThroughputStrategy` over every backend that runs on the device.
+
 - feat (breaking): `inspect` measures module depth in executed modules.
   Containers such as `nn.ModuleList` and modules that never run no longer add a level.
   `min_depth` is renamed to `depth`.
