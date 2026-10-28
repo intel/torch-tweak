@@ -2433,14 +2433,19 @@ SPDX-License-Identifier: Apache-2.0
 <h1 id="changelog">Changelog</h1>
 <h2 id="unreleased">Unreleased</h2>
 <ul>
-<li>feat (breaking): <code>inspect</code> measures module depth in executed modules.
+<li>
+<p>fix: a passthrough module without parameters keeps its inputs on their device instead of moving them to CPU.</p>
+</li>
+<li>
+<p>feat (breaking): <code>inspect</code> measures module depth in executed modules.
   Containers such as <code>nn.ModuleList</code> and modules that never run no longer add a level.
   <code>min_depth</code> is renamed to <code>depth</code>.
   <code>depth</code> keeps shallower executed modules without executed children, so a cut covers the whole model.
   <code>max_depth</code> is removed, the traversal limit follows from <code>depth</code>.
   A diffusers pipeline that used <code>min_depth=1</code> to reach its components now uses <code>depth=0</code>.
   <code>inspect</code> warns when the walk stops before any module is registered.
-  <code>warn_if_no_modules=False</code> turns that warning off.</li>
+  <code>warn_if_no_modules=False</code> turns that warning off.</p>
+</li>
 </ul>
 <h2 id="040">0.4.0</h2>
 <p>This is the first release of <strong>Torch Tweak</strong>. Torch Tweak is focused on Intel GPU (XPU) support.
