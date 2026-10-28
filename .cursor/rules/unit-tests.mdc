@@ -81,7 +81,7 @@ Do not put a branch in a helper unless that helper has its own tests.
 
 ## One fact
 
-Each test covers one behavior and calls the code once.
+Each test covers one behavior.
 A second fact is a second test. One more check in a green test hides which fact broke.
 Several asserts may describe one fact: the shape and the dtype of the same tensor.
 
@@ -94,7 +94,6 @@ A wide test fails together with others, so the failure does not point at one beh
 ## Obvious
 
 Separate arrange, act, and assert with a blank line.
-The act block is one call.
 The input that changes the result sits in that test. A fixture two hundred lines away turns the expected value into a puzzle.
 
 ```python
