@@ -6,7 +6,7 @@ alwaysApply: false
 
 # Tests
 
-A test is one example. Input in. Output out.
+A test is one example: a known input and the output you expect.
 Tests are untested code. A bug in a test may let a product bug ship, and nothing is watching the test.
 Keep the test simple enough that a wrong example is obvious.
 A test that builds the expected value with the same formula as the code stays green when both are wrong.
@@ -15,9 +15,7 @@ Apply this when you add or edit a test. Leave the rest of the file alone.
 
 ## Dumb
 
-State the input as a literal.
-State the expected output as a literal.
-Compare.
+Write the input as a literal, write the expected output as a literal, and compare them.
 
 Production code may build the object under test. It may supply the input.
 It must not compute the expected value.
@@ -79,24 +77,24 @@ def test_non_finite_tensor_is_rejected(value, message):
 Catch the subclass the code raises. `pytest.raises(CorrectnessValueError)` alone is still weak. A different `CorrectnessValueError` passes. Pass `match`.
 
 A helper may build a fixed tensor or a toy module.
-A helper with a branch does not exist, unless that helper has its own tests.
+Do not put a branch in a helper unless that helper has its own tests.
 
 ## One fact
 
-One behavior per test. One act.
-A second fact is a second test. Adding "one more check" to a green test hides which fact broke.
+Each test covers one behavior and calls the code once.
+A second fact is a second test. One more check in a green test hides which fact broke.
 Several asserts may describe one fact: the shape and the dtype of the same tensor.
 
 A round trip is one behavior. Save, load, forward, then one compare.
 An assert between the steps is a second test.
 
 When a unit test fails, the reader should already know which behavior broke.
-A wide test fails in a crowd. Overlapping wide tests fail as a crowd.
+A wide test fails together with others, so the failure does not point at one behavior.
 
 ## Obvious
 
-Arrange. Act. Assert. One blank line between the blocks.
-The act is one call.
+Separate arrange, act, and assert with a blank line.
+The act block is one call.
 The input that changes the result sits in that test. A fixture two hundred lines away turns the expected value into a puzzle.
 
 ```python
@@ -110,7 +108,7 @@ def test_nan_in_a_tensor_is_rejected():
 Name the behavior: `test_dynamic_shapes_are_rejected`.
 `test_1`, `test_ok`, and `test_works` are not names.
 A docstring that repeats the name adds nothing. Delete it.
-Write one sentence when the assert is only a proxy for the intent. The hashes differ because the object is hashed by identity. The name cannot always hold that why.
+Write one sentence when the assert only stands in for the intent. Two hashes can differ because the object is hashed by identity, and the test name cannot carry that reason.
 
 A value used once stays inline. A variable earns its place when it separates `expected_*` from `actual_*`, or when the same literal is the cause in both arrange and assert.
 
@@ -144,7 +142,7 @@ A helper that also picks the weight has hidden the test.
 
 Write test functions. Request a fixture by naming the argument.
 `unittest.TestCase` and `setUp` hide that dependency. Do not add them.
-Do not inherit a test base class. A subclass that overrides setup is a puzzle with a family tree.
+Do not inherit a test base class. A subclass that overrides setup hides the cause in another class.
 Do not hide the cause in `setup_method` or a new autouse fixture.
 
 A fixture may build the object under test and inject boring dependencies.
@@ -165,10 +163,9 @@ If production reads the clock, pass the time in. If it cannot, patch the clock a
 
 ## Assert the value
 
-`assert flag`, `assert result is not None`, and `assert ok` pass for the wrong reason.
-Assert the value the caller observes: a tensor, a name, a shape, a chosen backend, a raised type and message.
+Assert the value the caller observes: a tensor, a name, a shape, a chosen backend, or a raised type and its message.
 Use a plain `assert`. pytest prints both sides of a comparison.
-`assert flag` and `assert ok` hide the value. Write `assert actual.shape == (4, 8)`.
+`assert flag`, `assert result is not None`, and `assert ok` hide that value. Write `assert actual.shape == (4, 8)`.
 A test returns `None`. `return actual == expected` is ignored, and the test stays green.
 
 Scalars use `pytest.approx`. Tensors use `torch.testing.assert_close`.
@@ -176,7 +173,7 @@ Do not write `abs(a - b) < tol`.
 
 ## Behavior
 
-Lock what the caller sees.
+Assert what the caller sees.
 
 - Forward outputs after `tune`.
 - Which backend won, read from the result.
@@ -197,15 +194,14 @@ tune(module, sample)
 build.assert_called_once()
 ```
 
-Delete it. Assert the tensor, the selected backend, or the rejection.
+Delete that test, and in its place assert the tensor, the selected backend, or the rejection.
 
 ## Doubles and stand-ins
 
-These unit tests are sociable. A real strategy next to a real toy model is the point.
+A unit test here may use its real neighbors. A real strategy next to a real toy model is the point.
 A bug in the neighbor may fail this test. Follow it. Do not mock every neighbor to keep the test solitary.
 
-Check the output first.
-Then the state left behind: a file under `tmp_path`, the backend stored on the module.
+Assert the output first, then the state left behind: a file under `tmp_path`, or the backend stored on the module.
 A recorded call is last. Use it only for a side effect that leaves the process, such as a download or an external log sink.
 Do not assert a query that only supplied data. That assertion breaks when the query is inlined, and it never checked the answer.
 
@@ -219,7 +215,7 @@ Pass our own collaborator in when the production code accepts one.
 When a failure cannot be produced for real, a timeout or a refused download, patch the name where the code under test looks it up.
 `mocker` and `monkeypatch` put the name back. A patch that leaks into the next test is shared mutable state.
 
-Name the role you mean.
+Name the stand-in for the role it actually plays.
 
 - A stub returns a fixed value so the subject can run.
 - A fake is a simpler working stand-in. It must still do the job. An echo that returns the input is not OpenVINO, Inductor, or an XPU graph.
@@ -231,11 +227,11 @@ A green test against a stand-in that behaves differently from production proves 
 
 Make a test deterministic, specific, and sensitive to behavior.
 Make it insensitive to structure. A rename of a helper must not turn it red.
-Isolated: order does not matter, and another test's leftovers do not matter.
+Order does not matter, and one test must not leave state for the next.
 
 Closer to a full production run, the test gets slower and less specific.
 That is why a branch in a pure function stays a unit test, and a real compiler path is functional.
-Do not pay the slow test to learn what a literal example already shows.
+Do not run a slow test to learn what a literal example already shows.
 
 ## Where it runs
 
@@ -245,7 +241,7 @@ Do not pay the slow test to learn what a literal example already shows.
 | Functional | `tests/functional/` | `functional` | One real path: a ResNet, a tokenizer, one backend. |
 | Long | either tree | `nightly` | The same, when it is too slow for the normal run. |
 
-Push a new fact down. A branch in a pure function is a unit test.
+Test a new fact in the smallest test that can see it. A branch in a pure function is a unit test.
 Move up when the bug lives in the wiring: export, device, weights, save/load on a real module.
 A functional test is still one scenario, with a literal or an eager oracle.
 Do not boot a full download to test a pure function.
