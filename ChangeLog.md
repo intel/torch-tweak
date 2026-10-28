@@ -7,6 +7,13 @@ SPDX-License-Identifier: Apache-2.0
 
 ## Unreleased
 
+- feat: `auto_tune` tunes a model at every depth up to `max_depth` and keeps the fastest cut.
+
+- feat (breaking): a module without a strategy is tuned with `tt.default_strategy(device)` instead of `FirstWinsStrategy`.
+  Tuning measures every backend and keeps the fastest, so it takes longer.
+
+- feat: `tt.default_strategy(device)` returns `HighestThroughputStrategy` over every backend that runs on the device.
+
 - feat (breaking): `inspect` measures module depth in executed modules.
   Containers such as `nn.ModuleList` and modules that never run no longer add a level.
   `min_depth` is renamed to `depth`.

@@ -18,6 +18,19 @@ Torch Tweak provides three built-in strategies:
 - **FirstWinsStrategy**: Tries backends in order, uses the first that succeeds
 - **HighestThroughputStrategy**: Profiles all backends, selects the fastest
 
+## Default Strategy
+
+A module without a strategy is tuned with `tt.default_strategy(device)`.
+It is `HighestThroughputStrategy` over every backend that runs on the device and keeps the results of the model:
+
+| Device | Backends |
+|---|---|
+| XPU | Torch Inductor, XPU graph, OpenVINO, Torch Eager |
+| CPU | Torch Inductor, OpenVINO, Torch Eager |
+
+TorchAO is left out because quantization changes the results.
+Every module gets its own strategy instance, built for the device it is tuned on.
+
 ## Why Backends Can Fail
 
 Not every backend can successfully tune every model. Each backend relies on a different compilation or export technology, and each has its own limitations:

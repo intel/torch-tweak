@@ -108,6 +108,21 @@ class InspectContext:
         return replace(self, **kwargs)
 
 
+def cut_at(modules: list[ModuleInfo], depth: int) -> list[ModuleInfo]:
+    """Get executed modules of `modules` that cut the model at `depth`.
+
+    The result holds every executed module at `depth`, plus every shallower executed module
+    without executed children. No returned module is nested in another one.
+
+    Returns:
+        Modules in the order of `modules`.
+    """
+    executed = [m for m in modules if m.forward_called]
+    candidates = [m for m in executed if m.depth <= depth]
+    parents = {id(m.executed_parent) for m in candidates if m.executed_parent is not None}
+    return [m for m in candidates if id(m) not in parents]
+
+
 class ModuleInspector:
     """Class for inspecting PyTorch modules and tracking their execution."""
 
@@ -143,29 +158,27 @@ class ModuleInspector:
 
     def reset(self) -> None:
         """Reset the inspector state."""
-        # Restore original forward methods
-        for module, original_forward in self._original_forward.items():
-            module.forward = original_forward
+        self.restore_forward_methods()
 
         self._inspected_objects.clear()  # Clear the set when starting a new inspection
 
         self._module_info.clear()
-        self._original_forward.clear()
         self._stopped_at_path_limit = False
 
+    def restore_forward_methods(self) -> None:
+        """Stop tracking execution. Collected module info stays available to `get_modules`."""
+        for module, original_forward in self._original_forward.items():
+            module.forward = original_forward
+        self._original_forward.clear()
+
+    @property
+    def modules(self) -> list[ModuleInfo]:
+        """All inspected modules, executed or not."""
+        return list(self._module_info.values())
+
     def get_modules(self) -> list[ModuleInfo]:
-        """Get executed modules that cut the model at `depth`.
-
-        The result holds every executed module at `depth`, plus every shallower executed module
-        without executed children. No returned module is nested in another one.
-
-        Returns:
-            Modules in inspection order.
-        """
-        executed = [m for m in self._module_info.values() if m.forward_called]
-        candidates = [m for m in executed if m.depth <= self._depth]
-        parents = {id(m.executed_parent) for m in candidates if m.executed_parent is not None}
-        return [m for m in candidates if id(m) not in parents]
+        """Get executed modules that cut the model at `depth`, see `cut_at`."""
+        return cut_at(self.modules, self._depth)
 
     def _inspect_object(self, obj: Any, *, context: InspectContext) -> None:
         """Inspect an object and its members for PyTorch modules.

@@ -16,8 +16,10 @@ from torch_tweak.torch.tune_strategy import (
     HighestThroughputStrategy,
     OneBackendStrategy,
     TuneStrategy,
+    default_strategy,
 )
 from torch_tweak.torch.tuning import load, save, tune
+from torch_tweak.torch.auto_tuning import AutoTuneResult, auto_tune
 
 __all__ = [
     "torch_tweak_cache_dir",
@@ -25,6 +27,8 @@ __all__ = [
     "inspect",
     "wrap",
     "tune",
+    "auto_tune",
+    "AutoTuneResult",
     "load",
     "save",
     "Module",
@@ -32,6 +36,7 @@ __all__ = [
     "OneBackendStrategy",
     "FirstWinsStrategy",
     "HighestThroughputStrategy",
+    "default_strategy",
     "LocalTorchStorage",
     "DataLoaderFactory",
 ]

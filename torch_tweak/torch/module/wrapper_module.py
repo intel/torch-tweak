@@ -23,9 +23,8 @@ from torch_tweak.torch.module.recording_module import RecordingModule
 from torch_tweak.torch.module.sample_metadata import SampleMetadata
 from torch_tweak.torch.module.tuned_module import TunedModule
 from torch_tweak.torch.module_registry import MODULE_REGISTRY
-from torch_tweak.torch.tune_strategy import FirstWinsStrategy
+from torch_tweak.torch.tune_strategy import default_strategy
 from torch_tweak.torch.tune_strategy.tune_strategy import (
-    DummyTuneStrategy,
     TuneStrategy,
 )
 from torch_tweak.torch.utils.module import get_module_device, offload
@@ -33,8 +32,6 @@ from torch_tweak.utils.permissions import secure_mkdir
 from torch_tweak.utils.system_monitor import SystemMonitor
 
 logger = getLogger(__name__)
-
-DEFAULT_STRATEGY = FirstWinsStrategy()
 
 
 class ModuleState(Enum):
@@ -86,7 +83,8 @@ class Module(wrapt.CallableObjectProxy):
         Args:
             module: torch module to wrap.
             name: module name which differences from other tuned modules.
-            strategy: optional strategy, which will be used for all encountered graphs
+            strategy: optional strategy, which will be used for all encountered graphs. Without `strategy` and
+                `strategies`, every graph gets its own `default_strategy` for the tuning device.
             strategies: list or dict of strategies, each for a graph
         """
         super().__init__(module)
@@ -262,11 +260,25 @@ class Module(wrapt.CallableObjectProxy):
 
     state_dict = to_dict  # alias required by torch module.state_dict recursive call
 
+    def attach(self):
+        """Routes calls of the wrapped module through this wrapper again after `detach`."""
+        self._proxy_forward()
+
+    def detach(self):
+        """Makes the wrapped module run its original forward. Tuning results are kept."""
+        self.__wrapped__.forward = self._self_orig_forward
+
+    def offload(self):
+        """Moves the wrapped module to `device_after_tuning` when no tuned backend needs it."""
+        if self._self_state == ModuleState.TUNED:
+            self._offload(cast(TunedModule, self._self_wrapper).backends)
+
     def tune(
         self,
         device: torch.device | None = None,
         strategy: TuneStrategy | None = None,
         dry_run: bool = False,
+        offload: bool = True,
     ):
         """Tunes the module.
 
@@ -274,6 +286,7 @@ class Module(wrapt.CallableObjectProxy):
             device: the device to use for tuning
             strategy: the tuning strategy to use
             dry_run: if True, only dry run the tuning
+            offload: if False, the wrapped module keeps its weights; call `offload` later
 
         Note:
             if module has already defined strategy/strategies those will take precedence over the provided one.
@@ -287,7 +300,7 @@ class Module(wrapt.CallableObjectProxy):
 
         recording = cast(RecordingModule, self._self_wrapper)
         backends: OrderedDict[SampleMetadata, Backend] = OrderedDict()
-        strategies = self._get_strategies_for_graph_specs(strategy, recording.graph_specs, dry_run)
+        strategies = self._get_strategies_for_graph_specs(strategy, recording.graph_specs, device)
 
         for strategy, graph_spec in zip(strategies, recording.graph_specs, strict=True):
             cache_dir = self._create_graph_cache_dir(graph_spec)
@@ -309,7 +322,8 @@ class Module(wrapt.CallableObjectProxy):
                 self._self_prev_recording = recording
                 self._self_state = ModuleState.TUNED
                 self._self_wrapper = TunedModule(backends)
-                self._offload(backends)
+                if offload:
+                    self._offload(backends)
             finally:
                 recording.cleanup()
 
@@ -404,9 +418,6 @@ class Module(wrapt.CallableObjectProxy):
         strategies: StrategyList | StrategyMap | None,
     ):
         """Sets up strategy or strategy_map or strategy_list depending on input args."""
-        if strategy is None and strategies is None:
-            strategy = DEFAULT_STRATEGY
-
         if strategy is not None and strategies is not None:
             raise ValueError("Only one of strategy or strategies should be provided")
         self._self_strategy = strategy
@@ -426,12 +437,13 @@ class Module(wrapt.CallableObjectProxy):
         self,
         strategy: TuneStrategy | None,
         graph_specs: list[GraphSpec],
-        dry_run: bool,
+        device: torch.device | str,
     ) -> list[TuneStrategy]:
         """Returns strategies for given graph specs.
 
         Module level strategies (list/dict) take precedence over provided strategy.
         The function checks if there is sufficient strategies (list/dict).
+        Without any strategy, every graph gets its own `default_strategy(device)`.
         """
         if strategy is not None:
             return [strategy] * len(graph_specs)
@@ -456,10 +468,7 @@ class Module(wrapt.CallableObjectProxy):
         if self._self_strategy is not None:
             return [self._self_strategy] * len(graph_specs)
 
-        if dry_run:
-            return [DummyTuneStrategy()] * len(graph_specs)
-
-        raise RuntimeError("No strategy provided. Cannot tune module.")
+        return [default_strategy(device) for _ in graph_specs]
 
     def _offload(self, backends: OrderedDict[SampleMetadata, Backend]):
         """Offload the module to meta only when backends do not retain it."""

@@ -220,6 +220,26 @@ def test_tune_with_provided_strategy(torch_device):
     assert module.state == ModuleState.TUNED
 
 
+def test_tune_without_strategy_uses_a_default_strategy_per_graph(torch_device, monkeypatch):
+    strategies = []
+
+    def fake_default_strategy(device):
+        strategies.append(Mock(device=device))
+        return strategies[-1]
+
+    monkeypatch.setattr("torch_tweak.torch.module.wrapper_module.default_strategy", fake_default_strategy)
+    module = Module(Identity(), TEST_MODULE_NAME)
+
+    module(1, a=1)
+    module(2, b=2)
+    module.tune(dry_run=False, device=torch_device)
+
+    assert [strategy.device for strategy in strategies] == [torch_device, torch_device]
+    for strategy in strategies:
+        strategy.tune.assert_called_once()
+    assert module.state == ModuleState.TUNED
+
+
 def test_tune_with_list_of_strategies(torch_device):
     model = Identity()
     strategy1 = Mock()
