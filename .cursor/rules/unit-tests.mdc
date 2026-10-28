@@ -254,6 +254,14 @@ Device comes from the `torch_device` fixture. `TORCH_TWEAK_TESTS_USE_DEVICE` ove
 Hardcode `torch.device("xpu")` only when the behavior is XPU-only, and mark the test with `requires_xpu` from `tests.utilities.helpers`.
 Do not branch the expected value on CPU versus XPU.
 
+A new file is `test_<behavior>.py`.
+Do not number a new functional file. `012_torch_tweak_...` is an old sequence, not a name.
+
+Skip a test only when this machine cannot run it. Missing XPU uses `requires_xpu` from `tests.utilities.helpers`.
+`xfail` marks a known defect. Name that defect in `reason`.
+`skip`, `skipif`, and `xfail` take `reason`.
+Do not skip a test to hide a failure.
+
 A page of arrange in a unit test means the production object asks for too much. Say so.
 Do not cover that with a base class or a god fixture.
 
