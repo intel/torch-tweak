@@ -51,8 +51,8 @@ def file_percents(report: dict) -> dict[str, tuple[float, int, int]]:
 def fmt_delta(delta: float) -> str:
     """Format a percentage-point delta with an explicit sign."""
     if abs(delta) < 0.005:
-        return "±0.00 pp"
-    return f"{delta:+.2f} pp"
+        return "±0.00 %"
+    return f"{delta:+.2f} %"
 
 
 def changed_files_table(current: dict, baseline: dict) -> list[str]:
@@ -86,7 +86,7 @@ def main() -> int:
     parser.add_argument("--diff-cover", type=Path, help="diff-cover json report of changed lines")
     parser.add_argument("--diff-cover-markdown", type=Path, help="diff-cover markdown report to embed")
     parser.add_argument(
-        "--fail-threshold", type=float, help="fail when total coverage drops by more then this percentage"
+        "--fail-threshold", type=float, help="fail when total coverage drops by more than this percentage"
     )
     args = parser.parse_args()
 
@@ -136,8 +136,8 @@ def main() -> int:
     if failed:
         lines += [
             "",
-            f"> [!CAUTION]\n> Total line coverage dropped by {-delta:.2f} pp, "
-            f"which exceeds the allowed {fail_threshold:.2f} pp.",
+            f"> [!CAUTION]\n> Total line coverage dropped by {-delta:.2f} %, "
+            f"which exceeds the allowed {fail_threshold:.2f} %.",
         ]
 
     if baseline is not None:
@@ -152,7 +152,7 @@ def main() -> int:
 
     lines.append("")
     lines.append("**HTML coverage report** is available in the `coverage-report` artifact.")
-    lines.append("Download it down below and open `htmlcov\\index.html` to view the report.")
+    lines.append("Download it, down below, and open `.\\htmlcov\\index.html` to view the report.")
     lines.append("")
 
     output = "\n".join(lines) + "\n"

@@ -258,8 +258,8 @@ jobs:
           echo "COV_OUT=$COV_OUT" >> $GITHUB_OUTPUT
 
       # Only update the badge on push (event is passed only for total coverage)
-      - name: Update coverity badge
-        if: ${{ success() && inputs.trigger == 'push' }}
+      - name: Update coverage badge
+        if: ${{ success() && github.event_name == 'push' }}
         uses: Schneegans/dynamic-badges-action@28b0fa8bdeb46170ac397105ece0c1fe58f68910 # v1.9.0
         with:
           auth: ${{ secrets.BB_GIST_TOKEN }}
