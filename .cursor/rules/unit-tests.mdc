@@ -7,7 +7,9 @@ alwaysApply: false
 # Tests
 
 A test is one example. Input in. Output out.
-Tests are untested code. A bug in a test ships a bug in the product, and nothing is watching the test.
+Tests are untested code. A bug in a test may let a product bug ship, and nothing is watching the test.
+Keep the test simple enough that a wrong example is obvious.
+A test that builds the expected value with the same formula as the code stays green when both are wrong.
 A reader names the behavior in under a minute. If they cannot, the test is wrong.
 Apply this when you add or edit a test. Leave the rest of the file alone.
 
@@ -61,7 +63,7 @@ No `if`, `for`, `while`, or `try` that decides what is correct.
 @pytest.mark.parametrize("kind", ["nan", "inf"])
 def test_non_finite(kind):
     value = float("nan") if kind == "nan" else float("inf")
-    with pytest.raises(ValueError):
+    with pytest.raises(CorrectnessValueError):
         check_output_correctness({"logits": torch.tensor([value])})
 
 # Good. Two examples. The message is part of the example.
@@ -70,11 +72,11 @@ def test_non_finite(kind):
     [(float("nan"), "NaN"), (float("inf"), "infinity")],
 )
 def test_non_finite_tensor_is_rejected(value, message):
-    with pytest.raises(ValueError, match=message):
+    with pytest.raises(CorrectnessValueError, match=message):
         check_output_correctness({"logits": torch.tensor([1.0, value])})
 ```
 
-`pytest.raises(ValueError)` alone is weak. A different `ValueError` still passes. Pass `match`.
+Catch the subclass the code raises. `pytest.raises(CorrectnessValueError)` alone is still weak. A different `CorrectnessValueError` passes. Pass `match`.
 
 A helper may build a fixed tensor or a toy module.
 A helper with a branch does not exist, unless that helper has its own tests.
@@ -101,7 +103,7 @@ The input that changes the result sits in that test. A fixture two hundred lines
 def test_nan_in_a_tensor_is_rejected():
     outputs = {"logits": torch.tensor([1.0, float("nan"), 3.0])}
 
-    with pytest.raises(ValueError, match="NaN"):
+    with pytest.raises(CorrectnessValueError, match="NaN"):
         check_output_correctness(outputs)
 ```
 
@@ -165,7 +167,8 @@ If production reads the clock, pass the time in. If it cannot, patch the clock a
 
 `assert flag`, `assert result is not None`, and `assert ok` pass for the wrong reason.
 Assert the value the caller observes: a tensor, a name, a shape, a chosen backend, a raised type and message.
-Use a plain `assert`. pytest prints both sides. A hand-written message on a boolean does not.
+Use a plain `assert`. pytest prints both sides of a comparison.
+`assert flag` and `assert ok` hide the value. Write `assert actual.shape == (4, 8)`.
 A test returns `None`. `return actual == expected` is ignored, and the test stays green.
 
 Scalars use `pytest.approx`. Tensors use `torch.testing.assert_close`.
@@ -214,16 +217,6 @@ Do not mock what we do not own. `torch`, `timm`, `diffusers`, `transformers`, an
 Mocking their types couples the test to their layout. A new release breaks the test and the behavior can still be wrong.
 Pass our own collaborator in when the production code accepts one.
 When a failure cannot be produced for real, a timeout or a refused download, patch the name where the code under test looks it up.
-
-```python
-# torch_inductor_backend.py does `import torch`, then calls torch.compile.
-# Patch that binding. Patching torch.compile in the torch package misses it.
-mocker.patch(
-    "torch_tweak.torch.backend.torch_inductor_backend.torch.compile",
-    side_effect=RuntimeError("no device"),
-)
-```
-
 `mocker` and `monkeypatch` put the name back. A patch that leaks into the next test is shared mutable state.
 
 Name the role you mean.
