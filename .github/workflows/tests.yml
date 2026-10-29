@@ -252,8 +252,8 @@ jobs:
             --diff-cover-markdown diff-cover.md \
             ${FAIL_THRESHOLD_PARAM}
 
-          # Export value of the code coverage %
-          export COV_OUT=$(python -c 'import json; print(json.load(open("coverage.json"))["totals"]["percent_covered"])')
+          # Export value of the code coverage %, rounded up to 2 decimal places
+          export COV_OUT=$(python -c 'import json; print(round(json.load(open("coverage.json"))["totals"]["percent_covered"], 2))')
           echo "calculated coverage=${COV_OUT}\%"
           echo "COV_OUT=$COV_OUT" >> $GITHUB_OUTPUT
 
