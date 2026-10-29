@@ -64,7 +64,7 @@ jobs:
   build:
     name: Build
     needs: validate-tag
-    uses: $/.github/workflows/packaging.yml
+    uses: ./.github/workflows/packaging.yml
 
   publish:
     name: Publish to ${{ inputs.target }}
@@ -78,6 +78,8 @@ jobs:
           || format('https://test.pypi.org/project/torch-tweak/{0}/', steps.version.outputs.version) }}
     permissions:
       id-token: write # PyPI trusted publishing (OIDC) and attestation signing
+    outputs:
+      version: ${{ steps.version.outputs.version }}
 
     steps:
       - name: Download distributions
@@ -112,3 +114,12 @@ jobs:
             ${{ inputs.target == 'pypi'
               && 'https://upload.pypi.org/legacy/'
               || 'https://test.pypi.org/legacy/' }}
+
+  verify:
+    name: Verify
+    needs: publish
+    uses: ./.github/workflows/verify-release.yml
+    with:
+      version: ${{ needs.publish.outputs.version }}
+      target: ${{ inputs.target }}
+      compare_with_build: true

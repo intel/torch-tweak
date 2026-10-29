@@ -1,0 +1,181 @@
+name: Verify release
+
+# Installs a published torch-tweak wheel and runs the minimal example on an
+# Intel GPU.
+#
+# Called by release.yml right after publishing. Run it manually to verify an
+# already published version again.
+
+on:
+  workflow_call:
+    inputs:
+      version:
+        description: Published version, e.g. 0.5.0rc1
+        type: string
+        required: true
+      target:
+        description: Package index the version was published to (pypi or testpypi)
+        type: string
+        required: true
+      compare_with_build:
+        description: Require the published wheel to match the "dist" artifact of this run
+        type: boolean
+        default: false
+  workflow_dispatch:
+    inputs:
+      version:
+        description: Published version, e.g. 0.5.0rc1
+        type: string
+        required: true
+      target:
+        description: Package index the version was published to
+        type: choice
+        options:
+          - testpypi
+          - pypi
+        default: testpypi
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    name: Verify torch-tweak ${{ inputs.version }} from ${{ inputs.target }}
+    runs-on: [BMG]
+    timeout-minutes: 60
+    container:
+      image: ubuntu:26.04
+      options: >-
+        --device=/dev/dri
+      volumes:
+        - ${{ github.workspace }}:${{ github.workspace }}
+
+    steps:
+      - name: Require a release version and a known index
+        env:
+          VERSION: ${{ inputs.version }}
+          TARGET: ${{ inputs.target }}
+        run: |
+          if ! printf '%s' "${VERSION}" | grep -Eq '^[0-9]+\.[0-9]+\.[0-9]+(rc[0-9]+)?$'; then
+            echo "::error::Version '${VERSION}' does not match X.Y.Z or X.Y.ZrcN."
+            exit 1
+          fi
+          if [ "${TARGET}" != "pypi" ] && [ "${TARGET}" != "testpypi" ]; then
+            echo "::error::Target '${TARGET}' is neither pypi nor testpypi."
+            exit 1
+          fi
+
+      - name: Remove leftovers from previous runs
+        run: rm -rf dist published
+
+      # Only the scripts, so nothing can import torch_tweak from sources.
+      - name: Checkout the check scripts
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          path: torch-tweak
+          persist-credentials: false
+          sparse-checkout: |
+            .github/scripts/check_installed_package.py
+            examples/Minimal/demo.py
+          sparse-checkout-cone-mode: false
+
+      - name: Download built distributions
+        if: inputs.compare_with_build
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: dist
+          path: dist/core/
+
+      - name: Set up Python
+        uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        with:
+          python-version: "3.14"
+
+      - name: Install drivers and required packages
+        run: |
+          # extra proxy inherited to docker has to be removed
+          unset no_proxy
+          unset NO_PROXY
+
+          apt-get update -y
+          apt-get install -y software-properties-common
+          add-apt-repository -y ppa:kobuk-team/intel-graphics
+          apt-get update -y
+          apt-get install -y \
+            clinfo \
+            intel-gsc \
+            intel-media-va-driver-non-free \
+            intel-metrics-discovery \
+            intel-ocloc \
+            intel-opencl-icd \
+            libmfx-gen1 \
+            libva-glx2 \
+            libvpl2 \
+            libvpl-tools \
+            libze1 \
+            libze-intel-gpu1 \
+            va-driver-all \
+            vainfo
+
+      # The index needs a few minutes to serve a freshly uploaded version.
+      - name: Download the wheel from ${{ inputs.target }}
+        env:
+          VERSION: ${{ inputs.version }}
+          INDEX_URL: >-
+            ${{ inputs.target == 'pypi'
+              && 'https://pypi.org/simple'
+              || 'https://test.pypi.org/simple' }}
+        run: |
+          for attempt in $(seq 1 20); do
+            if python -m pip download --no-deps --no-cache-dir \
+                --index-url "${INDEX_URL}" --dest published/ \
+                "torch-tweak==${VERSION}"; then
+              break
+            fi
+            if [ "${attempt}" -eq 20 ]; then
+              echo "::error::torch-tweak ${VERSION} is not available on ${INDEX_URL}."
+              exit 1
+            fi
+            sleep 30
+          done
+
+      - name: Require the downloaded wheel to match the built one
+        if: inputs.compare_with_build
+        env:
+          VERSION: ${{ inputs.version }}
+        run: |
+          wheel="torch_tweak-${VERSION}-py3-none-any.whl"
+          built="$(sha256sum "dist/core/${wheel}" | cut -d' ' -f1)"
+          published="$(sha256sum "published/${wheel}" | cut -d' ' -f1)"
+          if [ "${built}" != "${published}" ]; then
+            echo "::error::${wheel} on the index differs from the built artifact."
+            exit 1
+          fi
+
+      # Dependencies come from the real indexes, never from TestPyPI.
+      - name: Install the wheel with the XPU extra
+        env:
+          VERSION: ${{ inputs.version }}
+        run: |
+          python -m venv /tmp/venv
+          /tmp/venv/bin/pip install --no-cache-dir \
+            --index-url https://download.pytorch.org/whl/xpu \
+            --extra-index-url https://pypi.org/simple \
+            "./published/torch_tweak-${VERSION}-py3-none-any.whl[xpu]"
+          /tmp/venv/bin/pip list
+
+      - name: Check the installed package and XPU support
+        working-directory: /tmp
+        env:
+          VERSION: ${{ inputs.version }}
+          ONEAPI_DEVICE_SELECTOR: level_zero:gpu
+        run: >-
+          /tmp/venv/bin/python
+          "${GITHUB_WORKSPACE}/torch-tweak/.github/scripts/check_installed_package.py"
+          --version "${VERSION}"
+
+      - name: Run the minimal example
+        working-directory: /tmp
+        env:
+          ONEAPI_DEVICE_SELECTOR: level_zero:gpu
+        run: /tmp/venv/bin/python "${GITHUB_WORKSPACE}/torch-tweak/examples/Minimal/demo.py"

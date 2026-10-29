@@ -8,11 +8,9 @@ SPDX-License-Identifier: Apache-2.0
 ## Unreleased
 
 - fix: `save` stores tuned modules nested in pipeline components under their dotted path, e.g. `vae.decoder`. Modules that are not tuned are not saved.
-
 - fix: a tuned module that a pipeline holds under several paths is saved once and restored as one module.
-
 - feat: `save` warns about tuned modules it does not save, e.g. a module the pipeline holds in a plain list.
-
+- fix: a passthrough module without parameters keeps its inputs on their device instead of moving them to CPU.
 - feat (breaking): `inspect` measures module depth in executed modules.
   Containers such as `nn.ModuleList` and modules that never run no longer add a level.
   `min_depth` is renamed to `depth`.

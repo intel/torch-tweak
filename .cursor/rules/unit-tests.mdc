@@ -1,0 +1,270 @@
+---
+description: How to write unit and functional tests in Torch Tweak. Use when adding or editing tests under tests/, conftest.py, or when the user asks for a test.
+globs: "{tests/**/*.py,conftest.py}"
+alwaysApply: false
+---
+
+# Tests
+
+A test is one example: a known input and the output you expect.
+Tests are untested code. A bug in a test may let a product bug ship, and nothing is watching the test.
+Keep the test simple enough that a wrong example is obvious.
+A test that builds the expected value with the same formula as the code stays green when both are wrong.
+A reader names the behavior in under a minute. If they cannot, the test is wrong.
+Apply this when you add or edit a test. Leave the rest of the file alone.
+
+## Dumb
+
+Write the input as a literal, write the expected output as a literal, and compare them.
+
+Production code may build the object under test. It may supply the input.
+It must not compute the expected value.
+A copied formula is the same mistake. The test and the code then share one bug.
+
+```python
+# Bad. from_inputs is the code under test, used as its own oracle.
+expected = SampleMetadata.from_inputs(args=None, kwargs={"x": x}, strict=True).to_dict()
+assert actual.to_dict() == expected
+
+# Good. The values the test owns are written out.
+payload = actual.to_dict()
+assert payload["strict"] is True
+assert payload["other_data"][0]["value"] == "hello"
+```
+
+Compare the field this test owns. A full expected object is right when every field is the point. Otherwise assert that field and stop.
+
+A tuned module, a replayed graph, or a loaded checkpoint matches eager, or a literal tensor.
+Capture eager before tune. That run is the oracle. The tuned path is the subject.
+
+```python
+eager = model(sample)
+
+tune(module, sample)
+
+torch.testing.assert_close(module(sample), eager, rtol=1e-4, atol=1e-5)
+```
+
+Do not run the subject twice and compare it to itself.
+Floats go through `torch.testing.assert_close` with `rtol` and `atol` on that call.
+Do not walk elements. Do not branch on NaN. `assert_close` already prints the mismatch.
+
+## No logic
+
+A branch or a loop in a test is untested code. Every path you would demand in production is invisible here.
+No `if`, `for`, `while`, or `try` that decides what is correct.
+`pytest.raises` is the assertion.
+`pytest.mark.parametrize` is a list of examples. Each row is written out. The body does not switch on the parameter.
+
+```python
+# Bad. The branch is a second program.
+@pytest.mark.parametrize("kind", ["nan", "inf"])
+def test_non_finite(kind):
+    value = float("nan") if kind == "nan" else float("inf")
+    with pytest.raises(CorrectnessValueError):
+        check_output_correctness({"logits": torch.tensor([value])})
+
+# Good. Two examples. The message is part of the example.
+@pytest.mark.parametrize(
+    ("value", "message"),
+    [(float("nan"), "NaN"), (float("inf"), "infinity")],
+)
+def test_non_finite_tensor_is_rejected(value, message):
+    with pytest.raises(CorrectnessValueError, match=message):
+        check_output_correctness({"logits": torch.tensor([1.0, value])})
+```
+
+Catch the subclass the code raises. `pytest.raises(CorrectnessValueError)` alone is still weak. A different `CorrectnessValueError` passes. Pass `match`.
+
+A helper may build a fixed tensor or a toy module.
+Do not put a branch in a helper unless that helper has its own tests.
+
+## One fact
+
+Each test covers one behavior.
+A second fact is a second test. One more check in a green test hides which fact broke.
+Several asserts may describe one fact: the shape and the dtype of the same tensor.
+
+A round trip is one behavior. Save, load, forward, then one compare.
+An assert between the steps is a second test.
+
+When a unit test fails, the reader should already know which behavior broke.
+A wide test fails together with others, so the failure does not point at one behavior.
+
+## Obvious
+
+Separate arrange, act, and assert with a blank line.
+The input that changes the result sits in that test. A fixture two hundred lines away turns the expected value into a puzzle.
+
+```python
+def test_nan_in_a_tensor_is_rejected():
+    outputs = {"logits": torch.tensor([1.0, float("nan"), 3.0])}
+
+    with pytest.raises(CorrectnessValueError, match="NaN"):
+        check_output_correctness(outputs)
+```
+
+Name the behavior: `test_dynamic_shapes_are_rejected`.
+`test_1`, `test_ok`, and `test_works` are not names.
+A docstring that repeats the name adds nothing. Delete it.
+Write one sentence when the assert only stands in for the intent. Two hashes can differ because the object is hashed by identity, and the test name cannot carry that reason.
+
+A value used once stays inline. A variable earns its place when it separates `expected_*` from `actual_*`, or when the same literal is the cause in both arrange and assert.
+
+## Show what matters
+
+Repeat two tests when the repetition is the example.
+Extract on the third copy, and only the part that does not change the result.
+Duplication of knowledge (one constructor, one device, one tolerance used everywhere) may be one helper.
+Duplication of an example stays duplicated. Merging those examples hides which input produced which output.
+
+The helper takes the values the assertion depends on. Defaults cover the rest.
+
+```python
+def linear(in_features, out_features, weight):
+    layer = torch.nn.Linear(in_features, out_features, bias=False)
+    with torch.no_grad():
+        layer.weight.copy_(weight)
+    return layer
+
+
+def test_linear_scales_the_input():
+    layer = linear(2, 1, torch.tensor([[2.0, 0.0]]))
+
+    actual = layer(torch.tensor([[3.0, 4.0]]))
+
+    torch.testing.assert_close(actual, torch.tensor([[6.0]]))
+```
+
+The weight is visible. Bias, dtype, and device are not the story, so they stay inside `linear`.
+A helper that also picks the weight has hidden the test.
+
+Write test functions. Request a fixture by naming the argument.
+`unittest.TestCase` and `setUp` hide that dependency. Do not add them.
+Do not inherit a test base class. A subclass that overrides setup hides the cause in another class.
+Do not hide the cause in `setup_method` or a new autouse fixture.
+
+A fixture may build the object under test and inject boring dependencies.
+The scenario stays in the test.
+Function scope is the default. A wider scope hands every test the same instance.
+Use that only for an expensive resource the tests do not mutate. A shared model or a shared cache leaks.
+A fixture the test does not need can fail first, and the test never runs. Keep the list short.
+The root `conftest.py` already clears the module registry and points the cache at `tmp_path`. Do not reinvent it.
+Shared toys live in `tests/toy_models` and `tests/utilities`. Add one when a second test needs the same irrelevant detail.
+
+## Fixed data
+
+Prefer `torch.tensor([...])`, `torch.arange`, or `torch.zeros`.
+`torch.randn` is allowed only with a literal seed in that test, and only when a literal tensor will not do.
+The failure message should contain the input. A random tensor does not.
+No clock, no random id, no "whatever the model returned."
+If production reads the clock, pass the time in. If it cannot, patch the clock at that boundary with a literal. Do not call `datetime.now()` in the test.
+
+## Assert the value
+
+Assert the value the caller observes: a tensor, a name, a shape, a chosen backend, or a raised type and its message.
+Use a plain `assert`. pytest prints both sides of a comparison.
+`assert flag`, `assert result is not None`, and `assert ok` hide that value. Write `assert actual.shape == (4, 8)`.
+A test returns `None`. `return actual == expected` is ignored, and the test stays green.
+
+Scalars use `pytest.approx`. Tensors use `torch.testing.assert_close`.
+Do not write `abs(a - b) < tol`.
+
+## Behavior
+
+Assert what the caller sees.
+
+- Forward outputs after `tune`.
+- Which backend won, read from the result.
+- Inspect names, shapes, and dtypes.
+- Save, then load, then forward.
+- A rejected input: dynamic shapes, empty recording, CPU where XPU is required, NaN, Inf.
+
+Do not lock call order. Do not call a private function.
+A behavior you can reach only through `_helper` is a design problem in production. Test the public method. Ask before reshaping production code to make the test possible.
+
+This is a change detector. It fails on a rename and passes on a wrong answer:
+
+```python
+build = mocker.patch.object(backend, "build")
+
+tune(module, sample)
+
+build.assert_called_once()
+```
+
+Delete that test, and in its place assert the tensor, the selected backend, or the rejection.
+
+## Doubles and stand-ins
+
+A unit test here may use its real neighbors. A real strategy next to a real toy model is the point.
+A bug in the neighbor may fail this test. Follow it. Do not mock every neighbor to keep the test solitary.
+
+Assert the output first, then the state left behind: a file under `tmp_path`, or the backend stored on the module.
+A recorded call is last. Use it only for a side effect that leaves the process, such as a download or an external log sink.
+Do not assert a query that only supplied data. That assertion breaks when the query is inlined, and it never checked the answer.
+
+Use the real collaborator when it is in-process and cheap: a toy `nn.Module`, real `SampleMetadata`, the real strategy.
+The cache directory and the checkpoint files are ours. Exercise the real code against `tmp_path`.
+A double belongs on a boundary we do not control: a download, a clock, a backend this machine cannot run.
+
+Do not mock what we do not own. `torch`, `timm`, `diffusers`, `transformers`, and OpenVINO are not ours.
+Mocking their types couples the test to their layout. A new release breaks the test and the behavior can still be wrong.
+Pass our own collaborator in when the production code accepts one.
+When a failure cannot be produced for real, a timeout or a refused download, patch the name where the code under test looks it up.
+`mocker` and `monkeypatch` put the name back. A patch that leaks into the next test is shared mutable state.
+
+Name the stand-in for the role it actually plays.
+
+- A stub returns a fixed value so the subject can run.
+- A fake is a simpler working stand-in. It must still do the job. An echo that returns the input is not OpenVINO, Inductor, or an XPU graph.
+- A mock that records calls asserts structure. That is the change detector above.
+
+A green test against a stand-in that behaves differently from production proves the stand-in. The real compiler, the real device, the real checkpoint format run in the test that claims to cover them, or that test does not exist.
+
+## The tradeoff
+
+Make a test deterministic, specific, and sensitive to behavior.
+Make it insensitive to structure. A rename of a helper must not turn it red.
+Order does not matter, and one test must not leave state for the next.
+
+Closer to a full production run, the test gets slower and less specific.
+That is why a branch in a pure function stays a unit test, and a real compiler path is functional.
+Do not run a slow test to learn what a literal example already shows.
+
+## Where it runs
+
+| Kind | Place | Marker | Proves |
+|---|---|---|---|
+| Unit | `tests/unit/` | none | One behavior. Toy model. No download. |
+| Functional | `tests/functional/` | `functional` | One real path: a ResNet, a tokenizer, one backend. |
+| Long | either tree | `nightly` | The same, when it is too slow for the normal run. |
+
+Test a new fact in the smallest test that can see it. A branch in a pure function is a unit test.
+Move up when the bug lives in the wiring: export, device, weights, save/load on a real module.
+A functional test is still one scenario, with a literal or an eager oracle.
+Do not boot a full download to test a pure function.
+Do not cover a compiler by mocking it.
+
+Unit tests are hermetic. No network. No dependence on another test. No leftover global state.
+The registry fixture exists because global state leaks. Do not add a second global.
+
+Device comes from the `torch_device` fixture. `TORCH_TWEAK_TESTS_USE_DEVICE` overrides it.
+Hardcode `torch.device("xpu")` only when the behavior is XPU-only, and mark the test with `requires_xpu` from `tests.utilities.helpers`.
+Do not branch the expected value on CPU versus XPU.
+
+A new file is `test_<behavior>.py`.
+Do not number a new functional file. `012_torch_tweak_...` is an old sequence, not a name.
+
+Skip a test only when this machine cannot run it. Missing XPU uses `requires_xpu` from `tests.utilities.helpers`.
+`xfail` marks a known defect. Name that defect in `reason`.
+`skip`, `skipif`, and `xfail` take `reason`.
+Do not skip a test to hide a failure.
+
+A page of arrange in a unit test means the production object asks for too much. Say so.
+Do not cover that with a base class or a god fixture.
+
+```bash
+uv run pytest -m "not functional and not nightly"
+uv run pytest -m functional
+```
