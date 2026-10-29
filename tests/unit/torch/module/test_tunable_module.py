@@ -224,6 +224,23 @@ def test_tune_with_provided_strategy(torch_device):
     assert module.state == ModuleState.TUNED
 
 
+def test_tune_without_strategy_builds_a_default_strategy_per_graph_for_the_device(torch_device, monkeypatch):
+    requested_devices = []
+
+    def default_strategy_stub(device):
+        requested_devices.append(device)
+        return Mock()
+
+    monkeypatch.setattr("torch_tweak.torch.module.tunable_module.default_strategy", default_strategy_stub)
+    module = TunableModule(Identity(), TEST_MODULE_NAME)
+    module(1, a=1)
+    module(2, b=2)
+
+    module.tune(device=torch_device)
+
+    assert requested_devices == [torch_device, torch_device]
+
+
 def test_tune_with_list_of_strategies(torch_device):
     model = Identity()
     strategy1 = Mock()
