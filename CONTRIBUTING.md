@@ -86,8 +86,7 @@ New features and bug fixes should come with tests. Place them under
 CI measures line coverage of `torch_tweak` across unit tests, functional tests
 and examples. The Tests workflow summary shows the total compared to the latest
 `main` run, plus diff-cover coverage of the lines changed by the PR. A PR fails
-if total coverage drops by more than 10 percentage points. To measure coverage
-locally:
+if total coverage drops noticeably. To measure coverage locally:
 
 ```bash
 uv run coverage run -m pytest -m "not functional and not nightly"

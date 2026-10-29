@@ -132,16 +132,16 @@ jobs:
           echo "::group::llm"
           cd examples/LLM
           uv sync --group coverage
-          uv run --group coverage coverage run -m llm.tune --model_id microsoft/Phi-3-mini-4k-instruct
-          uv run --group coverage coverage run -m llm.benchmark --model_id microsoft/Phi-3-mini-4k-instruct --sequence_lengths "128,1024"
+          uv run coverage run -m llm.tune --model_id microsoft/Phi-3-mini-4k-instruct
+          uv run coverage run -m llm.benchmark --model_id microsoft/Phi-3-mini-4k-instruct --sequence_lengths "128,1024"
           cd -
           echo "::endgroup::"
 
           echo "::group::e5large"
           cd examples/E5Large
           uv sync --group coverage
-          uv run --group coverage coverage run -m e5large.tune
-          uv run --group coverage coverage run -m e5large.inference --prompt "query: What is the capital city of France?"
+          uv run coverage run -m e5large.tune
+          uv run coverage run -m e5large.inference --prompt "query: What is the capital city of France?"
           cd -
           echo "::endgroup::"
 
@@ -164,7 +164,6 @@ jobs:
     runs-on: ${{ github.repository_owner == 'intel' && 'intel-ubuntu-latest' || 'ubuntu-latest' }}
     timeout-minutes: 10
     permissions:
-      contents: read
       # Needed to find and download the baseline report from the latest successful run on main.
       actions: read
 

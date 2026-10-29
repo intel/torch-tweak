@@ -117,7 +117,7 @@ raw-options = { local_scheme = "no-local-version", fallback_version = "0.4.1" }
 xpu-nightly = ["torch>=2.13.0", "triton-xpu"]
 xpu-stable = ["torch>=2.13.0"]
 # Lightweight set for the CI coverage reporting job (no torch needed).
-coverage = ["coverage>=7.17.0", "diff-cover>=10.6.0"]
+coverage = ["coverage>=7.17.0", "diff-cover>=11.0.0"]
 
 [tool.uv]
 managed = true
