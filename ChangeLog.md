@@ -11,6 +11,12 @@ SPDX-License-Identifier: Apache-2.0
 - fix: a tuned module that a pipeline holds under several paths is saved once and restored as one module.
 - feat: `save` warns about tuned modules it does not save, e.g. a module the pipeline holds in a plain list.
 - fix: a passthrough module without parameters keeps its inputs on their device instead of moving them to CPU.
+- feat (breaking): a module without a strategy is tuned with `tt.default_strategy(device)` instead of `FirstWinsStrategy`.
+  Tuning measures every backend and keeps the fastest, so it takes longer.
+- feat: `tt.default_strategy(device)` returns `HighestThroughputStrategy` over every backend that runs on the device.
+- feat (breaking): `FirstWinsStrategy` and `HighestThroughputStrategy` without `backends` use `default_backends(device)` for the tuning device.
+  `HighestThroughputStrategy()` now also measures OpenVINO, and neither strategy tries XPU graph on CPU.
+  Tuning on a device other than XPU or CPU without `backends` raises `ValueError`.
 - feat (breaking): `inspect` measures module depth in executed modules.
   Containers such as `nn.ModuleList` and modules that never run no longer add a level.
   `min_depth` is renamed to `depth`.

@@ -18,7 +18,7 @@ from torch_tweak.torch.module.recording_module import Sample
 from torch_tweak.torch.module.sample_metadata import SampleMetadata
 from torch_tweak.torch.module.wrapper_module import Module
 from torch_tweak.torch.module_registry import MODULE_REGISTRY
-from torch_tweak.torch.tune_strategy import FirstWinsStrategy, HighestThroughputStrategy, OneBackendStrategy
+from torch_tweak.torch.tune_strategy import OneBackendStrategy
 from torch_tweak.torch.tuning import tune
 
 
@@ -292,15 +292,6 @@ def test_cpu_is_rejected(tmp_path):
 
 def test_default_backend_has_no_recording_switch():
     assert XPUGraphBackend().describe() == "XPUGraphBackend()"
-
-
-def test_first_wins_tries_the_graph_backend_before_inductor():
-    text = FirstWinsStrategy().describe()
-    assert text.index("XPUGraphBackend()") < text.index("TorchInductorBackend()")
-
-
-def test_highest_throughput_lists_the_graph_backend():
-    assert "XPUGraphBackend()" in HighestThroughputStrategy().describe()
 
 
 @requires_xpu
