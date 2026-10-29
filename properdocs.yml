@@ -79,9 +79,9 @@ nav:
             -   Backends: learn/backends.md
             -   Observability: learn/observability.md
     -   Guides:
+            - Tweak: guides/tweak.md
             - Tuning: guides/tuning.md
             - Inspect: guides/inspect.md
-            - Tweak: guides/tweak.md
             - Backends:
                 - OpenVINO Backend: guides/backends/openvino_backend.md
                 - TorchAO Backend: guides/backends/torchao_backend.md

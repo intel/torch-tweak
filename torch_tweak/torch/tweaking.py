@@ -146,6 +146,8 @@ def tweak(
     when it is within `tie_tolerance` of the fastest one. The model is left untuned when no depth
     is faster than the untuned model.
 
+    This is the main entry point. `inspect`, `wrap`, and `tune` tune one cut at a chosen depth and are faster.
+
     Args:
         obj: Model or pipeline to tune.
         dataset: Samples for inspection, tuning, and measurement.

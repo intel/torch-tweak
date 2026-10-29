@@ -7,6 +7,23 @@ NOTE: This file has been modified by Intel Corporation.
 -->
 # Core Functionalities
 
+## Tweak
+
+The `tweak` function is the main entry point.
+It inspects the model, cuts it at every depth, tunes each cut, and keeps the fastest one.
+
+```python
+import torch_tweak.torch as tt
+
+result = tt.tweak(model, dataset)
+print(result)
+
+model = result.obj
+```
+
+The [Tweak guide](../guides/tweak.md) covers depths, strategies, and the time budget.
+`inspect`, `wrap`, and `tune` below tune one cut at the depth you choose, which is faster.
+
 ## Inspect
 
 The `inspect` function allows you to analyze PyTorch models and pipelines to understand their structure, parameters, and execution flow. It provides detailed insights into model architecture and helps identify tuning opportunities.
@@ -33,7 +50,7 @@ tt.inspect(model, dataset)
 
 ## Tune
 
-The `tune` function is the core functionality that automatically tunes your PyTorch models and pipelines for optimal inference performance. It supports various backends and automatically selects the best performing configuration.
+The `tune` function tunes the modules you wrapped, at the depth you chose. It supports various backends and selects the best performing configuration for every module.
 
 ```python
 import torch_tweak.torch as tt
