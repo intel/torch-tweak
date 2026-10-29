@@ -5,6 +5,7 @@
 # NOTE: This file has been modified by Intel Corporation.
 """Unit tests for FirstWinsStrategy."""
 
+from typing import cast
 from unittest.mock import MagicMock
 
 import pytest
@@ -153,6 +154,23 @@ def test_tune_all_backends_fail(mock_module, mock_graph_spec, mock_sample, torch
     expected_error = f"There is no valid backend for a module: test_module, graph_spec: {mock_graph_spec}"
     assert str(exc_info.value) == expected_error
     assert mock_module.to.call_count == 2  # Called after each failed backend
+
+
+def test_without_backends_tunes_with_the_default_backends_for_the_device(torch_device, tmp_path, monkeypatch):
+    monkeypatch.setattr(
+        "torch_tweak.torch.tune_strategy.first_wins_strategy.default_backends",
+        lambda device: {torch_device: [SleepBackend(sleep_time=2e-5)]}[device],
+    )
+    strategy = FirstWinsStrategy()
+    strategy.enable_find_max_batch_size(False)
+    strategy.enable_correctness_check(False)
+    model = ToyTorchModel().eval().to(torch_device)
+    sample = model.sample().unsqueeze(0).to(torch_device)
+    graph_spec = model.graph_spec(batch_sizes=[1, 2], device=torch_device)
+
+    backend = strategy.tune(model, "test", graph_spec, [((sample,), {})], torch_device, tmp_path)
+
+    assert cast(SleepBackend, backend).sleep_time == 2e-5
 
 
 class InferenceFailsBackend(SleepBackend):

@@ -5,6 +5,11 @@ SPDX-License-Identifier: Apache-2.0
 
 # Changelog
 
+## Unreleased
+
+- feat (breaking): a module without a strategy is tuned with `tt.default_strategy(device)`.
+  It measures every backend that runs on the device and keeps the fastest (#55)
+
 ## 0.4.1
 
 - feat: add an XPU graph backend (#33)
