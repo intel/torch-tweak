@@ -1,8 +1,8 @@
 cff-version: 1.2.0
 message: "If you use this software, please cite it as below."
 title: "Torch Tweak"
-version: "0.4.0"
-date-released: 2026-10-06
+version: "0.4.1rc1"
+date-released: 2026-10-29
 license: "Apache-2.0"
 url: https://github.com/intel/torch-tweak
 repository-code: https://github.com/intel/torch-tweak

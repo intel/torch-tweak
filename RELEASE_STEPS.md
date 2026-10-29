@@ -42,16 +42,16 @@ Prepare changes for the release:
     ```
   - The fallback is the last released version, for a build on a machine without access to github's tags
 - Update `version` and `date-released` in `CITATION.cff`
+- Commit these changes and tag the release:
+  - `git add uv.lock examples CITATION.cff pyproject.toml ChangeLog.md`
+  - `git commit -S -m "chore: release v$VERSION"`
+  - `git tag -a -s -m "Version $VERSION" v$VERSION`
 - Once all changes are done, [build locally](CONTRIBUTING.md#building-packages) from a clean worktree
   (and/or verify changes on CI), including:
   - `git status --porcelain` prints nothing. The packaging workflow fails when it does not, so a dirty tree is not packed
   - Verify if scanners/linters/checkers passed
   - Make sure packaging workflow builds properly (you can check that on your fork)
   - Verify if version is set properly in the package
-- Commit these changes and tag the release:
-  - `git add uv.lock examples CITATION.cff pyproject.toml ChangeLog.md`
-  - `git commit -S -m "chore: release v$VERSION"`
-  - `git tag -a -s -m "Version $VERSION" v$VERSION`
 - Verify if commit and tag are properly signed:
   - `git verify-commit <commit's sha>`
   - `git verify-tag v$VERSION`

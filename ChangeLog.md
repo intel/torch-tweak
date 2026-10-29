@@ -5,13 +5,10 @@ SPDX-License-Identifier: Apache-2.0
 
 # Changelog
 
-## Unreleased
+## 0.4.1rc1
 
-- fix: `save` stores tuned modules nested in pipeline components under their dotted path, e.g. `vae.decoder`. Modules that are not tuned are not saved.
-- fix: a tuned module that a pipeline holds under several paths is saved once and restored as one module.
-- feat: `save` warns about tuned modules it does not save, e.g. a module the pipeline holds in a plain list.
-- fix: a passthrough module without parameters keeps its inputs on their device instead of moving them to CPU.
-- feat (breaking): `inspect` measures module depth in executed modules.
+- feat: add an XPU graph backend (#33)
+- feat (breaking): `inspect` measures module depth in executed modules (#36)
   Containers such as `nn.ModuleList` and modules that never run no longer add a level.
   `min_depth` is renamed to `depth`.
   `depth` keeps shallower executed modules without executed children, so a cut covers the whole model.
@@ -19,6 +16,15 @@ SPDX-License-Identifier: Apache-2.0
   A diffusers pipeline that used `min_depth=1` to reach its components now uses `depth=0`.
   `inspect` warns when the walk stops before any module is registered.
   `warn_if_no_modules=False` turns that warning off.
+- feat: `save` warns about tuned modules it does not save, e.g. a module the pipeline holds in a plain list (#42)
+- fix: a passthrough module without parameters keeps its inputs on their device instead of moving them to CPU (#43)
+- fix: `save` stores tuned modules nested in pipeline components under their dotted path, e.g. `vae.decoder`.
+  Modules that are not tuned are not saved (#42)
+- fix: a tuned module that a pipeline holds under several paths is saved once and restored as one module (#42)
+- fix(openvino): save outputs of transformers models (#38)
+- fix(openvino): run on the GPU that PyTorch uses (#39)
+- fix(checkpoint): leave out samples a checkpoint cannot hold (#37)
+- chore: change the build backend to Hatchling (#21)
 
 ## 0.4.0
 
