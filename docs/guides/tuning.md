@@ -9,6 +9,7 @@ NOTE: This file has been modified by Intel Corporation.
 # Tuning Guide
 
 You choose which modules to tune, which strategy to use, and which backends to try.
+To let Torch Tweak choose the modules, use [`tweak`](tweak.md).
 
 ## Overview
 

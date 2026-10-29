@@ -36,7 +36,7 @@ This page is the landing summary. The same file is the PyPI long description.
 
 | Feature                     | Description                                                                                                               |
 |-----------------------------|---------------------------------------------------------------------------------------------------------------------------|
-| Ease-of-use                 | Single line of code to run all possible tuning paths directly from your source code                                       |
+| Ease-of-use                 | One call, `tt.tweak`, picks the cut depth and the backend for every module                                                |
 | Wide Backend Support        | Compatible with TorchAO, Torch Inductor, XPU graph, OpenVINO, and eager PyTorch                                           |
 | Model Tuning                | Enhance the performance of models such as ResNET and BERT for efficient inference deployment                              |
 | Pipeline Tuning             | Streamline Python code pipelines for models such as Stable Diffusion and Flux using seamless model wrapping and tuning    |
@@ -50,6 +50,30 @@ Torch Tweak provides compute graph optimizations for PyTorch models at the `nn.M
 
 If your model is supported by a dedicated serving framework and benefits from runtime optimizations (e.g. continuous batching, speculative decoding),
 use frameworks like vLLM or SGLang for best performance. Use Torch Tweak for general PyTorch models and pipelines that lack such specialized tooling.
+
+## Usage
+
+`tt.tweak` is the main entry point.
+It cuts the model at every depth, tunes each cut, and keeps the fastest one.
+
+```python
+import torch_tweak.torch as tt
+
+result = tt.tweak(model, input_data)
+print(result)
+
+model = result.obj
+tt.save(model, "tuned_model.tt")
+```
+
+When you know which modules to tune, `inspect`, `wrap`, and `tune` tune one cut at the depth you choose.
+That is faster, because only one cut is tuned.
+
+```python
+modules_info = tt.inspect(model, input_data, depth=1)
+model = tt.wrap(model, modules_info.get_modules())
+tt.tune(model, input_data)
+```
 
 ## Backends
 
@@ -100,7 +124,8 @@ pip install \
 * [Overview](docs/learn/overview.md)
 * [Install](docs/learn/install.md)
 * [Quick start](docs/learn/quick_start.md)
-* [Core functionalities](docs/learn/core_functionalities.md): inspect, tune, save, load, and tune strategies
+* [Core functionalities](docs/learn/core_functionalities.md): tweak, inspect, tune, save, load, and tune strategies
+* [Tweak](docs/guides/tweak.md)
 * [Backends](docs/learn/backends.md)
 * [Examples](examples/README.md)
 

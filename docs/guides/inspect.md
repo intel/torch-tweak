@@ -8,7 +8,7 @@ NOTE: This file has been modified by Intel Corporation.
 
 # Inspect Guide
 
-The `inspect` function is a powerful tool for analyzing PyTorch models and pipelines. It helps you understand model structure, identify tuneable modules, and gather execution statistics. It can also be a first step to pick modules before tuning.
+The `inspect` function is a powerful tool for analyzing PyTorch models and pipelines. It helps you understand model structure, identify tuneable modules, and gather execution statistics. It can also be a first step to pick modules before tuning. `tweak` runs it once and tries every depth for you.
 
 ## Overview
 

@@ -54,7 +54,12 @@ Do NOT activate this skill when:
 
 ## Common Workflows
 
-### Tuning workflow
+### Tweak workflow (main entry point)
+1. **Tweak**: Use `result = tt.tweak(model, input_data)` to tune every cut depth and keep the fastest
+2. **Check**: `print(result)` shows the latency of every depth
+3. **Save**: Use `tt.save(result.obj, "path.tt")` to persist the winner
+
+### Tuning workflow (one cut you choose, faster)
 1. **Inspect**: Use `tt.inspect(model, input_data)` to analyze model structure
 2. **Wrap**: Use `tt.wrap(model, modules)` to prepare modules for tuning
 3. **Tune**: Use `tt.tune(model, input_data)` to optimize
@@ -93,13 +98,23 @@ Do NOT activate this skill when:
 ## Best Practices
 
 ### Backend Selection
-- **HighestThroughputStrategy**: the default list is Torch Inductor, XPU graph, and eager. It measures each one and keeps the fastest. List order does not change the winner. TorchAO and OpenVINO are optional additions.
-- **FirstWinsStrategy**: default order is XPU graph, Torch Inductor, OpenVINO, then eager. The first backend that builds is kept. TorchAO is not in that default, because the first backend that builds wins and a quantization that builds would be kept without a speed comparison.
+- **Default backends**: without `backends`, both strategies use `default_backends(device)`. On XPU: XPU graph, Torch Inductor, OpenVINO, eager. On CPU: Torch Inductor, OpenVINO, eager.
+- **HighestThroughputStrategy**: measures each backend and keeps the fastest. List order does not change the winner. `tt.default_strategy(device)` is this strategy over the default backends.
+- **FirstWinsStrategy**: tries the backends in order. The first backend that builds is kept. TorchAO is not in that default, because the first backend that builds wins and a quantization that builds would be kept without a speed comparison.
 
 ### Common Issues
 - **Graph breaks**: conditional logic in a module blocks tuning of that module
 
 ## Code Patterns
+
+### Tweak
+```python
+import torch_tweak.torch as tt
+
+result = tt.tweak(model, input_data)
+print(result)
+tt.save(result.obj, "tuned_model.tt")
+```
 
 ### Basic Tuning
 ```python

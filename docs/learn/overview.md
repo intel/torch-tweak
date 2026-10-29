@@ -14,6 +14,9 @@ NOTE: This file has been modified by Intel Corporation.
 
 The toolkit enables seamless tuning of PyTorch models and pipelines using TorchAO, Torch Inductor, XPU graph, OpenVINO, and eager through a single Python API. The resulting tuned models are ready for deployment in production environments.
 
+`tweak` is the main entry point. It picks the cut depth and the backend for every module.
+`inspect`, `wrap`, and `tune` tune one cut at the depth you choose, which is faster.
+
 Torch Tweak works with your environment - relying first on your software versions - and selects the best-performing backend for your software and hardware setup, guiding you to supported technologies.
 
 **Note**: This toolkit is currently in pre-release (pre-1.0) and not yet production-quality. The API is subject to change in future updates.

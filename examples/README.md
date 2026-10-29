@@ -9,20 +9,6 @@ NOTE: This file has been modified by Intel Corporation.
 
 This directory contains practical examples demonstrating how to use Torch Tweak to tune different types of AI models for inference performance.
 
-## Minimal
-
-### Smallest tuning demo
-
-Tunes a tiny MLP and selects the faster of Torch Inductor and Torch Eager. This is the shortest example in the tree.
-
-- **Location**: [`Minimal`](./Minimal/README.md)
-- **Model**: a two-layer MLP defined in the script
-- **Use Case**: The shortest path from a PyTorch module to a tuned backend
-- **Key Features**:
-  - One script, no dataset and no checkpoint
-  - Highest-throughput backend selection
-  - Intel XPU when available, otherwise CPU
-
 ## Tweak
 
 ### Finding the fastest cut depth
@@ -36,6 +22,20 @@ Runs `tweak` on a transformer encoder: a dry run, the search over cut depths, an
   - Dry run that shows the cost of every depth
   - Latency table of every depth against the untuned model
   - Time budget for the search
+
+## Minimal
+
+### Smallest tuning demo
+
+Tunes a tiny MLP and selects the faster of Torch Inductor and Torch Eager. This is the shortest example in the tree.
+
+- **Location**: [`Minimal`](./Minimal/README.md)
+- **Model**: a two-layer MLP defined in the script
+- **Use Case**: The shortest path from a PyTorch module to a tuned backend
+- **Key Features**:
+  - One script, no dataset and no checkpoint
+  - Highest-throughput backend selection
+  - Intel XPU when available, otherwise CPU
 
 ## ResNet
 

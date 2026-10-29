@@ -7,7 +7,7 @@ SPDX-License-Identifier: Apache-2.0
 
 ## Unreleased
 
-- feat: `tweak` tunes a model at every depth up to `max_depth` and keeps the fastest cut.
+- feat: `tweak` is the main entry point. It tunes a model at every depth up to `max_depth` and keeps the fastest cut.
 - fix: `save` stores tuned modules nested in pipeline components under their dotted path, e.g. `vae.decoder`. Modules that are not tuned are not saved.
 - fix: a tuned module that a pipeline holds under several paths is saved once and restored as one module.
 - feat: `save` warns about tuned modules it does not save, e.g. a module the pipeline holds in a plain list.

@@ -5,12 +5,16 @@ SPDX-License-Identifier: Apache-2.0
 
 # Tweak Guide
 
-`tweak` picks the depth at which a model is cut into tuned modules.
+`tweak` is the main entry point of Torch Tweak.
+It picks the depth at which a model is cut into tuned modules.
 It tunes the model at every depth from `min_depth` to `max_depth` and keeps the fastest one.
 
 A shallow cut gives a backend one large graph.
 A deep cut tunes many small modules separately, and each wrapped call adds overhead.
 The best depth depends on the model, the backends, and the inputs, so `tweak` measures it.
+
+When you know the depth, `inspect`, `wrap`, and `tune` tune that one cut.
+That is faster, see the [Tuning guide](tuning.md).
 
 ## Basic Usage
 

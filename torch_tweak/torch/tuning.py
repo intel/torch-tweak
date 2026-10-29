@@ -46,6 +46,8 @@ def tune(
 ) -> None:
     """Tune a callable which runs inference on a pipeline or a model.
 
+    Tunes the modules wrapped with `wrap` or `Module`. `tweak` picks the modules itself and is slower.
+
     Args:
         func: The function to tune.
         dataset: The dataset to tune on. It can be DataLoaderFactory or any dataset/iterable and even torch.Tensor.
