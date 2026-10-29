@@ -2,9 +2,9 @@
 # SPDX-License-Identifier: Apache-2.0
 
 [project]
-name = "torch-tweak-auto-tune-example"
+name = "torch-tweak-tweak-example"
 dynamic = ["version"]
-description = "Torch Tweak auto_tune example: find the fastest cut depth of a transformer encoder"
+description = "Torch Tweak example: find the fastest cut depth of a transformer encoder with tweak"
 readme = "README.md"
 license = "Apache-2.0"
 license-files = ["LICENSE", "third-party-programs.txt"]

@@ -1,6 +1,6 @@
 # Copyright (c) 2026 Intel Corporation
 # SPDX-License-Identifier: Apache-2.0
-"""Find the fastest cut depth of a transformer encoder with auto_tune, then save and load it."""
+"""Find the fastest cut depth of a transformer encoder with tweak, then save and load it."""
 
 import os
 import sys
@@ -31,11 +31,11 @@ def main() -> None:
     with torch.no_grad():
         expected = model(batch)
 
-    plan = tt.auto_tune(model, sample, batch_sizes=[8], device=device, max_depth=3, dry_run=True)
+    plan = tt.tweak(model, sample, batch_sizes=[8], device=device, max_depth=3, dry_run=True)
     for depth in plan.depths:
         print(f"Depth {depth.depth} wraps {len(depth.module_paths)} modules")
 
-    result = tt.auto_tune(model, sample, batch_sizes=[8], device=device, max_depth=3, time_budget=600)
+    result = tt.tweak(model, sample, batch_sizes=[8], device=device, max_depth=3, time_budget=600)
     print(result)
     if result.best_depth is None:
         print("No depth is faster than the untuned model.")

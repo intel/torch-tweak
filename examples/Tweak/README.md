@@ -5,23 +5,23 @@ SPDX-License-Identifier: Apache-2.0
 
 # Auto tune
 
-Finds the fastest cut depth of a four-layer transformer encoder with `auto_tune`.
+Finds the fastest cut depth of a four-layer transformer encoder with `tweak`.
 Uses an Intel XPU when one is available, and CPU otherwise.
 
 The demo runs in three steps:
 
 1. A dry run prints how many modules every depth wraps. This is the cost of the search.
-2. `auto_tune` tunes every depth, measures the whole model, and prints the latency of every depth.
+2. `tweak` tunes every depth, measures the whole model, and prints the latency of every depth.
 3. The winner is saved, loaded into a fresh model, and compared with the untuned output.
 
-The Auto Tune Guide (`docs/guides/auto_tune.md`) explains how depths are compared.
+The Tweak Guide (`docs/guides/tweak.md`) explains how depths are compared.
 
 ## Run from the repository
 
 From the repository root, after `uv sync --extra dev`:
 
 ```bash
-uv run python examples/AutoTune/demo.py
+uv run python examples/Tweak/demo.py
 ```
 
 ## Run this example on its own

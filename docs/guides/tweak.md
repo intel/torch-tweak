@@ -3,21 +3,21 @@ Copyright (c) 2026 Intel Corporation
 SPDX-License-Identifier: Apache-2.0
 -->
 
-# Auto Tune Guide
+# Tweak Guide
 
-`auto_tune` picks the depth at which a model is cut into tuned modules.
+`tweak` picks the depth at which a model is cut into tuned modules.
 It tunes the model at every depth from `min_depth` to `max_depth` and keeps the fastest one.
 
 A shallow cut gives a backend one large graph.
 A deep cut tunes many small modules separately, and each wrapped call adds overhead.
-The best depth depends on the model, the backends, and the inputs, so `auto_tune` measures it.
+The best depth depends on the model, the backends, and the inputs, so `tweak` measures it.
 
 ## Basic Usage
 
 ```python
 import torch_tweak.torch as tt
 
-result = tt.auto_tune(model, input_data, strategy=tt.HighestThroughputStrategy(), max_depth=5)
+result = tt.tweak(model, input_data, strategy=tt.HighestThroughputStrategy(), max_depth=5)
 print(result)
 
 model = result.obj
@@ -48,7 +48,7 @@ For example, a leaf module such as `head` is in every cut below its own depth.
 Weights stay on the device during the search.
 Only the winning modules are offloaded at the end, as `tune` does.
 
-Without `strategy`, `auto_tune` uses `tt.default_strategy(device)` without the search for the maximum batch size.
+Without `strategy`, `tweak` uses `tt.default_strategy(device)` without the search for the maximum batch size.
 It measures every backend that runs on the device and keeps the fastest one for every module.
 On XPU these are XPU graph, Torch Inductor, OpenVINO, and eager. On CPU these are Torch Inductor, OpenVINO, and eager.
 TorchAO is left out because quantization changes the results.
@@ -61,7 +61,7 @@ Pass a strategy to enable it explicitly.
 
 `dataset` and `batch_sizes` are used for tuning and for measurement.
 `print(result)` also shows the fastest depth for every sample.
-When different inputs prefer different depths, run `auto_tune` separately for each group of inputs and save each result to its own checkpoint.
+When different inputs prefer different depths, run `tweak` separately for each group of inputs and save each result to its own checkpoint.
 
 ## Parameters
 
@@ -80,7 +80,7 @@ A module that fails to tune runs its original forward and is not installed.
 A depth where every module fails to tune is skipped.
 
 Backends such as OpenVINO move a module to CPU when they build it.
-`auto_tune` moves the weights back after every depth, so deeper cuts start on the original device.
+`tweak` moves the weights back after every depth, so deeper cuts start on the original device.
 
 ## Cost
 
