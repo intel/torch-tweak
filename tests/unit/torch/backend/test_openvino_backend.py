@@ -13,6 +13,7 @@ import openvino as ov
 import pytest
 import torch
 import torch.nn as nn
+import torch.utils._pytree as pytree
 from transformers.modeling_outputs import BaseModelOutputWithPooling
 
 from tests.toy_models import ToyTorchModel
@@ -39,6 +40,27 @@ from torch_tweak.torch.module.graph_spec import GraphSpec
 from torch_tweak.torch.module.recording_module import Sample
 from torch_tweak.torch.module.sample_metadata import SampleMetadata
 from torch_tweak.torch.utils.module import get_arguments_names
+
+# ---------------------------------------------------------------------------
+# Pytree node without serialized_type_name - used to test the rejection path
+# in OpenVINOBackend.to_dict(). treespec_dumps raises NotImplementedError for
+# any node registered without serialized_type_name.
+# ---------------------------------------------------------------------------
+
+
+class _PytreeNodeWithoutSerializedName:
+    """Pytree node intentionally registered without serialized_type_name."""
+
+    def __init__(self, value):
+        self.value = value
+
+
+pytree.register_pytree_node(
+    _PytreeNodeWithoutSerializedName,
+    lambda x: ([x.value], None),
+    lambda values, _: _PytreeNodeWithoutSerializedName(values[0]),
+    # serialized_type_name intentionally omitted
+)
 
 # ---------------------------------------------------------------------------
 # Helpers for the kwargs-ordering regression tests
@@ -200,15 +222,14 @@ def test_openvino_backend_serializes_transformers_model_output(tmp_path, torch_d
 
 
 def test_openvino_backend_rejects_output_with_unserializable_spec(model, sample_data, tmp_path, torch_device):
-    """`torch.return_types.max` is a pytree node without a `serialized_type_name`.
+    """Output whose pytree node has no serialized_type_name cannot be saved in a checkpoint.
 
-    `pytree.treespec_dumps` raises NotImplementedError for such a node, and `to_dict` reports it as ValueError.
+    treespec_dumps raises NotImplementedError for such a node, and to_dict reports it as ValueError.
     """
     backend = backend_build(
         OpenVINOBackend(OpenVINOBackendConfig(use_dynamo=False)), model, sample_data, tmp_path, torch_device
     )
-    output_without_serialized_type_name = torch.ones(2, 2).max(dim=0)
-    backend._output_object = output_without_serialized_type_name
+    backend._output_object = _PytreeNodeWithoutSerializedName(torch.empty(0))
 
     with pytest.raises(ValueError, match=OpenVINOBackend.STATE_OUTPUT_SPEC):
         backend.to_dict()

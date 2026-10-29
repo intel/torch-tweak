@@ -79,4 +79,4 @@ packages = ["stable_diffusion"]
 
 [tool.hatch.version]
 source = "vcs"
-raw-options = { root = "../..", local_scheme = "no-local-version", fallback_version = "0.4.0" }
+raw-options = { root = "../..", local_scheme = "no-local-version", fallback_version = "0.4.1rc1" }
