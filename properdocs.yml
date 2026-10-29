@@ -81,7 +81,7 @@ nav:
     -   Guides:
             - Tuning: guides/tuning.md
             - Inspect: guides/inspect.md
-            - Auto Tune: guides/auto_tune.md
+            - Tweak: guides/tweak.md
             - Backends:
                 - OpenVINO Backend: guides/backends/openvino_backend.md
                 - TorchAO Backend: guides/backends/torchao_backend.md
@@ -96,7 +96,7 @@ nav:
 
     -   Examples:
             - Overview: examples/README.md
-            - AutoTune: examples/AutoTune/README.md
+            - Tweak: examples/Tweak/README.md
             - E5Large: examples/E5Large/README.md
             - ESM2: examples/ESM2/README.md
             - FLUX: examples/FLUX/README.md

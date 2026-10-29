@@ -68,8 +68,8 @@ class DepthResult:
 
 
 @dataclass
-class AutoTuneResult:
-    """Outcome of `auto_tune`."""
+class TweakResult:
+    """Outcome of `tweak`."""
 
     obj: Any
     """The object to call for inference and to pass to `save`. It is a `Module` when the root module won."""
@@ -87,7 +87,7 @@ class AutoTuneResult:
 
     def __str__(self) -> str:
         """The latency of every depth and the winner, as a table."""
-        lines = ["Auto Tune Summary:", "=" * 80]
+        lines = ["Tweak Summary:", "=" * 80]
         lines.append(f"{'Depth':>6}  {'# modules':>10}  {'Total latency (ms)':>20}  {'Speedup':>8}  {'Status':<20}")
         lines.append("-" * 80)
         baseline_total = sum(self.baseline.values())
@@ -115,7 +115,7 @@ class AutoTuneResult:
 
 
 @annotate(domain="Torch Tweak")
-def auto_tune(
+def tweak(
     obj: Callable | torch.nn.Module,
     dataset: DatasetLike | DataLoaderFactory | torch.Tensor,
     *,
@@ -135,7 +135,7 @@ def auto_tune(
     dry_run: bool = False,
     disable_external_logging: bool = False,
     clear_cache: bool = False,
-) -> AutoTuneResult:
+) -> TweakResult:
     """Tune `obj` cut at every depth from `min_depth` to `max_depth` and keep the fastest cut.
 
     Depth is defined as in `inspect`. Each distinct cut is wrapped, tuned, and measured end to end
@@ -198,9 +198,9 @@ def auto_tune(
                 "No executed module passes min_execution_percentage=%s. The model is left untuned.",
                 min_execution_percentage,
             )
-            return AutoTuneResult(obj, None, {}, [])
+            return TweakResult(obj, None, {}, [])
         if dry_run:
-            return AutoTuneResult(obj, None, {}, [DepthResult(depth, _paths(modules)) for depth, modules in cuts])
+            return TweakResult(obj, None, {}, [DepthResult(depth, _paths(modules)) for depth, modules in cuts])
 
         def measure() -> dict[SampleKey, float]:
             return _measure(
@@ -242,19 +242,19 @@ def _install_best(
     baseline: dict[SampleKey, float],
     results: list[DepthResult],
     tie_tolerance: float,
-) -> AutoTuneResult:
+) -> TweakResult:
     """Install the best depth when it is faster than `baseline`, otherwise leave `obj` untuned."""
     best = _pick_best(results, tie_tolerance)
     MODULE_REGISTRY.clear()
     if best is None:
         logger.warning("No depth was tuned successfully. The model is left untuned.")
-        return AutoTuneResult(obj, None, baseline, results)
+        return TweakResult(obj, None, baseline, results)
     if best.total_latency >= sum(baseline.values()):
         logger.warning("No depth is faster than the untuned model. The model is left untuned.")
-        return AutoTuneResult(obj, None, baseline, results)
+        return TweakResult(obj, None, baseline, results)
     logger.info("Selected depth %d.", best.depth)
     best_modules = next(modules for depth, modules in cuts if depth == best.depth)
-    return AutoTuneResult(_install(obj, best_modules, tuned), best.depth, baseline, results)
+    return TweakResult(_install(obj, best_modules, tuned), best.depth, baseline, results)
 
 
 def _distinct_cuts(

@@ -14,14 +14,14 @@ NOTE: This file has been modified by Intel Corporation.
       show_root_heading: true
       heading_level: 3
 
-## auto_tune
+## tweak
 
-::: torch_tweak.torch.auto_tune
+::: torch_tweak.torch.tweak
     options:
       show_root_heading: true
       heading_level: 3
 
-::: torch_tweak.torch.AutoTuneResult
+::: torch_tweak.torch.TweakResult
     options:
       show_root_heading: true
       heading_level: 3
