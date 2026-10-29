@@ -403,6 +403,15 @@ def test_get_pipeline_modules_empty():
     assert isinstance(modules, dict)
 
 
+def test_get_pipeline_modules_does_not_descend_into_module_twice():
+    pipeline = ToyComplexPipeline()
+    pipeline.net.self_ref = pipeline.net
+
+    modules = TorchCheckpoint.get_pipeline_modules(pipeline)
+
+    assert list(modules) == ["net", "net.linear1", "net.linear2", "net.self_ref"]
+
+
 @requires_xpu
 def test_state_dict_from_pipeline(pipeline_factory):
     pipeline = pipeline_factory()

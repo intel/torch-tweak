@@ -118,14 +118,18 @@ class TorchCheckpoint(Checkpoint):
 
         Returns:
             dict: Maps the dotted path of every module the pipeline holds, e.g. `"vae.decoder"`, to the module.
-                The search does not descend into tuned modules.
+                The search does not descend into tuned modules or into a module it has already visited.
         """
         modules: dict[str, TorchModule | WrapperModule] = {}
+        visited_module_ids = set()
 
         def add_module(path: str, module: TorchModule | WrapperModule) -> None:
+            # Every path to a module is kept, so that `load_state_dict_for_pipeline` replaces each alias.
+            # Children are listed under the first path only: replacing a child on a shared owner covers all paths.
             modules[path] = module
-            if isinstance(module, WrapperModule):
+            if isinstance(module, WrapperModule) or id(module) in visited_module_ids:
                 return
+            visited_module_ids.add(id(module))
             # `named_children()` yields a module held twice by one parent only once.
             for child_name, child in module._modules.items():
                 if child is not None:
