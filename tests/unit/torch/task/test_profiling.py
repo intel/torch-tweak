@@ -8,7 +8,7 @@ import time
 import pytest
 
 from tests.toy_models.torch_models import ToyTorchModel
-from torch_tweak.torch import Module
+from torch_tweak.torch import TunableModule
 from torch_tweak.torch.backend import TorchEagerBackend
 from torch_tweak.torch.task.profiling.config import ProfilingConfig
 from torch_tweak.torch.task.profiling.events import ProfilingResultEvent
@@ -194,7 +194,7 @@ def test_measurement_stop_strategy_stable_window_stability(window_size: int, sta
 def test_profile_toy_model():
     profile_config = ProfilingConfig(batch_sizes=[2**n for n in range(1, 5)])
 
-    model = Module(ToyTorchModel())
+    model = TunableModule(ToyTorchModel())
     dataset = model.samples()
 
     result = profile(model, dataset, profile_config)
@@ -205,7 +205,7 @@ def test_profile_toy_model():
 def test_profile_toy_model_no_batching():
     profile_config = ProfilingConfig(batch_sizes=[2**n for n in range(1, 5)], batching=False)
 
-    model = Module(ToyTorchModel())
+    model = TunableModule(ToyTorchModel())
     dataset = model.samples()
 
     result = profile(model, dataset, profile_config)

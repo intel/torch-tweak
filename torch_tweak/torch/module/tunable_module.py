@@ -2,7 +2,7 @@
 # Copyright (c) 2026 Intel Corporation
 # SPDX-License-Identifier: Apache-2.0
 # NOTE: This file has been modified by Intel Corporation.
-"""Torch Tweak wrapper module."""
+"""Torch Tweak tunable module."""
 
 import gc
 from collections import OrderedDict
@@ -38,7 +38,7 @@ DEFAULT_STRATEGY = FirstWinsStrategy()
 
 
 class ModuleState(Enum):
-    """Possible states of the Module class."""
+    """Possible states of the TunableModule class."""
 
     INIT = "init"
     PASSTHROUGH = "passthrough"
@@ -50,7 +50,7 @@ StrategyList = list[TuneStrategy]
 StrategyMap = dict[SampleMetadata, TuneStrategy]
 
 
-class Module(wrapt.CallableObjectProxy):
+class TunableModule(wrapt.CallableObjectProxy):
     """Torch Tweak module wrapper.
 
     This class wraps a torch module and provides tuning functionality.
@@ -67,7 +67,7 @@ class Module(wrapt.CallableObjectProxy):
 
     Example:
         >>> model = torch.nn.Linear(10, 10)
-        >>> model = Module(model, "name")
+        >>> model = TunableModule(model, "name")
     """
 
     TYPE_KEY = "type"
@@ -151,7 +151,7 @@ class Module(wrapt.CallableObjectProxy):
         elif self._self_state == ModuleState.TUNED and self._self_prev_recording:
             return self._self_prev_recording.graph_specs
         else:
-            raise ValueError("Module has not recorded any samples. Cannot collect graph specs.")
+            raise ValueError("TunableModule has not recorded any samples. Cannot collect graph specs.")
 
     @property
     def state(self) -> ModuleState:
@@ -174,7 +174,7 @@ class Module(wrapt.CallableObjectProxy):
                 self._reset()
                 self.enable_passthrough()
             else:
-                raise RuntimeError("Module is already tuned. Use force=True to reset tuned module.")
+                raise RuntimeError("TunableModule is already tuned. Use force=True to reset tuned module.")
         elif self._self_state == ModuleState.RECORDING:
             self._self_prev_recording = self._self_wrapper
 
@@ -196,7 +196,7 @@ class Module(wrapt.CallableObjectProxy):
                 self._reset()
                 self.enable_recording()
             else:
-                raise RuntimeError("Module is already tuned. Use force=True to reset tuned module.")
+                raise RuntimeError("TunableModule is already tuned. Use force=True to reset tuned module.")
         elif self._self_state in [ModuleState.PASSTHROUGH, ModuleState.INIT]:
             self._deactivate_wrapper()
             self._self_state = ModuleState.RECORDING
@@ -217,7 +217,7 @@ class Module(wrapt.CallableObjectProxy):
         elif self._self_state == ModuleState.PASSTHROUGH:
             return
         else:
-            raise RuntimeError("Module is not tuned. Cannot activate backends.")
+            raise RuntimeError("TunableModule is not tuned. Cannot activate backends.")
 
     def deactivate(self):
         """Deactivates the module backends."""
@@ -227,34 +227,34 @@ class Module(wrapt.CallableObjectProxy):
 
     @staticmethod
     def is_state_dict_valid(state_dict: dict):
-        """Check if the state dictionary has a wrapper module."""
-        return state_dict and Module.__name__ in state_dict[Module.TYPE_KEY]
+        """Check if the state dictionary has a tunable module."""
+        return state_dict and TunableModule.__name__ in state_dict[TunableModule.TYPE_KEY]
 
     @staticmethod
     def from_dict(module: torch.nn.Module, state_dict: dict, device: torch.device | None = None):
-        """Create a wrapper module from a state dictionary."""
-        if not Module.is_state_dict_valid(state_dict):
-            raise ValueError(f"Invalid dictionary format for {Module.__class__.__name__}")
+        """Create a tunable module from a state dictionary."""
+        if not TunableModule.is_state_dict_valid(state_dict):
+            raise ValueError(f"Invalid dictionary format for {TunableModule.__class__.__name__}")
 
-        self = Module(module, state_dict[Module.NAME_KEY])
+        self = TunableModule(module, state_dict[TunableModule.NAME_KEY])
         self._self_state = ModuleState.TUNED
-        self._self_wrapper = TunedModule.from_dict(module, state_dict[Module.TUNED_MODULE_KEY])
+        self._self_wrapper = TunedModule.from_dict(module, state_dict[TunableModule.TUNED_MODULE_KEY])
         self._deploy_wrapper(device)
         return self
 
     def to_dict(self, *args, destination=None, prefix="", keep_vars=False):
-        """Convert the wrapper module to a state dictionary.
+        """Convert the tunable module to a state dictionary.
 
         The method follows torch.state_dict format so that it could be called recursively from torch.nn.Module.state_dict.
         The name of the function follows torch_tweak convention of from/to dict. Special alias is created to match torch
         convention i.e. state_dict.
         """
         if self._self_state != ModuleState.TUNED:
-            raise RuntimeError("Module is not tuned. Cannot save state_dict.")
+            raise RuntimeError("TunableModule is not tuned. Cannot save state_dict.")
         destination = OrderedDict() if destination is None else destination
 
         destination[prefix] = {
-            self.TYPE_KEY: Module.__name__,  # self.__class__ returns wrapped class, use direct class object instead
+            self.TYPE_KEY: TunableModule.__name__,  # self.__class__ returns wrapped class, use direct class object instead
             self.NAME_KEY: self._self_name,
             self.TUNED_MODULE_KEY: self._self_wrapper.to_dict(),
         }
@@ -279,9 +279,9 @@ class Module(wrapt.CallableObjectProxy):
             if module has already defined strategy/strategies those will take precedence over the provided one.
         """
         if self._self_state == ModuleState.TUNED:
-            raise ValueError(f"Module: '{self._self_name}' has already been tuned. Reset it to do it again.")
+            raise ValueError(f"TunableModule: '{self._self_name}' has already been tuned. Reset it to do it again.")
         elif self._self_state == ModuleState.INIT or self._self_state == ModuleState.PASSTHROUGH:
-            raise ValueError(f"Module: '{self._self_name}' has not recorded any samples. Cannot tune it.")
+            raise ValueError(f"TunableModule: '{self._self_name}' has not recorded any samples. Cannot tune it.")
 
         device = device or self._self_device or torch.device("cpu")
 
@@ -430,7 +430,7 @@ class Module(wrapt.CallableObjectProxy):
     ) -> list[TuneStrategy]:
         """Returns strategies for given graph specs.
 
-        Module level strategies (list/dict) take precedence over provided strategy.
+        TunableModule level strategies (list/dict) take precedence over provided strategy.
         The function checks if there is sufficient strategies (list/dict).
         """
         if strategy is not None:

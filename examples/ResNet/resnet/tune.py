@@ -13,7 +13,7 @@ from PIL import Image
 
 from resnet.cmd_args import get_parser
 from resnet.model import get_model, get_transform
-from torch_tweak.torch import HighestThroughputStrategy, LocalTorchStorage, Module, save, tune
+from torch_tweak.torch import HighestThroughputStrategy, LocalTorchStorage, TunableModule, save, tune
 from torch_tweak.torch.backend import (
     TorchAOBackend,
     TorchAOBackendConfig,
@@ -51,7 +51,7 @@ def tune_model(
 
     module_name = f"example-{model_name}"
 
-    module = Module(
+    module = TunableModule(
         model,
         module_name,
         strategy=HighestThroughputStrategy(

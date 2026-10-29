@@ -43,7 +43,7 @@ import torch
 model = SimpleModel()
 
 # Wrap the model
-model = tt.Module(model)
+model = tt.TunableModule(model)
 
 
 # Define inference function

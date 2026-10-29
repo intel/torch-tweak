@@ -70,7 +70,7 @@ def tune_model(
         )
     strategy.enable_find_max_batch_size(enable=False)
 
-    # Wrap all modules with Torch Tweak Module
+    # Wrap all modules with TunableModule
     modules = modules_info.get_modules()
     pipe = tt.wrap(pipe, modules, strategy=strategy)
 

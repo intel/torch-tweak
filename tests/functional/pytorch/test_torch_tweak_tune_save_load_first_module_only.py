@@ -14,7 +14,7 @@ import torch
 from diffusers import StableDiffusionPipeline
 
 from torch_tweak.torch.backend import TorchEagerBackend, TorchInductorBackend
-from torch_tweak.torch.module import Module
+from torch_tweak.torch.module import TunableModule
 from torch_tweak.torch.tune_strategy import FirstWinsStrategy
 from torch_tweak.torch.tuning import load, save, tune
 
@@ -41,7 +41,7 @@ def _get_pipeline(model_name: str = "stable-diffusion-v1-5/stable-diffusion-v1-5
 def _tune_and_save(save_path: pathlib.Path, device: str = "xpu"):
     pipeline = _get_pipeline(device=device)
 
-    pipeline.text_encoder = Module(
+    pipeline.text_encoder = TunableModule(
         pipeline.text_encoder,
         "text_encoder",
         strategy=FirstWinsStrategy(backends=[TorchEagerBackend(), TorchInductorBackend()]),

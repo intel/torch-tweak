@@ -10,7 +10,7 @@ from pathlib import Path
 import torch
 from torch.nn import Module
 
-from torch_tweak.torch.module.wrapper_module import Module as WrapperModule
+from torch_tweak.torch.module.tunable_module import TunableModule
 
 
 class Checkpoint(ABC):
@@ -20,7 +20,7 @@ class Checkpoint(ABC):
     """
 
     @abstractmethod
-    def save(self, module: Module | WrapperModule, path: str | Path) -> None:
+    def save(self, module: Module | TunableModule, path: str | Path) -> None:
         """Save a module to a checkpoint.
 
         Args:
@@ -38,7 +38,7 @@ class Checkpoint(ABC):
         module: Module,
         path: str | Path,
         device_map: dict[str, str | torch.device] | None = None,
-    ) -> Module | WrapperModule:
+    ) -> Module | TunableModule:
         """Load a module from a checkpoint.
 
         Args:

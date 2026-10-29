@@ -15,7 +15,7 @@ from torch_tweak.torch.inspecting.module_info import ModuleInfo
 from torch_tweak.torch.inspecting.module_inspector import DictOfModulesInfo, ListOfModulesInfo
 from torch_tweak.torch.inspecting.wrapping import wrap
 from torch_tweak.torch.module.sample_metadata import SampleMetadata
-from torch_tweak.torch.module.wrapper_module import Module, ModuleState
+from torch_tweak.torch.module.tunable_module import ModuleState, TunableModule
 from torch_tweak.torch.module_registry import MODULE_REGISTRY
 from torch_tweak.torch.tune_strategy import FirstWinsStrategy, OneBackendStrategy
 from torch_tweak.torch.tuning import tune
@@ -53,8 +53,8 @@ def test_wrap_root_module(simple_model):
         ],
     )
 
-    # Then the model should be wrapped in a Module
-    assert isinstance(wrapped_model, Module)
+    # Then the model should be wrapped in a TunableModule
+    assert isinstance(wrapped_model, TunableModule)
     assert wrapped_model._self_name == "Sequential"
 
 
@@ -70,9 +70,9 @@ def test_wrap_submodule(nested_model):
     )
 
     # Then the submodule should be wrapped
-    assert not isinstance(wrapped_model, Module)
+    assert not isinstance(wrapped_model, TunableModule)
 
-    assert isinstance(wrapped_model.linear, Module)
+    assert isinstance(wrapped_model.linear, TunableModule)
     assert wrapped_model.linear._self_name == "linear"
 
     # And the original model should be returned
@@ -94,8 +94,8 @@ def test_wrap_multiple_modules(nested_model):
     )
 
     # Then both submodules should be wrapped
-    assert isinstance(nested_model.linear, Module)
-    assert isinstance(nested_model.relu, Module)
+    assert isinstance(nested_model.linear, TunableModule)
+    assert isinstance(nested_model.relu, TunableModule)
     assert nested_model.linear._self_name == "linear"
     assert nested_model.relu._self_name == "relu"
 
@@ -117,7 +117,7 @@ def test_wrap_with_strategy(simple_model):
     )
 
     # Then the module should be wrapped with the strategy
-    assert isinstance(wrapped_model, Module)
+    assert isinstance(wrapped_model, TunableModule)
     assert wrapped_model._self_strategy.__class__ == strategy.__class__
     assert wrapped_model._self_strategy_list is None
     assert wrapped_model._self_strategy_map is None
@@ -140,7 +140,7 @@ def test_wrap_with_strategies_list(simple_model):
     )
 
     # Then the module should be wrapped with the strategy
-    assert isinstance(wrapped_model, Module)
+    assert isinstance(wrapped_model, TunableModule)
     assert wrapped_model._self_strategy is None
     assert wrapped_model._self_strategy_map is None
 
@@ -167,7 +167,7 @@ def test_wrap_with_strategies_map(simple_model):
     )
 
     # Then the module should be wrapped with the strategy
-    assert isinstance(wrapped_model, Module)
+    assert isinstance(wrapped_model, TunableModule)
     assert wrapped_model._self_strategy is None
     assert wrapped_model._self_strategy_list is None
     assert set(wrapped_model._self_strategy_map.keys()) == set(strategies.keys())
@@ -179,7 +179,7 @@ def test_wrap_empty_modules_list(simple_model):
     wrapped_model = wrap(simple_model, [])
 
     # Then the original model should be returned unchanged
-    assert not isinstance(wrapped_model, Module)
+    assert not isinstance(wrapped_model, TunableModule)
     assert wrapped_model is simple_model
 
 
@@ -229,7 +229,7 @@ def test_wrap_custom_object():
 
     # Then verify the results
     assert isinstance(wrapped_obj, CustomObject)
-    assert isinstance(wrapped_obj.model, Module)
+    assert isinstance(wrapped_obj.model, TunableModule)
 
 
 def test_wrap_custom_object_nested():
@@ -262,7 +262,7 @@ def test_wrap_custom_object_nested():
 
     # Then verify the results
     assert isinstance(wrapped_obj, CustomObject)
-    assert isinstance(wrapped_obj.layer, Module)
+    assert isinstance(wrapped_obj.layer, TunableModule)
 
 
 def test_wrap_custom_object_multiple_modules():
@@ -292,8 +292,8 @@ def test_wrap_custom_object_multiple_modules():
 
     # Then verify the results
     assert isinstance(wrapped_obj, CustomObject)
-    assert isinstance(wrapped_obj.model1, Module)
-    assert isinstance(wrapped_obj.model2, Module)
+    assert isinstance(wrapped_obj.model1, TunableModule)
+    assert isinstance(wrapped_obj.model2, TunableModule)
 
 
 def test_wrap_custom_object_without_modules():
@@ -315,7 +315,7 @@ def test_wrap_custom_object_without_modules():
 
     # Then verify the results
     assert isinstance(wrapped_obj, CustomObject)
-    assert not isinstance(wrapped_obj.data, Module)
+    assert not isinstance(wrapped_obj.data, TunableModule)
 
 
 def test_wrap_custom_object_with_attributes():
@@ -343,11 +343,11 @@ def test_wrap_custom_object_with_attributes():
 
     # Then verify the results
     assert isinstance(wrapped_obj, CustomObject)
-    assert isinstance(wrapped_obj.model, Module)
+    assert isinstance(wrapped_obj.model, TunableModule)
 
-    assert not isinstance(wrapped_obj.data, Module)
-    assert not isinstance(wrapped_obj.list_data, Module)
-    assert not isinstance(wrapped_obj.dict_data, Module)
+    assert not isinstance(wrapped_obj.data, TunableModule)
+    assert not isinstance(wrapped_obj.list_data, TunableModule)
+    assert not isinstance(wrapped_obj.dict_data, TunableModule)
 
 
 def test_wrap_module_in_list():
@@ -356,10 +356,10 @@ def test_wrap_module_in_list():
     parent = ListOfModulesInfo(module=model)
 
     wrapped_model = wrap(model, [ModuleInfo(name="0", module=model[0], parent=parent, object_path=".0")])
-    assert not isinstance(wrapped_model, Module)
-    assert isinstance(wrapped_model[0], Module)
-    assert not isinstance(wrapped_model[1], Module)
-    assert not isinstance(wrapped_model[2], Module)
+    assert not isinstance(wrapped_model, TunableModule)
+    assert isinstance(wrapped_model[0], TunableModule)
+    assert not isinstance(wrapped_model[1], TunableModule)
+    assert not isinstance(wrapped_model[2], TunableModule)
 
 
 def test_wrap_module_in_dict():
@@ -370,10 +370,10 @@ def test_wrap_module_in_dict():
     wrapped_model = wrap(
         model, [ModuleInfo(name="linear", module=model["linear"], parent=parent, object_path=".linear")]
     )
-    assert not isinstance(wrapped_model, Module)
-    assert isinstance(wrapped_model["linear"], Module)
-    assert not isinstance(wrapped_model["relu"], Module)
-    assert not isinstance(wrapped_model["linear2"], Module)
+    assert not isinstance(wrapped_model, TunableModule)
+    assert isinstance(wrapped_model["linear"], TunableModule)
+    assert not isinstance(wrapped_model["relu"], TunableModule)
+    assert not isinstance(wrapped_model["linear2"], TunableModule)
 
 
 def test_wrap_nested_diffrent_types():
@@ -399,10 +399,10 @@ def test_wrap_nested_diffrent_types():
     ]
 
     wrapped_model = wrap(model, modules)
-    assert not isinstance(wrapped_model, Module)
-    assert isinstance(wrapped_model.linear, Module)
-    assert isinstance(wrapped_model.dict["linear"], Module)
-    assert isinstance(wrapped_model.list[0], Module)
+    assert not isinstance(wrapped_model, TunableModule)
+    assert isinstance(wrapped_model.linear, TunableModule)
+    assert isinstance(wrapped_model.dict["linear"], TunableModule)
+    assert isinstance(wrapped_model.list[0], TunableModule)
 
 
 class _Block(nn.Module):

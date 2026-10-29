@@ -26,8 +26,8 @@ This notebook demonstrates how to inspect modules in a pipeline, pick modules fo
 ## 2. SampleMetadata Walkthrough
 This notebook provides a comprehensive tutorial on the `SampleMetadata` class, which is a core component of the Torch Tweak library for tracking and managing tensor shapes in PyTorch models.
 
-## 3. Wrapper Module Demo
-This notebook demonstrates how to wrap a module and tune it.
+## 3. Tunable Module Demo
+This notebook demonstrates how to wrap a module in `TunableModule` and tune it.
 
 ## 4. Storage Demo
 This notebook demonstrates how to use the `Storage` class to save and load checkpoints.

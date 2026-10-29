@@ -19,7 +19,7 @@ from torch_tweak.torch.checkpoint.torch_checkpoint import TorchCheckpoint
 from torch_tweak.torch.config import DEFAULT_DEVICE, torch_tweak_cache_dir
 from torch_tweak.torch.dataloader import DataLoaderFactory, DatasetLike, samples_generator
 from torch_tweak.torch.module.tensor_spec import InfoLevel
-from torch_tweak.torch.module.wrapper_module import Module, ModuleState
+from torch_tweak.torch.module.tunable_module import ModuleState, TunableModule
 from torch_tweak.torch.module_registry import MODULE_REGISTRY
 from torch_tweak.torch.utils.device import get_device
 from torch_tweak.torch.utils.xpu import synchronize
@@ -131,7 +131,7 @@ def save(
         >>> doctest.ELLIPSIS_MARKER = "***" # using *** instead of ... to avoid doctest failure
         >>> import torch_tweak.torch as tt
         >>> from torch.nn import Linear
-        >>> model = tt.Module(Linear(10, 10), "model", strategy=tt.FirstWinsStrategy([tt.backend.TorchEagerBackend()]))
+        >>> model = tt.TunableModule(Linear(10, 10), "model", strategy=tt.FirstWinsStrategy([tt.backend.TorchEagerBackend()]))
         >>> dataset = torch.randn(10, 10)
         >>> tt.tune(model, dataset, batch_sizes=[1, 2], device="cpu") # doctest: +ELLIPSIS
         ***🎯 Tuning module: `model` (all graphs)***
@@ -152,7 +152,7 @@ def load(
     storage: Storage | None = None,
     device_map: dict[str, torch.device] | None = None,
     disable_external_logging: bool = True,
-) -> torch.nn.Module | Module:
+) -> torch.nn.Module | TunableModule:
     """Load the tuned module from a file.
 
     Args:
@@ -203,7 +203,7 @@ def _activate_tuned_modules() -> None:
     logger.info("════════════════════════════════════════════════════════════════")
 
 
-def _describe_module(module: Module):
+def _describe_module(module: TunableModule):
     logger.info("📦 module: %s", module.name)
     if module.state == ModuleState.TUNED:
         for metadata, backend in module.module.backends.items():

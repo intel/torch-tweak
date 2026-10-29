@@ -14,8 +14,7 @@ from torch.nn import Module as TorchModule
 
 from torch_tweak.torch.checkpoint.checkpoint import Checkpoint
 from torch_tweak.torch.checkpoint.storage import Storage
-from torch_tweak.torch.module.wrapper_module import Module as WrapperModule
-from torch_tweak.torch.module.wrapper_module import ModuleState
+from torch_tweak.torch.module.tunable_module import ModuleState, TunableModule
 from torch_tweak.torch.module_registry import MODULE_REGISTRY
 from torch_tweak.torch.utils.device import get_device
 
@@ -45,7 +44,7 @@ class TorchCheckpoint(Checkpoint):
 
         This method handles both individual torch modules and pipelines containing modules.
         For individual modules, it directly uses the module's state_dict() method.
-        For a pipeline, it saves each tuned module (WrapperModule instance) under its dotted path,
+        For a pipeline, it saves each tuned module (TunableModule instance) under its dotted path,
         e.g. `"vae.decoder"`. Modules that are not tuned are not saved.
 
         Args:
@@ -67,7 +66,7 @@ class TorchCheckpoint(Checkpoint):
         module_or_pipeline: TorchModule | Any,
         path: str | Path,
         device_map: dict[str, str | torch.device] | None = None,
-    ) -> TorchModule | WrapperModule:
+    ) -> TorchModule | TunableModule:
         """Load a module or pipeline from a saved state dictionary.
 
         This method handles both individual torch modules and pipelines containing modules.
@@ -76,7 +75,7 @@ class TorchCheckpoint(Checkpoint):
 
         For pipelines, it loads state dictionaries into the corresponding modules in the pipeline.
         The pipeline is expected to be an object with attributes that are torch modules or
-        tuned modules (WrapperModule instances).
+        tuned modules (TunableModule instances).
 
         Args:
             module_or_pipeline: The module or pipeline to load the state into. This can be
@@ -90,7 +89,7 @@ class TorchCheckpoint(Checkpoint):
 
         Raises:
             ValueError: If a module in the state_dict is not found in the pipeline or
-                        if a matched attribute is not a torch.nn.Module or WrapperModule.
+                        if a matched attribute is not a torch.nn.Module or TunableModule.
 
         """
         # Convert device_map to torch.device
@@ -110,7 +109,7 @@ class TorchCheckpoint(Checkpoint):
         return module_or_pipeline
 
     @staticmethod
-    def get_pipeline_modules(pipeline: Any) -> dict[str, TorchModule | WrapperModule]:
+    def get_pipeline_modules(pipeline: Any) -> dict[str, TorchModule | TunableModule]:
         """Get the modules from the pipeline.
 
         Args:
@@ -120,14 +119,14 @@ class TorchCheckpoint(Checkpoint):
             dict: Maps the dotted path of every module the pipeline holds, e.g. `"vae.decoder"`, to the module.
                 The search does not descend into tuned modules or into a module it has already visited.
         """
-        modules: dict[str, TorchModule | WrapperModule] = {}
+        modules: dict[str, TorchModule | TunableModule] = {}
         visited_module_ids = set()
 
-        def add_module(path: str, module: TorchModule | WrapperModule) -> None:
+        def add_module(path: str, module: TorchModule | TunableModule) -> None:
             # Every path to a module is kept, so that `load_state_dict_for_pipeline` replaces each alias.
             # Children are listed under the first path only: replacing a child on a shared owner covers all paths.
             modules[path] = module
-            if isinstance(module, WrapperModule) or id(module) in visited_module_ids:
+            if isinstance(module, TunableModule) or id(module) in visited_module_ids:
                 return
             visited_module_ids.add(id(module))
             # `named_children()` yields a module held twice by one parent only once.
@@ -138,7 +137,7 @@ class TorchCheckpoint(Checkpoint):
         # TODO: search lists, dicts and plain objects as `ModuleInspector` does, so that every module
         # `tune` tunes is also saved.
         for name, attr in vars(pipeline).items():
-            if isinstance(attr, (TorchModule, WrapperModule)):
+            if isinstance(attr, (TorchModule, TunableModule)):
                 add_module(name, attr)
 
         return modules
@@ -159,7 +158,7 @@ class TorchCheckpoint(Checkpoint):
         saved_module_ids = set()
 
         for name, module in TorchCheckpoint.get_pipeline_modules(pipeline).items():
-            if isinstance(module, WrapperModule) and id(module) not in saved_module_ids:
+            if isinstance(module, TunableModule) and id(module) not in saved_module_ids:
                 state_dict[name] = module.state_dict()
                 saved_module_ids.add(id(module))
 
@@ -180,11 +179,11 @@ class TorchCheckpoint(Checkpoint):
 
     @staticmethod
     def load_state_dict_for_module(
-        module: TorchModule | WrapperModule,
+        module: TorchModule | TunableModule,
         state_dict: dict,
         device_map: dict[str, torch.device],
         module_name: str = "",
-    ) -> TorchModule | WrapperModule:
+    ) -> TorchModule | TunableModule:
         """Load a state dictionary into a module.
 
         This method loads a state dictionary into a module, replacing regular torch modules
@@ -194,7 +193,7 @@ class TorchCheckpoint(Checkpoint):
         The methods has two phases:
         1. Traverse the module hierarchy and identify which parts of the state dictionary
         correspond to tuned modules. When a match is found, it replaces the original module
-        with a wrapper module initialized from the state dictionary. Corresponding keys are
+        with a tunable module initialized from the state dictionary. Corresponding keys are
         removed from the state_dict. The tuned module is compiled when necessary.
         2. Handle original torch modules not tuned with `load_state_dict(state_dict, strict=False)`,
         strict=False because wrapped module keys were removed and those modules have been already loaded.
@@ -204,13 +203,13 @@ class TorchCheckpoint(Checkpoint):
                 This can be a regular torch module or a module that contains tuned submodules.
             state_dict (dict): The state dictionary containing the tuned module states.
                 The dictionary should have keys that correspond to the module structure,
-                with tuned module states stored in a format recognized by WrapperModule.
+                with tuned module states stored in a format recognized by TunableModule.
             device_map (dict): The device map to load module to.
             module_name (str): The name of the module for device map matching.
 
         Returns:
             torch.nn.Module: The module with tuned components loaded from the state dictionary.
-                If the top-level module was tuned, returns the new wrapper module.
+                If the top-level module was tuned, returns the new tunable module.
                 Otherwise, returns the original module with tuned submodules replaced.
 
         Note:
@@ -240,18 +239,18 @@ class TorchCheckpoint(Checkpoint):
                 module_name: The name of the module.
             """
             stored_object = local_state_dict.get(prefix, {})
-            if WrapperModule.is_state_dict_valid(stored_object):
-                # This is a tuned module, replace with wrapper module
+            if TunableModule.is_state_dict_valid(stored_object):
+                # This is a tuned module, replace with tunable module
                 device = device_map.pop(module_name, None)
 
-                wrapper_module = WrapperModule.from_dict(module, stored_object, device)
+                tunable_module = TunableModule.from_dict(module, stored_object, device)
                 if parent_module is None:
                     # We replace top module
                     nonlocal top_module
-                    top_module = wrapper_module
+                    top_module = tunable_module
                 else:
-                    # We replace a child module with wrapper module
-                    setattr(parent_module, module_name, wrapper_module)
+                    # We replace a child module with tunable module
+                    setattr(parent_module, module_name, tunable_module)
                 # Remove state_dict key - we already handled it
                 del local_state_dict[prefix]
             else:
@@ -301,7 +300,7 @@ class TorchCheckpoint(Checkpoint):
 
         Raises:
             ValueError: If a module in the state_dict is not found in the pipeline or
-                        if a matched attribute is not a torch.nn.Module or WrapperModule.
+                        if a matched attribute is not a torch.nn.Module or TunableModule.
         """
         modules = TorchCheckpoint.get_pipeline_modules(pipeline)
         matched_modules = set()
@@ -310,7 +309,7 @@ class TorchCheckpoint(Checkpoint):
             module = modules.get(name)
             if module is None:
                 if hasattr(pipeline, name):
-                    raise ValueError(f"Module {name} is not a torch.nn.Module or WrapperModule")
+                    raise ValueError(f"Module {name} is not a torch.nn.Module or TunableModule")
                 continue
 
             matched_modules.add(name)

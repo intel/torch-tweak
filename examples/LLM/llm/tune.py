@@ -12,7 +12,7 @@ import torch
 from transformers import AutoModelForCausalLM, AutoTokenizer, pipeline
 
 from llm.cmd_args import get_tune_parser
-from torch_tweak.torch import Module, OneBackendStrategy
+from torch_tweak.torch import OneBackendStrategy, TunableModule
 from torch_tweak.torch import tune as torch_tweak
 from torch_tweak.torch.backend import TorchEagerBackend, TorchInductorBackend, TorchInductorBackendConfig
 
@@ -66,7 +66,7 @@ def tune_model(model, tokenizer, cache="static"):
 
     """
     if cache == "dynamic":
-        model = Module(
+        model = TunableModule(
             model,
             model.__class__.__name__,
             strategy=OneBackendStrategy(TorchEagerBackend()).enable_find_max_batch_size(
@@ -74,7 +74,7 @@ def tune_model(model, tokenizer, cache="static"):
             ),  # just one strategy, there is no prefill/decode distinction
         )
     elif cache == "static":
-        model = Module(
+        model = TunableModule(
             model,
             model.__class__.__name__,
             strategies=[

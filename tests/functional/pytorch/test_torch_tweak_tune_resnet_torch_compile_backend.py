@@ -11,7 +11,7 @@ import torch
 from tests.utilities.helpers import requires_xpu
 from torch_tweak.torch import tune
 from torch_tweak.torch.backend.torch_inductor_backend import TorchInductorBackend, TorchInductorBackendConfig
-from torch_tweak.torch.module.wrapper_module import Module
+from torch_tweak.torch.module.tunable_module import TunableModule
 from torch_tweak.torch.tune_strategy.one_backend_strategy import OneBackendStrategy
 
 # max-autotune-no-cudagraphs exhausts XPU memory on current CI hardware.
@@ -35,7 +35,7 @@ def test_tune_resnet_torch_inductor(mode: str, torch_device: torch.device):
     expected_probs = torch.nn.functional.softmax(out[0], dim=0)
 
     backend = TorchInductorBackend(config=TorchInductorBackendConfig(mode=mode))
-    module = Module(model, "functional-resnet18", strategy=OneBackendStrategy(backend))
+    module = TunableModule(model, "functional-resnet18", strategy=OneBackendStrategy(backend))
     tune(module, data, batch_sizes=[2, 1], device=torch_device)
 
     out = module(data.unsqueeze(0))

@@ -13,11 +13,11 @@ import pytest
 from tests.toy_backends import BuildFailsBackend, SleepBackend
 from tests.toy_models.torch_models import ToyTorchModel
 from tests.utilities.helpers import requires_xpu
-from torch_tweak.torch import Module
+from torch_tweak.torch import TunableModule
 from torch_tweak.torch.backend import Backend
 from torch_tweak.torch.backend.torch_eager import TorchEagerBackend
 from torch_tweak.torch.backend.torch_inductor_backend import TorchInductorBackend
-from torch_tweak.torch.module.wrapper_module import ModuleState, get_object_name
+from torch_tweak.torch.module.tunable_module import ModuleState, get_object_name
 from torch_tweak.torch.task.correctness import CorrectnessValueError
 from torch_tweak.torch.task.profiling import NumStepsMeasuringStopStrategy, StableWindowMeasuringStopStrategy
 from torch_tweak.torch.task.profiling.profiling_stop_strategy import (
@@ -118,7 +118,7 @@ def test_highest_throughput_strategy_num_steps_all_samples(torch_device):
     strategy.set_find_max_batch_size_profiling_config(find_profiling_config)
     strategy.enable_correctness_check(True)
 
-    model = Module(ToyTorchModel().eval().to(torch_device), strategy=strategy)
+    model = TunableModule(ToyTorchModel().eval().to(torch_device), strategy=strategy)
     sample = model.sample().to(torch_device)
     batch_sizes = [1, 2, 4, 8, 16]
     n_backends = len(strategy._backends)
@@ -158,7 +158,7 @@ def test_highest_throughput_strategy_stable_window(torch_device):
         measurement_stop_strategy=StableWindowMeasuringStopStrategy(window_size=10, stability_percentage=90),
         profiling_stop_strategy=ThroughputSaturatedProfilingStopStrategy(throughput_cutoff_threshold=0.99),
     ).enable_find_max_batch_size(False)
-    model = Module(ToyTorchModel().eval().to(torch_device), strategy=strategy)
+    model = TunableModule(ToyTorchModel().eval().to(torch_device), strategy=strategy)
     sample = model.sample().to(torch_device)
 
     batch_sizes = list(range(1, 17))
@@ -208,7 +208,7 @@ def test_highest_throughput_strategy_fails_backend_if_all_of_backends_fails(torc
 
     batch_sizes = list(range(1, 17))
 
-    model = Module(model, strategy=strategy)
+    model = TunableModule(model, strategy=strategy)
     tune(model, sample, batch_sizes=batch_sizes, device=torch_device, disable_external_logging=False)
 
     assert model.state == ModuleState.PASSTHROUGH
@@ -231,7 +231,7 @@ def test_highest_throughput_strategy_select_backend_if_one_of_backends_succeeds(
 
     batch_sizes = list(range(1, 17))
 
-    model = Module(model, strategy=strategy)
+    model = TunableModule(model, strategy=strategy)
     tune(model, sample, batch_sizes=batch_sizes, device=torch_device, disable_external_logging=False)
 
     assert model(sample.unsqueeze(0)) is not None  # Note: does not work without unsqueeze
@@ -255,7 +255,7 @@ def test_highest_throughput_strategy_find_max_batch_size_fails(torch_device):
 
     batch_sizes = list(range(1, 17))
 
-    model = Module(model, strategy=strategy)
+    model = TunableModule(model, strategy=strategy)
 
     tune(model, sample, batch_sizes=batch_sizes, device=torch_device, disable_external_logging=False)
     assert model.state == ModuleState.PASSTHROUGH

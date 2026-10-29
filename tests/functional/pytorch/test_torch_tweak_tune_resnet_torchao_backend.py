@@ -12,7 +12,7 @@ import timm
 import torch
 
 from torch_tweak.torch.backend.torchao_backend import TorchAOBackend, TorchAOBackendConfig
-from torch_tweak.torch.module.wrapper_module import Module
+from torch_tweak.torch.module.tunable_module import TunableModule
 from torch_tweak.torch.module_registry import MODULE_REGISTRY
 from torch_tweak.torch.tune_strategy.one_backend_strategy import OneBackendStrategy
 from torch_tweak.torch.tuning import tune
@@ -36,7 +36,7 @@ def do_test(backend: TorchAOBackend, dtype: torch.dtype):
 
     expected_probs = torch.nn.functional.softmax(out[0], dim=0)
 
-    module = Module(
+    module = TunableModule(
         model, "functional-resnet18", strategy=OneBackendStrategy(backend).enable_find_max_batch_size(False)
     )
     # when

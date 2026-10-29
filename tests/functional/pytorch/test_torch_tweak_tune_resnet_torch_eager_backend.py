@@ -12,7 +12,7 @@ import torch
 
 from torch_tweak.torch import tune
 from torch_tweak.torch.backend.torch_eager import TorchEagerBackend, TorchEagerBackendConfig
-from torch_tweak.torch.module.wrapper_module import Module
+from torch_tweak.torch.module.tunable_module import TunableModule
 from torch_tweak.torch.module_registry import MODULE_REGISTRY
 from torch_tweak.torch.tune_strategy.one_backend_strategy import OneBackendStrategy
 
@@ -32,7 +32,7 @@ def do_test(backend: TorchEagerBackend):
         out = model(data.unsqueeze(0))
     expected_probs = torch.nn.functional.softmax(out[0], dim=0)
 
-    module = Module(model, "functional-resnet18", strategy=OneBackendStrategy(backend))
+    module = TunableModule(model, "functional-resnet18", strategy=OneBackendStrategy(backend))
     # when
     tune(module, data, batch_sizes=[2, 1], dry_run=False, disable_external_logging=False)
     # then - verify tuning

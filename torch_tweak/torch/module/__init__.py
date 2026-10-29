@@ -4,6 +4,6 @@
 # NOTE: This file has been modified by Intel Corporation.
 """Torch wrappers module."""
 
-from torch_tweak.torch.module.wrapper_module import Module
+from torch_tweak.torch.module.tunable_module import TunableModule
 
-__all__ = ["Module"]
+__all__ = ["TunableModule"]

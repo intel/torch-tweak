@@ -10,7 +10,7 @@ import torch
 
 import torch_tweak.torch as tt
 from torch_tweak.torch.backend import OpenVINOBackend, OpenVINOBackendConfig
-from torch_tweak.torch.module import Module
+from torch_tweak.torch.module import TunableModule
 from torch_tweak.torch.tune_strategy import OneBackendStrategy
 
 
@@ -22,7 +22,7 @@ def test_openvino(use_dynamo: bool):
 
     backend = OpenVINOBackend(config=OpenVINOBackendConfig(use_dynamo=use_dynamo))
     strategy = OneBackendStrategy(backend)
-    module = Module(model, "test-resnet18", strategy=strategy)
+    module = TunableModule(model, "test-resnet18", strategy=strategy)
 
     batch_sizes = [1, 10]
     tt.tune(module, samples, batch_sizes=batch_sizes)

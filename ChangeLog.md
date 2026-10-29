@@ -7,6 +7,8 @@ SPDX-License-Identifier: Apache-2.0
 
 ## Unreleased
 
+- refactor (breaking): `tt.Module` is renamed to `tt.TunableModule`, so it does not share its name with `torch.nn.Module`.
+  The module `torch_tweak.torch.module.wrapper_module` is renamed to `torch_tweak.torch.module.tunable_module`.
 - fix: `save` stores tuned modules nested in pipeline components under their dotted path, e.g. `vae.decoder`. Modules that are not tuned are not saved.
 - fix: a tuned module that a pipeline holds under several paths is saved once and restored as one module.
 - feat: `save` warns about tuned modules it does not save, e.g. a module the pipeline holds in a plain list.
