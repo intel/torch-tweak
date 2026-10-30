@@ -20,18 +20,32 @@ Before proceeding with the installation of Torch Tweak, ensure your system meets
 
 ## pip
 
-PyTorch XPU wheels are not on PyPI. The `xpu` extra declares `torch`. You only have to pass the XPU index:
+To get **the latest release of torch-tweak**, install it from PyPI. Please note that
+PyTorch XPU wheels are not published on PyPI, so the PyTorch XPU index has to be selected explicitly:
 
 ```bash
+pip install \
+    --index-url https://download.pytorch.org/whl/xpu \
+    --extra-index-url https://pypi.org/simple \
+    "torch_tweak[xpu]"
+```
+
+You can also build and install local torch-tweak (from this repository), but
+you still have to pass the XPU index. Please note that for development and testing
+of torch-tweak we recommend uv (see uv commands below).
+
+```bash
+python3 -m venv .venv
+source .venv/bin/activate
 pip install \
     --index-url https://download.pytorch.org/whl/xpu \
     --extra-index-url https://pypi.org/simple \
     -e ".[xpu,dev]"
 ```
 
-Nightly stack of PyTorch **is not supported** on the pip path. Use uv for nightly wheels.
+Nightly stack of PyTorch XPU **is not supported** on the pip path. Use uv for nightly wheels.
 
-## uv (recommended)
+## uv (recommended for dev)
 
 **Stable** is the default stack; **nightly** is uv-only.
 Configuration: `[dependency-groups]`, optional extra `xpu`, and `[tool.uv]` indexes are defined in `pyproject.toml`. You cannot install both PyTorch stacks in one resolved environment
@@ -69,7 +83,7 @@ Rules:
 3. Do not use `uv sync --only-group ...` together with `--extra`. Use `--no-default-groups --group xpu-nightly --extra dev` for nightly.
 4. Do not use `uv sync --all-extras` expecting both PyTorch stacks. Do not combine the `xpu` extra with the `xpu-nightly` group in one environment (`conflicts` in `pyproject.toml`).
 
-## Installing from Source
+## Installing torch-tweak only
 
 ```bash
 git clone https://github.com/intel/torch-tweak
@@ -77,4 +91,4 @@ cd torch-tweak
 pip install .
 ```
 
-`pip install .` / `pip install -e .` installs **torch-tweak only** (no `torch`). Use the pip or uv commands above for a full stack.
+`pip install .` or `pip install -e .` installs **torch-tweak only** (no `torch`). Use the pip or uv commands above for a full stack.

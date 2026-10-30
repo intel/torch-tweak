@@ -82,19 +82,26 @@ Tune strategies are in [core functionalities](docs/learn/core_functionalities.md
 
 ## Install
 
-PyTorch XPU wheels are not on PyPI. Stable is the default stack. Nightly is uv-only.
-The full rules for switching stacks are in the [install guide](docs/learn/install.md).
+PyTorch XPU wheels are not published on PyPI, so the PyTorch XPU index has to be selected explicitly:
 
 ```bash
-# uv, stable (recommended)
-uv sync --extra dev
-
-# pip, editable install with the XPU extra
 pip install \
     --index-url https://download.pytorch.org/whl/xpu \
     --extra-index-url https://pypi.org/simple \
-    -e ".[xpu,dev]"
+    "torch_tweak[xpu]"
 ```
+
+To build and install torch-tweak from the local repository we recommend using uv
+(with stable PyTorch XPU wheels). This simple command builds the local version of
+torch-tweak and installs all required developer dependencies:
+
+```bash
+# it uses stable PyTorch XPU stack and installs all dev dependencies
+uv sync --extra dev
+```
+
+There's also a nightly PyTorch XPU stack available in uv. For more information about switching
+stacks and pip installation options, see the [install guide](docs/learn/install.md).
 
 ## Guides
 
