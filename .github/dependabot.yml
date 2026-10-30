@@ -1,44 +1,41 @@
 # Run dependencies versions update
 version: 2
 
+# Multi-ecosystem group: all version updates land in a single combined PR.
+# Security updates are alert-driven and unaffected by this grouping; the uv
+# `security-updates` group below keeps them batched in their own PR.
+multi-ecosystem-groups:
+  all:
+    schedule:
+      interval: "weekly"
+      day: "monday"
+    commit-message:
+      prefix: "chore(deps)"
+
 updates:
   - package-ecosystem: "uv"
     directories:
       - "/"
       - "/examples/*/"
-    schedule:
-      interval: "weekly"
-      day: "monday"
     commit-message:
       prefix: "chore(deps)"
+    patterns:
+      - "*"
+    multi-ecosystem-group: "all"
     groups:
       security-updates:
         applies-to: security-updates
         patterns:
           - "*"
-      test-dependencies:
-        applies-to: version-updates
-        patterns:
-          - "pytest*"
-      doc-dependencies:
-        applies-to: version-updates
-        patterns:
-          - "properdocs*"
-          - "mike*"
-      dev-dependencies:
-        applies-to: version-updates
-        patterns:
-          - "*"
 
   - package-ecosystem: "github-actions"
     directory: "/.github/workflows"
-    schedule:
-      interval: "weekly"
-      day: "monday"
-    commit-message:
-      prefix: "chore(deps)"
-    groups:
-      github-actions-dependencies:
-        applies-to: version-updates
-        patterns:
-          - "*"
+    patterns:
+      - "*"
+    multi-ecosystem-group: "all"
+
+  - package-ecosystem: "pre-commit"
+    directory: "/"
+    patterns:
+      - "*"
+    multi-ecosystem-group: "all"
