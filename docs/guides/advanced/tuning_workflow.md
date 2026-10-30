@@ -30,7 +30,7 @@ When you call `tt.tune()`, Torch Tweak first enters the sample gathering phase:
 import torch_tweak.torch as tt
 
 # Wrap your module
-module = tt.Module(model, "my_model")
+module = tt.TunableModule(model, "my_model")
 
 # Tune with different batch sizes
 tt.tune(module, dataset, batch_sizes=[1, 2, 4, 8])

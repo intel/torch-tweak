@@ -2,7 +2,7 @@
 # Copyright (c) 2026 Intel Corporation
 # SPDX-License-Identifier: Apache-2.0
 # NOTE: This file has been modified by Intel Corporation.
-"""Test for wrapper module."""
+"""Tests for the tunable module."""
 
 import inspect
 from collections import OrderedDict
@@ -19,8 +19,8 @@ from torch_tweak.torch.config import config as global_config
 from torch_tweak.torch.config import torch_tweak_cache_dir
 from torch_tweak.torch.module.graph_spec import GraphSpec
 from torch_tweak.torch.module.sample_metadata import SampleMetadata
+from torch_tweak.torch.module.tunable_module import ModuleState, TunableModule
 from torch_tweak.torch.module.tuned_module import TunedModule
-from torch_tweak.torch.module.wrapper_module import Module, ModuleState
 from torch_tweak.torch.module_registry import MODULE_REGISTRY
 from torch_tweak.torch.tune_strategy import (
     OneBackendStrategy,
@@ -50,12 +50,12 @@ TEST_MODULE_NAME = "demo-identity"
 def module():
     model = Identity()
 
-    return Module(model, TEST_MODULE_NAME, strategy=DummyTuneStrategy())
+    return TunableModule(model, TEST_MODULE_NAME, strategy=DummyTuneStrategy())
 
 
 def test_init():
     model = Identity()
-    module = Module(model, TEST_MODULE_NAME)
+    module = TunableModule(model, TEST_MODULE_NAME)
     assert module._self_name == TEST_MODULE_NAME
     assert module.state == ModuleState.INIT
     assert module.device == torch.device("cpu")
@@ -68,7 +68,7 @@ def test_init():
 def test_module_registration():
     assert MODULE_REGISTRY.modules == {}
 
-    module = Module(Identity(), TEST_MODULE_NAME)
+    module = TunableModule(Identity(), TEST_MODULE_NAME)
     assert MODULE_REGISTRY.modules == {TEST_MODULE_NAME: module}
 
 
@@ -125,7 +125,9 @@ def test_tune_dry_run(module, torch_device):
     strategy = Mock()
     global_config.strict_mode = True
 
-    with pytest.raises(ValueError, match="Module: 'demo-identity' has not recorded any samples. Cannot tune it."):
+    with pytest.raises(
+        ValueError, match="TunableModule: 'demo-identity' has not recorded any samples. Cannot tune it."
+    ):
         module.tune(strategy=strategy, dry_run=True, device=torch_device)
 
     # record a sample
@@ -169,7 +171,9 @@ def test_tune(module, torch_device):
     strategy = Mock()
     global_config.strict_mode = True
 
-    with pytest.raises(ValueError, match="Module: 'demo-identity' has not recorded any samples. Cannot tune it."):
+    with pytest.raises(
+        ValueError, match="TunableModule: 'demo-identity' has not recorded any samples. Cannot tune it."
+    ):
         module.tune(strategy=strategy, dry_run=True, device=torch_device)
 
     # record a sample
@@ -210,7 +214,7 @@ def test_tune(module, torch_device):
 def test_tune_with_provided_strategy(torch_device):
     model = Identity()
     strategy = Mock()
-    module = Module(model, TEST_MODULE_NAME, strategy=strategy)
+    module = TunableModule(model, TEST_MODULE_NAME, strategy=strategy)
 
     module(1, a=1)
     module(2, b=2)
@@ -224,7 +228,7 @@ def test_tune_with_list_of_strategies(torch_device):
     model = Identity()
     strategy1 = Mock()
     strategy2 = Mock()
-    module = Module(model, TEST_MODULE_NAME, strategies=[strategy1, strategy2])
+    module = TunableModule(model, TEST_MODULE_NAME, strategies=[strategy1, strategy2])
 
     module(1, a=1)
     module(2, b=2)
@@ -234,7 +238,7 @@ def test_tune_with_list_of_strategies(torch_device):
     module._self_strategy_list[1].tune.assert_called_once()
     assert module.state == ModuleState.TUNED
 
-    with pytest.raises(RuntimeError, match="Module is already tuned. Use force=True to reset tuned module."):
+    with pytest.raises(RuntimeError, match="TunableModule is already tuned. Use force=True to reset tuned module."):
         module.enable_recording()
 
     module.enable_recording(force=True)
@@ -253,7 +257,7 @@ def test_tune_with_dict_of_strategies(torch_device):
     strategy2 = Mock()
     graph1 = SampleMetadata.from_inputs(args=(1,), kwargs={}, strict=True)
     graph2 = SampleMetadata.from_inputs(args=(2,), kwargs={}, strict=True)
-    module = Module(model, TEST_MODULE_NAME, strategies={graph1: strategy1, graph2: strategy2})
+    module = TunableModule(model, TEST_MODULE_NAME, strategies={graph1: strategy1, graph2: strategy2})
 
     module(1)
     module(2)
@@ -263,7 +267,7 @@ def test_tune_with_dict_of_strategies(torch_device):
     module._self_strategy_map[graph2].tune.assert_called_once()
     assert module.state == ModuleState.TUNED
 
-    with pytest.raises(RuntimeError, match="Module is already tuned. Use force=True to reset tuned module."):
+    with pytest.raises(RuntimeError, match="TunableModule is already tuned. Use force=True to reset tuned module."):
         module.enable_recording()
 
     module.enable_recording(force=True)
@@ -323,7 +327,7 @@ def test_tune_with_torch_compile_backend_simulate_prefill_decode(module, torch_d
 def test_serialization(torch_device):
     """Test converting module to dictionary."""
     model = Identity()
-    module = Module(model, TEST_MODULE_NAME)
+    module = TunableModule(model, TEST_MODULE_NAME)
 
     # Record samples and tune the module
     module(torch.tensor(1))
@@ -335,13 +339,13 @@ def test_serialization(torch_device):
     state_dict = module.to_dict(prefix="test")
     assert isinstance(state_dict, OrderedDict)
     module_data = state_dict["test"]
-    assert module_data[Module.TYPE_KEY] == Module.__name__
-    assert module_data[Module.NAME_KEY] == TEST_MODULE_NAME
-    assert Module.TUNED_MODULE_KEY in module_data
+    assert module_data[TunableModule.TYPE_KEY] == TunableModule.__name__
+    assert module_data[TunableModule.NAME_KEY] == TEST_MODULE_NAME
+    assert TunableModule.TUNED_MODULE_KEY in module_data
 
     # Test from_dict
     model = Identity()
-    module = Module.from_dict(model, state_dict["test"], device=torch_device)
+    module = TunableModule.from_dict(model, state_dict["test"], device=torch_device)
     assert module.state == ModuleState.TUNED
     assert module._self_name == TEST_MODULE_NAME
     assert isinstance(module._self_wrapper, TunedModule)
@@ -349,15 +353,15 @@ def test_serialization(torch_device):
 
 def test_to_dict_raises_error_when_not_tuned():
     """Test that to_dict raises error when module is not tuned."""
-    module = Module(Identity(), TEST_MODULE_NAME)
-    with pytest.raises(RuntimeError, match="Module is not tuned. Cannot save state_dict."):
+    module = TunableModule(Identity(), TEST_MODULE_NAME)
+    with pytest.raises(RuntimeError, match="TunableModule is not tuned. Cannot save state_dict."):
         module.to_dict()
 
 
 def test_from_dict_raises_error_for_invalid_state_dict(torch_device):
     """Test that from_dict raises error for invalid state dict."""
-    with pytest.raises(ValueError, match=f"Invalid dictionary format for {Module.__class__.__name__}"):
-        Module.from_dict(Identity(), {"type": "invalid"}, device=torch_device)
+    with pytest.raises(ValueError, match=f"Invalid dictionary format for {TunableModule.__class__.__name__}"):
+        TunableModule.from_dict(Identity(), {"type": "invalid"}, device=torch_device)
 
 
 def test_deepcopy():
@@ -368,7 +372,7 @@ def test_deepcopy():
     a backend.
     """
     model = Identity()
-    module = Module(model, TEST_MODULE_NAME)
+    module = TunableModule(model, TEST_MODULE_NAME)
 
     module._restore_original_forward()
     deepcopy(model)  # this must not fail
@@ -387,7 +391,7 @@ def test_forward_method_should_have_same_signature():
     original_model = TestNet()
     expected_keys = {"x", "y", "z", "pos"}
 
-    model = Module(original_model, TEST_MODULE_NAME)
+    model = TunableModule(original_model, TEST_MODULE_NAME)
     assert model.state == ModuleState.INIT
     assert set(inspect.signature(original_model.forward).parameters.keys()) == expected_keys
     model(1, 2, 3)
@@ -403,7 +407,7 @@ def test_forward_method_should_have_same_signature():
 def test_sleep_backend_keeps_original_module_after_tune():
     """Backends that run the original module must not have it offloaded to meta."""
     model = Identity()
-    module = Module(model, TEST_MODULE_NAME)
+    module = TunableModule(model, TEST_MODULE_NAME)
     sample = torch.randn(2, 5)
     module(sample)
 

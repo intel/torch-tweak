@@ -12,10 +12,10 @@ from logging import DEBUG, basicConfig
 import pytest
 import torch
 
-from torch_tweak.torch import Module, OneBackendStrategy
+from torch_tweak.torch import OneBackendStrategy, TunableModule
 from torch_tweak.torch.backend import TorchInductorBackend
 from torch_tweak.torch.module.locator import Locator
-from torch_tweak.torch.module.wrapper_module import ModuleState
+from torch_tweak.torch.module.tunable_module import ModuleState
 
 try:
     from tests.utilities.helpers import requires_xpu
@@ -255,7 +255,7 @@ def test_llm_dynamic_cache(cache_type, registered_type, torch_device):
     model.eval()
     kv_cache = cache_type()
 
-    model = Module(model, "test_llm")  # wrap the model with Torch Tweak
+    model = TunableModule(model, "test_llm")  # wrap the model with Torch Tweak
     with torch.no_grad():
         result, kv_cache = model.generate(prompt_token_ids, kv_cache, max_seq_len=MAX_SEQ_LEN)
 

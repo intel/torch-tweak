@@ -12,7 +12,7 @@ import nemo.core.neural_types.neural_type
 import torch
 from nemo.core.classes.common import typecheck
 
-from torch_tweak.torch import Module, TuneStrategy
+from torch_tweak.torch import TunableModule, TuneStrategy
 
 
 def get_model(model_name: str = "nvidia/parakeet-ctc-0.6b") -> nemo.collections.asr.models.EncDecCTCModel:
@@ -64,13 +64,13 @@ def wrap_pipeline(name: str, pipeline, strategy: TuneStrategy | None = None):
     Returns:
         ASR model
     """
-    pipeline.encoder = Module(
+    pipeline.encoder = TunableModule(
         pipeline.encoder,
         name=f"{name}-encoder",
         strategy=deepcopy(strategy),
     )
 
-    pipeline.decoder = Module(
+    pipeline.decoder = TunableModule(
         pipeline.decoder,
         name=f"{name}-decoder",
         strategy=deepcopy(strategy),

@@ -61,7 +61,7 @@ backend = TorchInductorBackend(config)
 strategy = tt.OneBackendStrategy(backend=backend)
 
 # Use in tuning
-model = tt.Module(model, "my-model", strategy=strategy)
+model = tt.TunableModule(model, "my-model", strategy=strategy)
 tt.tune(model, input_data)
 ```
 
@@ -106,7 +106,7 @@ backends = [
 strategy = tt.FirstWinsStrategy(backends=backends)
 
 # Use in tuning
-model = tt.Module(model, "my-model", strategy=strategy)
+model = tt.TunableModule(model, "my-model", strategy=strategy)
 tt.tune(model, input_data)
 ```
 
@@ -167,7 +167,7 @@ strategy = tt.HighestThroughputStrategy(
 )
 
 # Use in tuning
-model = tt.Module(model, "my-model", strategy=strategy)
+model = tt.TunableModule(model, "my-model", strategy=strategy)
 tt.tune(model, input_data)
 ```
 

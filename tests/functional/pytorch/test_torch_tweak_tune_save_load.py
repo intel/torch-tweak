@@ -13,7 +13,7 @@ import timm
 import torch
 
 from torch_tweak.torch.backend.torch_inductor_backend import TorchInductorBackend
-from torch_tweak.torch.module.wrapper_module import Module
+from torch_tweak.torch.module.tunable_module import TunableModule
 from torch_tweak.torch.module_registry import MODULE_REGISTRY
 from torch_tweak.torch.tune_strategy.one_backend_strategy import OneBackendStrategy
 from torch_tweak.torch.tuning import load, save, tune
@@ -62,12 +62,12 @@ def _tune_save_load_helper(model_factory, samples, output_dir, wrap_model_fn):
 
 
 def tune_save_load_whole_model(model_factory, samples, output_dir, backend_factory):
-    """Test tuning, saving and loading a whole model wrapped in a single Module."""
+    """Test tuning, saving and loading a whole model wrapped in a single TunableModule."""
 
     def wrap_whole_model(model):
         strategy = OneBackendStrategy(backend_factory())
         strategy.enable_find_max_batch_size(enable=False)
-        return Module(model, "demo-simple", strategy=strategy)
+        return TunableModule(model, "demo-simple", strategy=strategy)
 
     _tune_save_load_helper(model_factory, samples, output_dir, wrap_whole_model)
 
@@ -78,8 +78,8 @@ def tune_save_load_part_of_model(model_factory, samples, output_dir, backend_fac
     def wrap_partial_model(model):
         strategy = OneBackendStrategy(backend_factory())
         strategy.enable_find_max_batch_size(enable=False)
-        model.layer1 = Module(model.layer1, "demo-simple1", strategy=strategy)
-        model.layer2 = Module(model.layer2, "demo-simple2", strategy=strategy)
+        model.layer1 = TunableModule(model.layer1, "demo-simple1", strategy=strategy)
+        model.layer2 = TunableModule(model.layer2, "demo-simple2", strategy=strategy)
         return model
 
     _tune_save_load_helper(model_factory, samples, output_dir, wrap_partial_model)

@@ -12,10 +12,10 @@ import torch.nn as nn
 
 from tests.toy_backends import BuildFailsBackend, SleepBackend
 from tests.toy_models.torch_models import ToyTorchModel
-from torch_tweak.torch import Module, tune
+from torch_tweak.torch import TunableModule, tune
 from torch_tweak.torch.backend import Backend
 from torch_tweak.torch.module.graph_spec import GraphSpec
-from torch_tweak.torch.module.wrapper_module import ModuleState
+from torch_tweak.torch.module.tunable_module import ModuleState
 from torch_tweak.torch.tune_strategy.first_wins_strategy import FirstWinsStrategy
 
 
@@ -176,7 +176,7 @@ def test_first_wins_strategy_find_max_batch_size_fails(torch_device):
     sample = model.sample().to(torch_device)
     assert model(sample) is not None
 
-    model = Module(model, strategy=strategy)
+    model = TunableModule(model, strategy=strategy)
     tune(model, sample, device=torch_device, disable_external_logging=False)
 
     assert model.state == ModuleState.PASSTHROUGH
@@ -197,7 +197,7 @@ def test_first_wins_strategy_build_fails(torch_device, tmp_path):
     model = ToyTorchModel().eval().to(torch_device)
     sample = model.sample().to(torch_device)
 
-    model = Module(model, strategy=strategy)
+    model = TunableModule(model, strategy=strategy)
 
     tune(model, sample, device=torch_device, disable_external_logging=False)
 

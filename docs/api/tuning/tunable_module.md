@@ -5,11 +5,11 @@ SPDX-License-Identifier: Apache-2.0
 NOTE: This file has been modified by Intel Corporation.
 -->
 
-# Module API
+# TunableModule API
 
-## Module
+## TunableModule
 
-::: torch_tweak.torch.Module
+::: torch_tweak.torch.TunableModule
     options:
       show_root_heading: true
       heading_level: 3

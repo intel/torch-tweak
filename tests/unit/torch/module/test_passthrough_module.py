@@ -11,7 +11,7 @@ import torch.nn as nn
 
 from tests.toy_models import ToyTorchModel
 from torch_tweak.torch.module.passthrough_module import PassthroughModule
-from torch_tweak.torch.module.wrapper_module import Module
+from torch_tweak.torch.module.tunable_module import TunableModule
 from torch_tweak.torch.utils.xpu import is_available as is_xpu_available
 
 devices = ["cpu", "xpu"] if is_xpu_available() else ["cpu"]
@@ -27,7 +27,7 @@ def test_call(device):
 
 
 def test_module_without_parameters_keeps_inputs_on_their_device():
-    module = Module(nn.Flatten(), "flatten")
+    module = TunableModule(nn.Flatten(), "flatten")
     module.enable_passthrough()
 
     output = module(torch.empty(2, 3, 4, device="meta"))

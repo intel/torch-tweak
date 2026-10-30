@@ -17,7 +17,7 @@ from torch_tweak.torch.backend.torch_eager import TorchEagerBackend
 from torch_tweak.torch.backend.torch_inductor_backend import TorchInductorBackend
 from torch_tweak.torch.checkpoint.local_torch_storage import LocalTorchStorage
 from torch_tweak.torch.checkpoint.torch_checkpoint import TorchCheckpoint
-from torch_tweak.torch.module.wrapper_module import Module
+from torch_tweak.torch.module.tunable_module import TunableModule
 from torch_tweak.torch.tune_strategy.one_backend_strategy import OneBackendStrategy
 from torch_tweak.torch.tuning import tune
 
@@ -95,12 +95,12 @@ def _tune_save_load_helper(model_factory, samples, wrap_model_fn, checkpoint, de
 
 
 def _wrap_whole_model(model, backend=None):
-    return Module(model, "demo-simple", strategy=OneBackendStrategy(backend or TorchInductorBackend()))
+    return TunableModule(model, "demo-simple", strategy=OneBackendStrategy(backend or TorchInductorBackend()))
 
 
 def _wrap_linear_layers(model):
-    model.linear1 = Module(model.linear1, "demo-simple1", strategy=OneBackendStrategy(TorchInductorBackend()))
-    model.linear2 = Module(model.linear2, "demo-simple2", strategy=OneBackendStrategy(TorchInductorBackend()))
+    model.linear1 = TunableModule(model.linear1, "demo-simple1", strategy=OneBackendStrategy(TorchInductorBackend()))
+    model.linear2 = TunableModule(model.linear2, "demo-simple2", strategy=OneBackendStrategy(TorchInductorBackend()))
     return model
 
 
@@ -138,7 +138,7 @@ class _PipelineWithLayerList(ToyPipeline):
     ],
 )  # cover both compiled and eager backends
 def test_tune_save_load_whole_model(model_factory, sample, backend, checkpoint):
-    """Test tuning, saving and loading a whole model wrapped in a single Module."""
+    """Test tuning, saving and loading a whole model wrapped in a single TunableModule."""
     _tune_save_load_helper(model_factory, sample, lambda model: _wrap_whole_model(model, backend), checkpoint)
 
 
@@ -281,7 +281,7 @@ def test_tune_save_load_pipeline_with_nested_tuned_modules_rejects_leaf_name_in_
 @requires_xpu
 def test_state_dict_from_pipeline_stores_only_nested_tuned_modules(complex_pipeline_factory, sample):
     pipeline = complex_pipeline_factory()
-    pipeline.net.linear1 = Module(
+    pipeline.net.linear1 = TunableModule(
         pipeline.net.linear1, "demo-simple1", strategy=OneBackendStrategy(TorchInductorBackend())
     )
     tune(pipeline, sample, batch_sizes=[1, 2])
@@ -308,7 +308,7 @@ def test_tune_save_load_pipeline_restores_aliased_tuned_module_as_one_module(
 
     restored = checkpoint.load(_alias_net_linear1(complex_pipeline_factory()), "checkpoint.tt")
 
-    assert isinstance(restored.linear1, Module)
+    assert isinstance(restored.linear1, TunableModule)
     assert restored.linear1 is restored.net.linear1
 
 
@@ -325,7 +325,7 @@ def test_tune_save_load_pipeline_restores_tuned_module_aliased_by_its_parent(
 
     restored = checkpoint.load(restored, "checkpoint.tt")
 
-    assert isinstance(restored.net.linear1_alias, Module)
+    assert isinstance(restored.net.linear1_alias, TunableModule)
     assert restored.net.linear1_alias is restored.net.linear1
 
 
@@ -337,7 +337,7 @@ def test_load_state_dict_for_pipeline_restores_duplicate_alias_keys_as_one_modul
 
     TorchCheckpoint.load_state_dict_for_pipeline(restored, state_dict, device_map={})
 
-    assert isinstance(restored.linear1, Module)
+    assert isinstance(restored.linear1, TunableModule)
     assert restored.linear1 is restored.net.linear1
 
 
@@ -364,8 +364,12 @@ def test_load_state_dict_for_pipeline_rejects_missing_path(complex_pipeline_fact
 @requires_xpu
 def test_state_dict_from_pipeline_warns_about_tuned_module_outside_module_attributes(sample, caplog):
     pipeline = _PipelineWithLayerList()
-    pipeline.linear1 = Module(pipeline.linear1, "demo-simple1", strategy=OneBackendStrategy(TorchInductorBackend()))
-    pipeline.layers[0] = Module(pipeline.layers[0], "demo-simple2", strategy=OneBackendStrategy(TorchInductorBackend()))
+    pipeline.linear1 = TunableModule(
+        pipeline.linear1, "demo-simple1", strategy=OneBackendStrategy(TorchInductorBackend())
+    )
+    pipeline.layers[0] = TunableModule(
+        pipeline.layers[0], "demo-simple2", strategy=OneBackendStrategy(TorchInductorBackend())
+    )
     tune(pipeline, sample, batch_sizes=[1, 2])
     # `tune` calls `setup_logging`, which removes the `caplog` handler from the root logger.
     logging.getLogger().addHandler(caplog.handler)
@@ -415,7 +419,7 @@ def test_get_pipeline_modules_does_not_descend_into_module_twice():
 @requires_xpu
 def test_state_dict_from_pipeline(pipeline_factory):
     pipeline = pipeline_factory()
-    pipeline.linear1 = Mock(spec=Module)
+    pipeline.linear1 = Mock(spec=TunableModule)
     # second module is still torch.nn.Module i.e. not tuned
     state_dict = TorchCheckpoint.state_dict_from_pipeline(pipeline)
     assert isinstance(state_dict, dict)
@@ -433,7 +437,7 @@ def test_load_state_dict_for_pipeline_unknown_module(pipeline_factory):
 def test_load_state_dict_for_pipeline_non_module_attribute(pipeline_factory):
     pipeline = pipeline_factory()
     pipeline.config = "not a module"
-    with pytest.raises(ValueError, match="Module config is not a torch.nn.Module or WrapperModule"):
+    with pytest.raises(ValueError, match="Module config is not a torch.nn.Module or TunableModule"):
         TorchCheckpoint.load_state_dict_for_pipeline(pipeline, {"config": {}}, device_map={})
 
 
@@ -441,6 +445,6 @@ def test_load_state_dict_for_pipeline_non_module_attribute(pipeline_factory):
 def test_state_dict_from_pipeline_no_tuned_modules(pipeline_factory):
     """Test that ValueError is raised when trying to get state dict from a pipeline with no tuned modules."""
     pipeline = pipeline_factory()
-    # Both modules are regular torch.nn.Module, not wrapped in Module
+    # Both modules are regular torch.nn.Module, not wrapped in TunableModule
     with pytest.raises(ValueError, match="No tuned modules found in the pipeline"):
         TorchCheckpoint.state_dict_from_pipeline(pipeline)

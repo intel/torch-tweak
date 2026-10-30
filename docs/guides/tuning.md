@@ -92,8 +92,8 @@ If you would like to have more control over picking the modules, you can manuall
 pipe = DiffusionPipeline.from_pretrained("stabilityai/stable-diffusion-3-medium-diffusers")
 pipe.to("xpu")
 
-pipe.unet = tt.Module(pipe.unet, strategy=strategy_for_unet)
-pipe.transformer = tt.Module(pipe.transformer, strategy=strategy_for_transformer)
+pipe.unet = tt.TunableModule(pipe.unet, strategy=strategy_for_unet)
+pipe.transformer = tt.TunableModule(pipe.transformer, strategy=strategy_for_transformer)
 ```
 
 
@@ -229,7 +229,7 @@ from torch import nn
 import torch_tweak.torch as tt
 
 model = nn.Sequential(nn.Linear(32, 32), nn.ReLU(), nn.Linear(32, 8)).eval()
-module = tt.Module(model, name="mlp")
+module = tt.TunableModule(model, name="mlp")
 sample = torch.randn(32)
 tt.tune(module, sample, batch_sizes=[1, 4], device="xpu", dry_run=True)
 ```

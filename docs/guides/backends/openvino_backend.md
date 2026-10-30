@@ -23,7 +23,7 @@ config = OpenVINOBackendConfig(use_dynamo=False, performance_hint="THROUGHPUT")
 backend = OpenVINOBackend(config)
 
 strategy = tt.OneBackendStrategy(backend=backend)
-model = tt.Module(model, "my-model", strategy=strategy)
+model = tt.TunableModule(model, "my-model", strategy=strategy)
 tt.tune(model, input_data)
 ```
 

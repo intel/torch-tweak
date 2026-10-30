@@ -106,7 +106,7 @@ nav:
             - StableDiffusion: examples/StableDiffusion/README.md
     -   API:
             -   Tuning API:
-                    -   Module: api/tuning/module.md
+                    -   TunableModule: api/tuning/tunable_module.md
                     -   Tuning: api/tuning/tuning.md
                     -   Config: api/tuning/config.md
                     -   Backend: api/tuning/backend.md

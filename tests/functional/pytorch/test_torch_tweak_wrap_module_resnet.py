@@ -8,7 +8,7 @@ import pytest
 import timm
 import torch
 
-from torch_tweak.torch import Module, OneBackendStrategy
+from torch_tweak.torch import OneBackendStrategy, TunableModule
 from torch_tweak.torch.backend import TorchInductorBackend
 
 
@@ -27,7 +27,7 @@ def test_resnet50():
     expected_probs = torch.nn.functional.softmax(out[0], dim=0)
 
     # when
-    module = Module(model, "functional-resnet50")
+    module = TunableModule(model, "functional-resnet50")
 
     # then - verify recording
     module(data)

@@ -9,7 +9,7 @@ from collections import OrderedDict
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from torch_tweak.torch.module.wrapper_module import Module
+    from torch_tweak.torch.module.tunable_module import TunableModule
 
 
 class ModuleRegistry:
@@ -17,9 +17,9 @@ class ModuleRegistry:
 
     def __init__(self) -> None:
         """Initialize ModuleRegistry."""
-        self._registry: OrderedDict[str, Module] = OrderedDict()
+        self._registry: OrderedDict[str, TunableModule] = OrderedDict()
 
-    def register(self, name: str, module: "Module") -> None:
+    def register(self, name: str, module: "TunableModule") -> None:
         """Register a module."""
         self._registry[name] = module
 
@@ -34,14 +34,14 @@ class ModuleRegistry:
         gc.collect()
 
     @property
-    def modules(self) -> dict[str, "Module"]:
+    def modules(self) -> dict[str, "TunableModule"]:
         """All registered modules."""
         return self._registry
 
-    def get(self, name: str) -> "Module":
+    def get(self, name: str) -> "TunableModule":
         """Get a module."""
         if name not in self._registry:
-            raise ValueError(f"Module {name} not found in registry.")
+            raise ValueError(f"TunableModule {name} not found in registry.")
         return self._registry[name]
 
 

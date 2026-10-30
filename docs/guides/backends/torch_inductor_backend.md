@@ -34,7 +34,7 @@ from torch_tweak.torch.tune_strategy import OneBackendStrategy
 
 strategy = tt.OneBackendStrategy(backend=backend)
 
-model = tt.Module(model, "my-model", strategy=strategy)
+model = tt.TunableModule(model, "my-model", strategy=strategy)
 tt.tune(model, input_data)
 ```
 

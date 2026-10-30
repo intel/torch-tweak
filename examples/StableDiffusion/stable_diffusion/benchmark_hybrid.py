@@ -20,7 +20,7 @@ from stable_diffusion.tuning_strategy import hybrid_strategy, single_backend_str
 from torch_tweak.torch import inspect, tune, wrap
 from torch_tweak.torch.config import torch_tweak_cache_dir
 from torch_tweak.torch.module.tensor_spec import InfoLevel
-from torch_tweak.torch.module.wrapper_module import ModuleState
+from torch_tweak.torch.module.tunable_module import ModuleState
 from torch_tweak.torch.module_registry import MODULE_REGISTRY
 from torch_tweak.torch.utils.xpu import synchronize as device_synchronize
 

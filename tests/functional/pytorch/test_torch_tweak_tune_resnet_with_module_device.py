@@ -10,7 +10,7 @@ import timm
 import torch
 
 from torch_tweak.torch.backend.torch_inductor_backend import TorchInductorBackend
-from torch_tweak.torch.module.wrapper_module import Module
+from torch_tweak.torch.module.tunable_module import TunableModule
 from torch_tweak.torch.tune_strategy.one_backend_strategy import OneBackendStrategy
 
 
@@ -39,7 +39,7 @@ def test_resnet50():
         expected_arg_max = model()  # notice: not argument - it will be added by pre hook
 
     # when
-    module = Module(model, "functional-resnet50")
+    module = TunableModule(model, "functional-resnet50")
 
     # then - verify recording
     module()  # notice: not argument - it will be added by pre hook

@@ -69,13 +69,13 @@ def wrap_pipeline(name: str, pipeline: nemo.collections.asr.models.EncDecRNNTBPE
     Returns:
         ASR model
     """
-    pipeline.encoder = tt.Module(
+    pipeline.encoder = tt.TunableModule(
         pipeline.encoder,
         name=f"{name}-encoder",
         strategy=strategy,
     )
 
-    pipeline.decoder.prediction["dec_rnn"] = tt.Module(
+    pipeline.decoder.prediction["dec_rnn"] = tt.TunableModule(
         pipeline.decoder.prediction["dec_rnn"],
         name=f"{name}-decoder-rnn",
         strategy=strategy,

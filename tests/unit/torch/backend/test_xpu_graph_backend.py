@@ -16,7 +16,7 @@ from torch_tweak.torch.checkpoint.storage_tasks import TorchLoadTask, TorchSaveT
 from torch_tweak.torch.module.graph_spec import GraphSpec
 from torch_tweak.torch.module.recording_module import Sample
 from torch_tweak.torch.module.sample_metadata import SampleMetadata
-from torch_tweak.torch.module.wrapper_module import Module
+from torch_tweak.torch.module.tunable_module import TunableModule
 from torch_tweak.torch.module_registry import MODULE_REGISTRY
 from torch_tweak.torch.tune_strategy import FirstWinsStrategy, HighestThroughputStrategy, OneBackendStrategy
 from torch_tweak.torch.tuning import tune
@@ -323,7 +323,7 @@ def test_tune_module(torch_device, tmp_path, eager_calls):
     # tune routes later calls of module through the selected backend.
     reference = copy.deepcopy(module)
     sample = torch.randn(16, device=torch_device)
-    wrapped = Module(
+    wrapped = TunableModule(
         module,
         "xpu-graph-mlp",
         strategy=OneBackendStrategy(XPUGraphBackend()).enable_find_max_batch_size(False),

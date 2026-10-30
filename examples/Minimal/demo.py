@@ -32,7 +32,7 @@ def main() -> None:
         ],
     ).enable_find_max_batch_size(False)
 
-    module = tt.Module(model, name="mlp", strategy=strategy)
+    module = tt.TunableModule(model, name="mlp", strategy=strategy)
     tt.tune(module, sample, batch_sizes=[4], device=device)
 
     results = strategy.results[-1].highest_throughput_results if strategy.results else []
