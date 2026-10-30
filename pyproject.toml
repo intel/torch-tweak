@@ -56,6 +56,7 @@ xpu = [
     "fsspec>=2026.6.0", # sec
 ]
 test = [
+    "coverage>=7.17.0",
     "datasets>=4.8.5,<6.0.0",
     "diffusers>=0.40.0,<1.0",
     "fsspec>=2026.6.0", # sec
@@ -115,6 +116,8 @@ raw-options = { local_scheme = "no-local-version", fallback_version = "0.4.1" }
 [dependency-groups]
 xpu-nightly = ["torch>=2.13.0", "triton-xpu"]
 xpu-stable = ["torch>=2.13.0"]
+# Lightweight set for the CI coverage reporting job (no torch needed).
+coverage = ["coverage>=7.17.0", "diff-cover>=11.0.0"]
 
 [tool.uv]
 managed = true
@@ -167,6 +170,18 @@ markers = [
     "functional: mark test as a functional test",
     "nightly: mark test to be run in nightly workflow",
 ]
+
+[tool.coverage.run]
+source_pkgs = ["torch_tweak"]
+parallel = true
+relative_files = true
+
+[tool.coverage.paths]
+# Examples install torch_tweak non-editable into their own venvs; map those copies back to the sources.
+torch_tweak = ["torch_tweak/", "*/site-packages/torch_tweak/"]
+
+[tool.coverage.report]
+skip_empty = true
 
 [tool.ruff]
 preview = true

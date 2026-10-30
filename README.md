@@ -14,6 +14,7 @@ NOTE: This file has been modified by Intel Corporation.
 [![Tests](https://github.com/intel/torch-tweak/actions/workflows/tests.yml/badge.svg)](https://github.com/intel/torch-tweak/actions/workflows/tests.yml)
 [![Nightly Tests](https://github.com/intel/torch-tweak/actions/workflows/nightly.yml/badge.svg?event=schedule)](https://github.com/intel/torch-tweak/actions/workflows/nightly.yml)
 [![OpenSSF Scorecard](https://api.securityscorecards.dev/projects/github.com/intel/torch-tweak/badge)](https://securityscorecards.dev/viewer/?uri=github.com/intel/torch-tweak)
+[![Coverage](https://gist.githubusercontent.com/bb-ur/cfa745c6e219d84dec39841a981daea7/raw/tt_coverage_badge.svg)](https://github.com/intel/torch-tweak/actions/workflows/tests.yml?query=branch%3Amain)
 
 **Torch Tweak** is an inference toolkit designed for tuning and deploying Deep Learning models with a focus on Intel XPU (GPU) accelerators.
 It provides model tuning capabilities through compilation and conversion paths that can significantly improve inference speed and efficiency

@@ -81,6 +81,19 @@ environment variable to select the device, as CI does.
 New features and bug fixes should come with tests. Place them under
 'test/unit' or 'test/functional', respectively.
 
+### Measuring coverage
+
+CI measures line coverage of `torch_tweak` across unit tests, functional tests
+and examples. The Tests workflow summary shows the total compared to the latest
+`main` run, plus diff-cover coverage of the lines changed by the PR. A PR fails
+if total coverage drops noticeably. To measure coverage locally:
+
+```bash
+uv run coverage run -m pytest -m "not functional and not nightly"
+uv run coverage combine
+uv run coverage report      # or `coverage html` for a browsable report
+```
+
 ## Building Packages
 
 ### Core library
