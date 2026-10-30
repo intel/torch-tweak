@@ -15,8 +15,8 @@ class MeasuringStopStrategy(ABC):
     """Strategy when to stop collecting measurements for given batch size."""
 
     @abstractmethod
-    def should_stop(self, results: list[ProfilingResultEvent]) -> bool:
-        """Check if the measurement should be stopped.
+    def update_and_should_stop(self, results: list[ProfilingResultEvent]) -> bool:
+        """Record these events and report whether measurement should stop.
 
         Args:
             results: List of profiling results events for a one measurement.
@@ -40,8 +40,8 @@ class NumStepsMeasuringStopStrategy(MeasuringStopStrategy):
         self.num_steps = num_steps
         self._steps_counter = 0
 
-    def should_stop(self, _: list[ProfilingResultEvent]) -> bool:
-        """Check if the measurement should be stopped."""
+    def update_and_should_stop(self, _: list[ProfilingResultEvent]) -> bool:
+        """Record these events and report whether measurement should stop."""
         self._steps_counter += 1
         return self._steps_counter >= self.num_steps
 
@@ -63,8 +63,8 @@ class StableWindowMeasuringStopStrategy(MeasuringStopStrategy):
         self.stability_percentage = stability_percentage
         self._window: list[ProfilingResultEvent] = []
 
-    def should_stop(self, results: list[ProfilingResultEvent]) -> bool:
-        """Check if the measurement should be stopped."""
+    def update_and_should_stop(self, results: list[ProfilingResultEvent]) -> bool:
+        """Record these events and report whether measurement should stop."""
         self._window += results
 
         if len(self._window) < self.window_size:

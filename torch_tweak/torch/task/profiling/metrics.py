@@ -10,28 +10,24 @@ from torch_tweak.torch.task.profiling.events import ProfilingResultEvent
 
 
 def is_throughput_saturated(
-    profiling_result: list[ProfilingResultEvent],
+    throughput: float,
     throughput_cutoff_threshold: float,
-    prev_results: list[ProfilingResultEvent],
+    previous_throughput: float | None,
 ) -> bool:
-    """Validate if throughput saturated between consecutive samples.
+    """Validate if throughput saturated between consecutive batch sizes.
 
     Args:
-        profiling_result: Current profiling results.
+        throughput: Throughput of the batch size just measured, in samples per second.
         throughput_cutoff_threshold: Threshold for throughput saturation.
-        prev_results: Previous profiling results or previous throughput.
+        previous_throughput: Best throughput so far, or None before the first batch size.
 
     Returns:
-        True when throughput saturated between consecutive samples. False when verification disabled or not yet saturated.
+        True when throughput saturated between consecutive samples. False when not yet saturated.
     """
-    if not prev_results:
+    if previous_throughput is None:
         return False
 
-    prev_throughput = get_throughput(prev_results)
-    new_throughput = get_throughput(profiling_result)
-
-    # new_throughput minus few percent should be less than prev_throughput, then it is saturated
-    return new_throughput * (1 - throughput_cutoff_threshold) < prev_throughput
+    return throughput * (1 - throughput_cutoff_threshold) < previous_throughput
 
 
 def get_batch_size(results: list[ProfilingResultEvent]) -> int:

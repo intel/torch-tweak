@@ -5,9 +5,8 @@
 """Profiling stop strategies for profiling."""
 
 from abc import ABC, abstractmethod
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 
-from torch_tweak.torch.task.profiling.events import ProfilingResultEvent
 from torch_tweak.torch.task.profiling.metrics import is_throughput_saturated
 
 
@@ -15,11 +14,11 @@ class ProfilingStopStrategy(ABC):
     """Strategy when to stop profiling."""
 
     @abstractmethod
-    def should_stop(self, results: list[ProfilingResultEvent]) -> bool:
-        """Check if the profiling should be stopped.
+    def update_and_should_stop(self, throughput: float) -> bool:
+        """Record this throughput and report whether profiling should stop.
 
         Args:
-            results: List of profiling results.
+            throughput: Throughput of the batch size just measured, in samples per second.
 
         Returns:
             True if the profiling should be stopped, False otherwise.
@@ -31,8 +30,8 @@ class ProfilingStopStrategy(ABC):
 class AllSamplesProfilingStopStrategy(ProfilingStopStrategy):
     """Strategy to do not stop profiling until all samples are processed."""
 
-    def should_stop(self, results: list[ProfilingResultEvent]) -> bool:
-        """Check if the profiling should be stopped."""
+    def update_and_should_stop(self, _throughput: float) -> bool:
+        """Record this throughput and report whether profiling should stop."""
         return False
 
 
@@ -51,17 +50,15 @@ class ThroughputSaturatedProfilingStopStrategy(ProfilingStopStrategy):
     throughput_cutoff_threshold: float
     throughput_backoff_limit: int = 0
 
-    _best_results: list[ProfilingResultEvent] = field(default_factory=list)
+    _best_throughput: float | None = None
     _backoff_counter: int = 0
 
-    def should_stop(self, results: list[ProfilingResultEvent]) -> bool:
-        """Check if the profiling should be stopped."""
-        # is_saturated == False also means best result for now
-        is_saturated = is_throughput_saturated(results, self.throughput_cutoff_threshold, self._best_results)
+    def update_and_should_stop(self, throughput: float) -> bool:
+        """Record this throughput and report whether profiling should stop."""
+        is_saturated = is_throughput_saturated(throughput, self.throughput_cutoff_threshold, self._best_throughput)
 
-        # keeping only best throughput results
         if not is_saturated:
-            self._best_results = results
+            self._best_throughput = throughput
 
         if self.throughput_backoff_limit <= 0:
             return is_saturated

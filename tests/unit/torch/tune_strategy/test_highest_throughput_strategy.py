@@ -17,7 +17,7 @@ from torch_tweak.torch import TunableModule
 from torch_tweak.torch.backend import Backend
 from torch_tweak.torch.backend.torch_eager import TorchEagerBackend
 from torch_tweak.torch.backend.torch_inductor_backend import TorchInductorBackend
-from torch_tweak.torch.module.tunable_module import ModuleState, get_object_name
+from torch_tweak.torch.module.tunable_module import ModuleState
 from torch_tweak.torch.task.correctness import CorrectnessValueError
 from torch_tweak.torch.task.profiling import NumStepsMeasuringStopStrategy, StableWindowMeasuringStopStrategy
 from torch_tweak.torch.task.profiling.profiling_stop_strategy import (
@@ -122,8 +122,6 @@ def test_highest_throughput_strategy_num_steps_all_samples(torch_device):
     sample = model.sample().to(torch_device)
     batch_sizes = [1, 2, 4, 8, 16]
     n_backends = len(strategy._backends)
-    n_batch_sizes = len(batch_sizes)
-    n_steps = find_profiling_config.measurement_stop_strategy.num_steps
 
     tune(model, sample, batch_sizes=batch_sizes, device=torch_device, disable_external_logging=False)
 
@@ -131,17 +129,10 @@ def test_highest_throughput_strategy_num_steps_all_samples(torch_device):
 
     assert strategy.results[0].graph_spec_name == "0"
 
-    assert len(strategy.results[0].measurements) == n_steps * n_batch_sizes * n_backends
-    assert len(strategy.results[0].highest_throughput_results) == n_backends
-
-    assert all(m.model_name == get_object_name(model) for m in strategy.results[0].measurements)
-    assert all(m.backend_details is not None for m in strategy.results[0].measurements)
-    assert all(m.execution_time > 0 for m in strategy.results[0].measurements)
-
-    # all measurement ids are unique
-    assert len({m.measurement_id for m in strategy.results[0].measurements}) == len(strategy.results[0].measurements)
-
-    assert len({m.batch_size for m in strategy.results[0].measurements}) == n_batch_sizes
+    backend_results = strategy.results[0].highest_throughput_results
+    assert len(backend_results) == n_backends
+    assert set(backend_results[0].throughput_per_batch_size) == set(batch_sizes)
+    assert set(backend_results[1].throughput_per_batch_size) == set(batch_sizes)
 
     # check graph spec
     graph_specs = list(model._self_wrapper._backends.keys())
@@ -161,27 +152,14 @@ def test_highest_throughput_strategy_stable_window(torch_device):
     model = TunableModule(ToyTorchModel().eval().to(torch_device), strategy=strategy)
     sample = model.sample().to(torch_device)
 
-    batch_sizes = list(range(1, 17))
-    n_backends = len(strategy._backends)
-    n_steps = 10
-
-    tune(model, sample, batch_sizes=batch_sizes, device=torch_device, disable_external_logging=False)
+    tune(model, sample, batch_sizes=list(range(1, 17)), device=torch_device, disable_external_logging=False)
 
     assert len(strategy.results) == 1  # for 1 graph spec
 
     assert strategy.results[0].graph_spec_name == "0"
 
-    assert len(strategy.results[0].measurements) >= n_backends * n_steps
-    assert len(strategy.results[0].highest_throughput_results) == n_backends
-
-    assert all(m.model_name == get_object_name(model) for m in strategy.results[0].measurements)
-    assert all(m.backend_details is not None for m in strategy.results[0].measurements)
-    assert all(m.execution_time > 0 for m in strategy.results[0].measurements)
-
-    # all measurement ids are unique
-    assert len({m.measurement_id for m in strategy.results[0].measurements}) == len(strategy.results[0].measurements)
-
-    assert len({m.batch_size for m in strategy.results[0].measurements}) >= 1
+    assert len(strategy.results[0].highest_throughput_results) == 1
+    assert len(strategy.results[0].highest_throughput_results[0].throughput_per_batch_size) >= 1
 
 
 class ActivateFailsBackend(SleepBackend):
