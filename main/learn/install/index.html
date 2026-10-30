@@ -528,10 +528,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#uv-recommended" class="md-nav__link">
+  <a href="#uv-recommended-for-dev" class="md-nav__link">
     <span class="md-ellipsis">
       
-        uv (recommended)
+        uv (recommended for dev)
       
     </span>
   </a>
@@ -539,10 +539,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#installing-from-source" class="md-nav__link">
+  <a href="#installing-torch-tweak-only" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Installing from Source
+        Installing torch-tweak only
       
     </span>
   </a>
@@ -2428,10 +2428,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#uv-recommended" class="md-nav__link">
+  <a href="#uv-recommended-for-dev" class="md-nav__link">
     <span class="md-ellipsis">
       
-        uv (recommended)
+        uv (recommended for dev)
       
     </span>
   </a>
@@ -2439,10 +2439,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#installing-from-source" class="md-nav__link">
+  <a href="#installing-torch-tweak-only" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Installing from Source
+        Installing torch-tweak only
       
     </span>
   </a>
@@ -2487,32 +2487,43 @@ models on Intel GPUs.</p>
 <li><strong>Intel GPU</strong>: Required for XPU-accelerated tuning</li>
 </ul>
 <h2 id="pip">pip</h2>
-<p>PyTorch XPU wheels are not on PyPI. The <code>xpu</code> extra declares <code>torch</code>. You only have to pass the XPU index:</p>
+<p>To get <strong>the latest release of torch-tweak</strong>, install it from PyPI. Please note that
+PyTorch XPU wheels are not published on PyPI, so the PyTorch XPU index has to be selected explicitly:</p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>pip<span class="w"> </span>install<span class="w"> </span><span class="se">\</span>
 <a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="w">    </span>--index-url<span class="w"> </span>https://download.pytorch.org/whl/xpu<span class="w"> </span><span class="se">\</span>
 <a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="w">    </span>--extra-index-url<span class="w"> </span>https://pypi.org/simple<span class="w"> </span><span class="se">\</span>
-<a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a><span class="w">    </span>-e<span class="w"> </span><span class="s2">".[xpu,dev]"</span>
+<a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a><span class="w">    </span><span class="s2">"torch_tweak[xpu]"</span>
 </code></pre></div>
-<p>Nightly stack of PyTorch <strong>is not supported</strong> on the pip path. Use uv for nightly wheels.</p>
-<h2 id="uv-recommended">uv (recommended)</h2>
+<p>You can also build and install local torch-tweak (from this repository), but
+you still have to pass the XPU index. Please note that for development and testing
+of torch-tweak we recommend uv (see uv commands below).</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>python3<span class="w"> </span>-m<span class="w"> </span>venv<span class="w"> </span>.venv
+<a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a><span class="nb">source</span><span class="w"> </span>.venv/bin/activate
+<a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a>pip<span class="w"> </span>install<span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a><span class="w">    </span>--index-url<span class="w"> </span>https://download.pytorch.org/whl/xpu<span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a><span class="w">    </span>--extra-index-url<span class="w"> </span>https://pypi.org/simple<span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-1-6" name="__codelineno-1-6" href="#__codelineno-1-6"></a><span class="w">    </span>-e<span class="w"> </span><span class="s2">".[xpu,dev]"</span>
+</code></pre></div>
+<p>Nightly stack of PyTorch XPU <strong>is not supported</strong> on the pip path. Use uv for nightly wheels.</p>
+<h2 id="uv-recommended-for-dev">uv (recommended for dev)</h2>
 <p><strong>Stable</strong> is the default stack; <strong>nightly</strong> is uv-only.
 Configuration: <code>[dependency-groups]</code>, optional extra <code>xpu</code>, and <code>[tool.uv]</code> indexes are defined in <code>pyproject.toml</code>. You cannot install both PyTorch stacks in one resolved environment
 (see <code>conflicts</code> in <code>pyproject.toml</code>), but you may either keep two venvs (recommended) or switch stacks in a single <code>.venv</code> with the correct <code>uv sync</code> flags each time.</p>
 <p><strong>Stable (default)</strong> uses the project environment in <code>.venv</code>:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>uv<span class="w"> </span>sync<span class="w"> </span>--extra<span class="w"> </span>dev
-<a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>uv<span class="w"> </span>run<span class="w"> </span>pytest
+<div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>uv<span class="w"> </span>sync<span class="w"> </span>--extra<span class="w"> </span>dev
+<a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a>uv<span class="w"> </span>run<span class="w"> </span>pytest
 </code></pre></div>
 <p><strong>Nightly (optional)</strong>. The recommended option is a separate environment, so stable and nightly stay installed side by side:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="nv">UV_PROJECT_ENVIRONMENT</span><span class="o">=</span>.venv-nightly<span class="w"> </span>uv<span class="w"> </span>sync<span class="w"> </span>--no-default-groups<span class="w"> </span>--group<span class="w"> </span>xpu-nightly<span class="w"> </span>--extra<span class="w"> </span>dev
-<a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a><span class="nv">UV_PROJECT_ENVIRONMENT</span><span class="o">=</span>.venv-nightly<span class="w"> </span>uv<span class="w"> </span>run<span class="w"> </span>pytest
+<div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="nv">UV_PROJECT_ENVIRONMENT</span><span class="o">=</span>.venv-nightly<span class="w"> </span>uv<span class="w"> </span>sync<span class="w"> </span>--no-default-groups<span class="w"> </span>--group<span class="w"> </span>xpu-nightly<span class="w"> </span>--extra<span class="w"> </span>dev
+<a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a><span class="nv">UV_PROJECT_ENVIRONMENT</span><span class="o">=</span>.venv-nightly<span class="w"> </span>uv<span class="w"> </span>run<span class="w"> </span>pytest
 </code></pre></div>
 <p><strong>Nightly in the same <code>.venv</code> as stable (optional)</strong>. <code>uv sync</code> reconciles the environment (removes packages not in the current resolution unless you pass <code>--inexact</code>).
 Switching reinstalls <code>torch</code> and related wheels (the cache speeds downloads, but it is not instant):</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="c1"># nightly</span>
-<a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a>uv<span class="w"> </span>sync<span class="w"> </span>--no-default-groups<span class="w"> </span>--group<span class="w"> </span>xpu-nightly<span class="w"> </span>--extra<span class="w"> </span>dev
-<a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a>
-<a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a><span class="c1"># back to stable</span>
-<a id="__codelineno-3-5" name="__codelineno-3-5" href="#__codelineno-3-5"></a>uv<span class="w"> </span>sync<span class="w"> </span>--extra<span class="w"> </span>dev
+<div class="highlight"><pre><span></span><code><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="c1"># nightly</span>
+<a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a>uv<span class="w"> </span>sync<span class="w"> </span>--no-default-groups<span class="w"> </span>--group<span class="w"> </span>xpu-nightly<span class="w"> </span>--extra<span class="w"> </span>dev
+<a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a>
+<a id="__codelineno-4-4" name="__codelineno-4-4" href="#__codelineno-4-4"></a><span class="c1"># back to stable</span>
+<a id="__codelineno-4-5" name="__codelineno-4-5" href="#__codelineno-4-5"></a>uv<span class="w"> </span>sync<span class="w"> </span>--extra<span class="w"> </span>dev
 </code></pre></div>
 <p>Rules:</p>
 <ol>
@@ -2521,12 +2532,12 @@ Switching reinstalls <code>torch</code> and related wheels (the cache speeds dow
 <li>Do not use <code>uv sync --only-group ...</code> together with <code>--extra</code>. Use <code>--no-default-groups --group xpu-nightly --extra dev</code> for nightly.</li>
 <li>Do not use <code>uv sync --all-extras</code> expecting both PyTorch stacks. Do not combine the <code>xpu</code> extra with the <code>xpu-nightly</code> group in one environment (<code>conflicts</code> in <code>pyproject.toml</code>).</li>
 </ol>
-<h2 id="installing-from-source">Installing from Source</h2>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a>git<span class="w"> </span>clone<span class="w"> </span>https://github.com/intel/torch-tweak
-<a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a><span class="nb">cd</span><span class="w"> </span>torch-tweak
-<a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a>pip<span class="w"> </span>install<span class="w"> </span>.
+<h2 id="installing-torch-tweak-only">Installing torch-tweak only</h2>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a>git<span class="w"> </span>clone<span class="w"> </span>https://github.com/intel/torch-tweak
+<a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a><span class="nb">cd</span><span class="w"> </span>torch-tweak
+<a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a>pip<span class="w"> </span>install<span class="w"> </span>.
 </code></pre></div>
-<p><code>pip install .</code> / <code>pip install -e .</code> installs <strong>torch-tweak only</strong> (no <code>torch</code>). Use the pip or uv commands above for a full stack.</p>
+<p><code>pip install .</code> or <code>pip install -e .</code> installs <strong>torch-tweak only</strong> (no <code>torch</code>). Use the pip or uv commands above for a full stack.</p>
 
 
 
