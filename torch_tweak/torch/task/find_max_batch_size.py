@@ -6,7 +6,6 @@
 """Find max batch size for a model."""
 
 import logging
-from collections import defaultdict
 from pathlib import Path
 
 import torch
@@ -17,10 +16,7 @@ from torch_tweak.torch.backend.backend import Backend
 from torch_tweak.torch.module.graph_spec import GraphSpec
 from torch_tweak.torch.module.recording_module import Sample
 from torch_tweak.torch.task.profiling.config import ProfilingConfig
-from torch_tweak.torch.task.profiling.events import ProfilingResultEvent, get_inference_events
-from torch_tweak.torch.task.profiling.measuring_stop_strategy import MeasuringStopStrategy
-from torch_tweak.torch.task.profiling.metrics import get_throughput
-from torch_tweak.torch.task.profiling.profiling import ProfilingResults, ProfilingStatus, profile_backend
+from torch_tweak.torch.task.profiling.profiling import ProfilingResult, profile_backend
 from torch_tweak.utils.logging import control_output
 from torch_tweak.utils.permissions import secure_mkdir
 from torch_tweak.utils.trace import annotate
@@ -37,7 +33,7 @@ def find_max_batch_size(
     profiling_config: ProfilingConfig,
     device: torch.device,
     cache_dir: Path,
-) -> tuple[int, float, ProfilingResults]:
+) -> tuple[int, float, dict[int, float]]:
     """Finds max batch size for Torch Compile as a baseline.
 
     Uses profiling with highest throughput strategy to find max batch size.
@@ -68,7 +64,7 @@ def calculate_highest_throughput_for_backend(
     graph_spec: GraphSpec,
     data: list[Sample],
     profiling_config: ProfilingConfig,
-) -> tuple[int, float, ProfilingResults]:
+) -> tuple[int, float, dict[int, float]]:
     """Calculates highest throughput for a backend.
 
     Args:
@@ -84,10 +80,9 @@ def calculate_highest_throughput_for_backend(
         Tuple containing:
             - Batch size with highest throughput.
             - Throughput for the batch size.
-            - Backend used for the calculation.
-            - Profiling results.
+            - Throughput of every finished batch size.
     """
-    profiling_results = profile_backend(
+    profiling_result = profile_backend(
         backend,
         name,
         graph_spec,
@@ -95,36 +90,16 @@ def calculate_highest_throughput_for_backend(
         profiling_config,
     )
 
-    if profiling_results.status != ProfilingStatus.Status.SUCCESS:
-        logger.debug("Profiling failed for %s", backend.describe(), exc_info=profiling_results.error)
-        raise profiling_results.error
+    if profiling_result.status != ProfilingResult.Status.SUCCESS:
+        logger.debug("Profiling failed for %s", backend.describe(), exc_info=profiling_result.error)
+        raise profiling_result.error
 
-    throughput_per_batch_size = get_throughput_per_batch_size(
-        get_inference_events(profiling_results.results.entries), profiling_config.measurement_stop_strategy
-    )
-
-    if len(throughput_per_batch_size) == 0:
+    throughput_per_batch_size = profiling_result.throughput_per_batch_size
+    if not throughput_per_batch_size:
         raise ValueError(f"No throughput data found for backend {backend.describe()}")
 
-    batch_size, throughput = throughput_per_batch_size[0]
-    return batch_size, throughput, profiling_results.results
-
-
-def get_throughput_per_batch_size(
-    profiling_results: list[ProfilingResultEvent], measuring_stop_strategy: MeasuringStopStrategy
-) -> list[tuple[int, float]]:
-    """Gets throughput per batch size."""
-    events_batch_size = defaultdict(list)
-    for event in profiling_results:
-        events_batch_size[event.batch_size].append(event)
-
-    throughput_per_batch_size = []
-    for batch_size, events in events_batch_size.items():
-        measured_events = measuring_stop_strategy.get_events(events)
-        throughput = get_throughput(measured_events, batch_size)
-        throughput_per_batch_size.append((batch_size, throughput))
-
-    return sorted(throughput_per_batch_size, key=lambda x: x[1], reverse=True)
+    batch_size, throughput = max(throughput_per_batch_size.items(), key=lambda item: item[1])
+    return batch_size, throughput, throughput_per_batch_size
 
 
 def _log_file(cache_dir: Path, filename: str) -> Path:

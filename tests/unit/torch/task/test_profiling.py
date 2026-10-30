@@ -21,7 +21,7 @@ from torch_tweak.torch.task.profiling.measuring_strategy import (
     ModelExecutionTimeMeasuringStrategy,
 )
 from torch_tweak.torch.task.profiling.metrics import get_throughput, is_throughput_saturated
-from torch_tweak.torch.task.profiling.profiling import ProfilingStatus, profile, profile_backend
+from torch_tweak.torch.task.profiling.profiling import ProfilingResult, profile, profile_backend
 from torch_tweak.torch.task.profiling.profiling_stop_strategy import ThroughputSaturatedProfilingStopStrategy
 
 
@@ -59,120 +59,75 @@ def test_get_throughput_batch_size_20():
     assert int(get_throughput(profiling_result)) == 99
 
 
-def test_is_throughput_saturated_new():
-    profiling_result = [
-        new_event(1, 100e6),
-        new_event(1, 100e6),
-    ]
-    assert not is_throughput_saturated(profiling_result, 0.01, [])
+def test_first_throughput_is_not_saturated():
+    assert is_throughput_saturated(10.0, 0.01, None) is False
 
 
-def test_is_throughput_saturated_next():
-    prev_profiling_result = [
-        new_event(1, 100e6),
-        new_event(1, 100e6),
-    ]
-    profiling_result = [
-        new_event(2, 201e6),
-        new_event(2, 201e6),
-        new_event(2, 700e6, phase="memory_alloc"),  # memory allocation is not included in throughput calculation
-    ]
-    assert is_throughput_saturated(profiling_result, 0.01, prev_profiling_result)
+def test_smaller_throughput_is_saturated():
+    assert is_throughput_saturated(9.95, 0.01, 10.0) is True
 
 
 def test_throughput_saturated_threshold_strategy():
     strategy = ThroughputSaturatedProfilingStopStrategy(throughput_cutoff_threshold=0.01)
-    profiling_result = [
-        new_event(1, 100e6),
-        new_event(1, 100e6),
-    ]
-    assert not strategy.should_stop(profiling_result)
 
-    profiling_result = [
-        new_event(2, 201e6),
-        new_event(2, 201e6),
-    ]
-    assert strategy.should_stop(profiling_result)
+    assert strategy.update_and_should_stop(10.0) is False
+    assert strategy.update_and_should_stop(9.95) is True
 
 
-@pytest.mark.parametrize(
-    "events_stop,throughput_cutoff_threshold,throughput_backoff_limit",
-    [
-        (
-            [
-                ([(1, 150), (1, 150)], False),
-                ([(2, 201), (2, 201)], False),
-                ([(4, 400), (4, 400)], False),
-                ([(8, 796), (8, 801)], False),
-                ([(16, 1592), (16, 1601)], True),
-            ],
-            0.05,
-            2,
-        ),
-        (
-            [
-                ([(1, 150), (1, 150)], False),  # 150ms/s, first event
-                ([(2, 201), (2, 201)], False),  # 100ms/s, no saturation
-                ([(4, 400), (4, 400)], False),  # 100ms/s, saturation
-                ([(8, 696), (8, 701)], False),  # 87ms/s, no saturation, best
-                ([(16, 1492), (16, 1501)], False),  # 93ms/s, saturation, slower
-                ([(32, 3084), (32, 3101)], True),  # 96ms/s, again saturation, slower, stop profiling
-            ],
-            0.05,
-            1,
-        ),
-    ],
-)
-def test_throughput_saturated_threshold_strategy_with_backoff_and_reset(
-    events_stop, throughput_cutoff_threshold, throughput_backoff_limit
-):
-    strategy = ThroughputSaturatedProfilingStopStrategy(
-        throughput_cutoff_threshold=throughput_cutoff_threshold, throughput_backoff_limit=throughput_backoff_limit
-    )
+def test_backoff_stops_on_the_third_saturated_batch():
+    strategy = ThroughputSaturatedProfilingStopStrategy(throughput_cutoff_threshold=0.05, throughput_backoff_limit=2)
 
-    for events, should_stop in events_stop:
-        # setup events
-        events = [new_event(batch_size, execution_time) for batch_size, execution_time in events]
+    assert strategy.update_and_should_stop(100) is False  # no best yet, 100 is stored
+    assert strategy.update_and_should_stop(200) is False  # 200 is a new best
+    assert strategy.update_and_should_stop(200) is False  # saturated, backoff count becomes 1
+    assert strategy.update_and_should_stop(200) is False  # saturated, backoff count becomes 2
+    assert strategy.update_and_should_stop(200) is True  # count is already 2, so profiling stops
 
-        # check if should stop
-        assert strategy.should_stop(events) == should_stop, f"Events: {events}, should_stop: {should_stop}"
 
-    assert should_stop, "All events should be consumed"
+def test_a_better_batch_resets_the_backoff():
+    strategy = ThroughputSaturatedProfilingStopStrategy(throughput_cutoff_threshold=0.05, throughput_backoff_limit=1)
+
+    assert strategy.update_and_should_stop(100) is False  # no best yet, 100 is stored
+    assert strategy.update_and_should_stop(200) is False  # 200 is a new best
+    assert strategy.update_and_should_stop(200) is False  # saturated, backoff count becomes 1
+    assert strategy.update_and_should_stop(400) is False  # 400 is a new best, count returns to 0
+    assert strategy.update_and_should_stop(400) is False  # saturated, backoff count becomes 1
+    assert strategy.update_and_should_stop(400) is True  # count is already 1, so profiling stops
 
 
 def test_measurement_stop_strategy_num_steps():
     strategy = NumStepsMeasuringStopStrategy(num_steps=10)
-    assert not strategy.should_stop([new_event(1, 100e6)])
+    assert not strategy.update_and_should_stop([new_event(1, 100e6)])
     for i in range(8):
-        assert not strategy.should_stop([new_event(1, 100e6, measurement_id=i)])
+        assert not strategy.update_and_should_stop([new_event(1, 100e6, measurement_id=i)])
     assert strategy._steps_counter == 9
-    assert strategy.should_stop([new_event(1, 100e6)])
-    assert strategy.should_stop([new_event(1, 100e6)])
+    assert strategy.update_and_should_stop([new_event(1, 100e6)])
+    assert strategy.update_and_should_stop([new_event(1, 100e6)])
 
 
 def test_measurement_stop_strategy_stable_window():
     strategy = StableWindowMeasuringStopStrategy(window_size=10, stability_percentage=90)
-    assert not strategy.should_stop([new_event(1, 100e6)])
+    assert not strategy.update_and_should_stop([new_event(1, 100e6)])
     for i in range(8):
-        assert not strategy.should_stop([new_event(1, 100e6, measurement_id=i)])
+        assert not strategy.update_and_should_stop([new_event(1, 100e6, measurement_id=i)])
     assert len(strategy._window) == 9
-    assert strategy.should_stop([new_event(1, 100e6)])
-    assert strategy.should_stop([new_event(1, 100e6)])
+    assert strategy.update_and_should_stop([new_event(1, 100e6)])
+    assert strategy.update_and_should_stop([new_event(1, 100e6)])
 
 
 def test_measurement_stop_strategy_stable_window_unstable():
     strategy = StableWindowMeasuringStopStrategy(window_size=10, stability_percentage=90)
-    assert not strategy.should_stop([new_event(1, 0)])
+    assert not strategy.update_and_should_stop([new_event(1, 0)])
 
     # unstable measurement
     for i in range(8):
-        assert not strategy.should_stop([new_event(1, i, measurement_id=i)])
+        assert not strategy.update_and_should_stop([new_event(1, i, measurement_id=i)])
 
     # stable measurement
     for i in range(8, 17):
-        assert not strategy.should_stop([new_event(1, 1, measurement_id=i)])
+        assert not strategy.update_and_should_stop([new_event(1, 1, measurement_id=i)])
 
-    assert strategy.should_stop([new_event(1, 1, measurement_id=17)])
+    assert strategy.update_and_should_stop([new_event(1, 1, measurement_id=17)])
 
 
 @pytest.mark.parametrize(
@@ -186,12 +141,12 @@ def test_measurement_stop_strategy_stable_window_unstable():
 def test_measurement_stop_strategy_stable_window_stability(window_size: int, stability_percentage: float):
     strategy = StableWindowMeasuringStopStrategy(window_size=window_size, stability_percentage=stability_percentage)
 
-    assert not strategy.should_stop([new_event(1, 300e6, measurement_id=0)])
+    assert not strategy.update_and_should_stop([new_event(1, 300e6, measurement_id=0)])
 
     for i in range(1, window_size):
-        assert not strategy.should_stop([new_event(1, 100e6, measurement_id=i)])
+        assert not strategy.update_and_should_stop([new_event(1, 100e6, measurement_id=i)])
 
-    assert strategy.should_stop([new_event(1, 100e6, measurement_id=window_size)])
+    assert strategy.update_and_should_stop([new_event(1, 100e6, measurement_id=window_size)])
 
 
 def test_profile_toy_model():
@@ -201,8 +156,8 @@ def test_profile_toy_model():
     dataset = model.samples()
 
     result = profile(model, dataset, profile_config)
-    assert result.status == ProfilingStatus.Status.SUCCESS
-    assert len(result.results.entries) > 0
+    assert result.status == ProfilingResult.Status.SUCCESS
+    assert 2 in result.throughput_per_batch_size
 
 
 def test_profile_toy_model_no_batching():
@@ -212,12 +167,12 @@ def test_profile_toy_model_no_batching():
     dataset = model.samples()
 
     result = profile(model, dataset, profile_config)
-    assert result.status == ProfilingStatus.Status.SUCCESS
-    assert len(result.results.entries) > 0
+    assert result.status == ProfilingResult.Status.SUCCESS
+    assert 2 in result.throughput_per_batch_size
 
 
-@pytest.mark.parametrize("batching", [True, False])
-def test_profile_backend(batching: bool):
+@pytest.mark.parametrize(("batching", "batch_sizes"), [(True, {1, 2}), (False, {1})])
+def test_profile_backend(batching: bool, batch_sizes: set[int]):
     model = ToyTorchModel()
     graph_spec = model.graph_spec(batch_sizes=[1])
 
@@ -243,10 +198,8 @@ def test_profile_backend(batching: bool):
     samples = [(model.inputs(batch_sizes=[1]), {"cache": []})]
     result = profile_backend(backend, "test_model", graph_spec, samples, profile_config)  # type: ignore
 
-    assert result.status == ProfilingStatus.Status.SUCCESS
-
-    # Verify both calls produced results
-    assert len(result.results.entries) > 0
+    assert result.status == ProfilingResult.Status.SUCCESS
+    assert set(result.throughput_per_batch_size) == batch_sizes
 
 
 def test_measurement_waits_for_the_device(mocker):
@@ -292,20 +245,4 @@ def test_compilation_of_a_new_batch_size_does_not_stop_profiling():
 
     result = profile(model, model.samples(), profile_config)
 
-    assert [entry.batch_size for entry in result.results.entries] == [
-        1,
-        1,
-        1,
-        2,
-        2,
-        2,
-        2,
-        4,
-        4,
-        4,
-        4,
-        8,
-        8,
-        8,
-        8,
-    ]
+    assert result.throughput_per_batch_size == {1: 200.0, 2: 400.0, 4: 800.0, 8: 1600.0}

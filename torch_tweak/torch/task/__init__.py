@@ -12,7 +12,7 @@ from torch_tweak.torch.task.profiling.measuring_stop_strategy import (
     StableWindowMeasuringStopStrategy,
 )
 from torch_tweak.torch.task.profiling.measuring_strategy import MeasuringStrategy, ModelExecutionTimeMeasuringStrategy
-from torch_tweak.torch.task.profiling.profiling import ProfilingResults, ProfilingStatus, profile
+from torch_tweak.torch.task.profiling.profiling import ProfilingResult, profile
 
 __all__ = [
     "MeasuringStrategy",
@@ -23,7 +23,6 @@ __all__ = [
     "ProfilingConfig",
     "ProfilingResultEvent",
     "get_inference_events",
-    "ProfilingResults",
-    "ProfilingStatus",
+    "ProfilingResult",
     "profile",
 ]

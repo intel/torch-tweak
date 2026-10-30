@@ -22,31 +22,24 @@ from torch_tweak.torch.module.graph_spec import GraphSpec
 from torch_tweak.torch.module.recording_module import Sample
 from torch_tweak.torch.task.profiling.config import ProfilingConfig
 from torch_tweak.torch.task.profiling.events import ProfilingResultEvent, get_inference_events
+from torch_tweak.torch.task.profiling.metrics import get_throughput
 
 logger = logging.getLogger(__name__)
 
 
 @dataclass
-class ProfilingResults:
-    """Profiling results."""
-
-    entries: list[ProfilingResultEvent] = field(default_factory=list)
-
-
-@dataclass
-class ProfilingStatus:
-    """Profiling status."""
+class ProfilingResult:
+    """Outcome of one profiling run."""
 
     class Status(Enum):
-        """Profiling status."""
+        """Whether the run finished or raised."""
 
         SUCCESS = "success"
         FAILURE = "failure"
 
     status: Status
-
+    throughput_per_batch_size: dict[int, float] = field(default_factory=dict)
     error: Any | None = None
-    results: ProfilingResults | None = None
 
 
 def profile(
@@ -55,7 +48,7 @@ def profile(
     profiling_config: ProfilingConfig,
     model_name: str | None = None,
     backend_details: str | None = None,
-) -> ProfilingStatus:
+) -> ProfilingResult:
     """Profile a callable with given dataset.
 
     Args:
@@ -66,7 +59,7 @@ def profile(
         backend_details: Detailed information of the backend, optional.
 
     Returns:
-        ProfilingStatus: Status of the profiling.
+        ProfilingResult: Outcome of the profiling.
     """
     return _profile(
         func,
@@ -83,7 +76,7 @@ def profile_backend(
     graph_spec: GraphSpec,
     data: list[Sample],
     profiling_config: ProfilingConfig,
-) -> ProfilingStatus:
+) -> ProfilingResult:
     """Profile a backend with graph spec and data.
 
     Args:
@@ -94,7 +87,7 @@ def profile_backend(
         profiling_config: Profiling configuration.
 
     Returns:
-        ProfilingStatus: Status of the profiling.
+        ProfilingResult: Outcome of the profiling.
     """
 
     def generator():
@@ -124,7 +117,7 @@ def _profile(
 ):
     """Profile a model."""
     profiling_stop_strategy = deepcopy(profiling_config.profiling_stop_strategy)
-    profiling_results = ProfilingResults()
+    throughput_per_batch_size: dict[int, float] = {}
     try:
         for batch_size, args, kwargs in samples:
             logger.debug("Profiling %s with backend %s and batch size %d", model_name, backend_details, batch_size)
@@ -140,18 +133,24 @@ def _profile(
             if new_entries is None:
                 break
 
-            profiling_results.entries += new_entries
-
-            # The first calls of a batch size can include compilation, so saturation is judged on
-            # the measured events only, the same ones get_throughput_per_batch_size uses.
+            # The first calls of a batch size can include compilation. Throughput is the measured
+            # window only, and the stop decision uses that same number.
             measured = profiling_config.measurement_stop_strategy.get_events(get_inference_events(new_entries))
-            if profiling_stop_strategy.should_stop(measured):
+            throughput = get_throughput(measured, batch_size)
+            throughput_per_batch_size[batch_size] = throughput
+            if profiling_stop_strategy.update_and_should_stop(throughput):
                 break
 
-        return ProfilingStatus(status=ProfilingStatus.Status.SUCCESS, results=profiling_results)
+        return ProfilingResult(
+            status=ProfilingResult.Status.SUCCESS, throughput_per_batch_size=throughput_per_batch_size
+        )
 
     except Exception as e:
-        return ProfilingStatus(status=ProfilingStatus.Status.FAILURE, error=e, results=profiling_results)
+        return ProfilingResult(
+            status=ProfilingResult.Status.FAILURE,
+            error=e,
+            throughput_per_batch_size=throughput_per_batch_size,
+        )
 
 
 def _run_profiling_batch_size(
@@ -172,7 +171,7 @@ def _run_profiling_batch_size(
             )
             entries += new_entries
 
-            if measurement_stop_strategy.should_stop(get_inference_events(new_entries)):
+            if measurement_stop_strategy.update_and_should_stop(get_inference_events(new_entries)):
                 break
     except torch.OutOfMemoryError:
         logger.warning(
