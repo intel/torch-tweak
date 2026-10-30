@@ -39,7 +39,6 @@ from torch_tweak.torch.task.profiling import (
     MeasuringStopStrategy,
     ModelExecutionTimeMeasuringStrategy,
     ProfilingConfig,
-    ProfilingResultEvent,
     ProfilingStopStrategy,
     StableWindowMeasuringStopStrategy,
     ThroughputSaturatedProfilingStopStrategy,
@@ -51,11 +50,12 @@ from torch_tweak.utils.timer import Timer
 
 @dataclass
 class HighestThroughputResult:
-    """Result of highest throughput strategy."""
+    """Result of one backend in the highest throughput strategy."""
 
     max_batch_size: int
     throughput: float
     backend_details: str
+    throughput_per_batch_size: dict[int, float]
 
 
 @dataclass
@@ -64,7 +64,6 @@ class HighestThroughputStrategyResult:
 
     graph_spec_name: str
     highest_throughput_results: list[HighestThroughputResult] = field(default_factory=list)
-    measurements: list[ProfilingResultEvent] = field(default_factory=list)
 
 
 class HighestThroughputStrategy(TuneStrategyFindMaxBatchSizeExtension):
@@ -114,7 +113,6 @@ class HighestThroughputStrategy(TuneStrategyFindMaxBatchSizeExtension):
             graph_spec.name,
             sink=self._sink,
         )
-        measurements = []
         highest_throughput_results = []
 
         # Verify if model has batching
@@ -143,15 +141,17 @@ class HighestThroughputStrategy(TuneStrategyFindMaxBatchSizeExtension):
                     log("✅ backend built", depth=2, sink=self._sink)
                     self.check_correctness(backend, name, graph_spec, data)
                     log("✅ backend validated", depth=2, sink=self._sink)
-                    batch_size, throughput, results = calculate_highest_throughput_for_backend(
+                    batch_size, throughput, throughput_per_batch_size = calculate_highest_throughput_for_backend(
                         backend, name, graph_spec, data, self._get_profiling_config(batching, max_batch_size)
                     )
                     highest_throughput_results.append(
                         HighestThroughputResult(
-                            max_batch_size=batch_size, throughput=throughput, backend_details=backend.describe()
+                            max_batch_size=batch_size,
+                            throughput=throughput,
+                            backend_details=backend.describe(),
+                            throughput_per_batch_size=throughput_per_batch_size,
                         )
                     )
-                    measurements += results.entries
                     log(
                         "✅ backend profiled - throughput: %.2f samples/s, batch size: %s",
                         throughput,
@@ -192,7 +192,6 @@ class HighestThroughputStrategy(TuneStrategyFindMaxBatchSizeExtension):
             HighestThroughputStrategyResult(
                 graph_spec_name=graph_spec.name,
                 highest_throughput_results=highest_throughput_results,
-                measurements=measurements,
             )
         )
         best_backend.activate()
