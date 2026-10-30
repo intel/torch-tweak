@@ -25,8 +25,9 @@ from torch_tweak.torch.tune_strategy import HighestThroughputStrategy
 strategy = HighestThroughputStrategy(backends=[XPUGraphBackend()])
 ```
 
-The backend is first in the default `FirstWinsStrategy` list, before Torch Inductor.
-It is also in the default `HighestThroughputStrategy` list.
+On XPU the backend is first in `default_backends(device)`, before Torch Inductor.
+`FirstWinsStrategy`, `HighestThroughputStrategy`, and `tt.default_strategy(device)` use that list when no backends are given.
+On CPU the list leaves this backend out.
 
 PyTorch records a native SYCL graph when it was built with a SYCL compiler of 2026.1 or newer, except on Intel Data Center GPU Max Series.
 An older build records the legacy SYCL command graph.

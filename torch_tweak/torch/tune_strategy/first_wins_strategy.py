@@ -12,15 +12,10 @@ from pathlib import Path
 import torch
 import torch.nn as nn
 
-from torch_tweak.torch.backend import (
-    OpenVINOBackend,
-    TorchEagerBackend,
-    TorchInductorBackend,
-    XPUGraphBackend,
-)
 from torch_tweak.torch.backend.backend import Backend
 from torch_tweak.torch.module.graph_spec import GraphSpec
 from torch_tweak.torch.module.recording_module import Sample
+from torch_tweak.torch.tune_strategy.default_backends import default_backends
 from torch_tweak.torch.tune_strategy.extension import TuneStrategyFindMaxBatchSizeExtension
 from torch_tweak.utils.logging import control_output, log
 from torch_tweak.utils.timer import Timer
@@ -29,13 +24,13 @@ from torch_tweak.utils.timer import Timer
 class FirstWinsStrategy(TuneStrategyFindMaxBatchSizeExtension):
     """Runs backends in order and keeps the first one that builds and validates.
 
-    The default order is XPU graph, Torch Inductor, OpenVINO, then eager.
+    Without `backends` it tries `default_backends(device)` for the tuning device.
     """
 
     def __init__(self, backends: Iterable[Backend] | None = None, **kwargs):
         """Initializes strategy."""
         super().__init__(**kwargs)
-        self._backends = backends or self._default_backends()
+        self._backends = backends
 
     def _tune(
         self,
@@ -57,7 +52,7 @@ class FirstWinsStrategy(TuneStrategyFindMaxBatchSizeExtension):
         )
 
         # Run backend by backend until first working backend is found
-        for backend in self._backends:
+        for backend in self._backends or default_backends(device):
             backend_cache_dir = cache_dir / backend.key()
             log_file = self._log_file(backend_cache_dir, "build.log")
 
@@ -86,20 +81,14 @@ class FirstWinsStrategy(TuneStrategyFindMaxBatchSizeExtension):
 
         raise RuntimeError(f"There is no valid backend for a module: {name}, graph_spec: {graph_spec}")
 
-    def _default_backends(self) -> list[Backend]:
-        """Returns default backends."""
-        return [
-            XPUGraphBackend(),
-            TorchInductorBackend(),
-            OpenVINOBackend(),
-            TorchEagerBackend(),
-        ]
-
     def _describe_parts(self) -> list[str]:
         """Returns the parts of the description."""
+        backends = (
+            [backend.describe() for backend in self._backends] if self._backends else ["default_backends(device)"]
+        )
         return [
             "name: First Wins Strategy",
             "description: evaluate backends in order, return first working backend",
             "backends:",
-            *[f"  {backend.describe()}" for backend in self._backends],
+            *[f"  {backend}" for backend in backends],
         ]
