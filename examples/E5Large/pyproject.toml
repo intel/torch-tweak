@@ -53,7 +53,7 @@ packages = ["e5large"]
 
 [tool.hatch.version]
 source = "vcs"
-raw-options = { root = "../..", local_scheme = "no-local-version", fallback_version = "0.4.1rc1" }
+raw-options = { root = "../..", local_scheme = "no-local-version", fallback_version = "0.4.1" }
 
 [tool.ruff]
 preview = true

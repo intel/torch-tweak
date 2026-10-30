@@ -5,7 +5,7 @@ SPDX-License-Identifier: Apache-2.0
 
 # Changelog
 
-## 0.4.1rc1
+## 0.4.1
 
 - feat: add an XPU graph backend (#33)
 - feat (breaking): `inspect` measures module depth in executed modules (#36)
