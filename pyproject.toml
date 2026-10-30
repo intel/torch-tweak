@@ -6,9 +6,8 @@
 
 [project]
 name = "torch-tweak"
-readme = "README.md"
 description = "Torch Tweak is an inference toolkit designed for tuning and deploying Deep Learning models with a focus on Intel XPU (GPU) accelerators."
-dynamic = ["version"]
+dynamic = ["version", "readme"]
 classifiers = [
     "Development Status :: 3 - Alpha",
     "Intended Audience :: Science/Research",
@@ -93,6 +92,7 @@ dev = [
 requires = [
     "hatchling>=1.27.0",
     "hatch-vcs>=0.4.0",
+    "hatch-fancy-pypi-readme>=24.1.0",
     "setuptools>=83.0.0"
 ]
 build-backend = "hatchling.build"
@@ -111,6 +111,24 @@ packages = ["torch_tweak"]
 [tool.hatch.version]
 source = "vcs"
 raw-options = { local_scheme = "no-local-version", fallback_version = "0.4.1" }
+
+# The README is the PyPI long description. Its repo-relative links (docs/learn/..., LICENSE, etc.)
+# would 404 on pypi.org, so at build time we rewrite them to absolute GitHub URLs pinned
+# to the release tag of the version being built (tags are named "v<version>").
+[tool.hatch.metadata.hooks.fancy-pypi-readme]
+content-type = "text/markdown"
+
+[[tool.hatch.metadata.hooks.fancy-pypi-readme.fragments]]
+path = "README.md"
+
+[[tool.hatch.metadata.hooks.fancy-pypi-readme.substitutions]]
+pattern = '\[([^\]]+)\]\((?!https?://|#)([^)]+)\)'
+replacement = '[\1](https://github.com/intel/torch-tweak/blob/v$HFPR_VERSION/\2)'
+
+# Same rewrite for badge-style links whose text is itself an image: [![alt](img)](target)
+[[tool.hatch.metadata.hooks.fancy-pypi-readme.substitutions]]
+pattern = '(\[!\[[^\]]*\]\([^)]*\)\])\((?!https?://|#)([^)]+)\)'
+replacement = '\1(https://github.com/intel/torch-tweak/blob/v$HFPR_VERSION/\2)'
 
 [dependency-groups]
 xpu-nightly = ["torch>=2.13.0", "triton-xpu"]
