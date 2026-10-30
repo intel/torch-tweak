@@ -268,7 +268,7 @@
     
     
       <li class="md-tabs__item">
-        <a href="../../../api/tuning/module/" class="md-tabs__link">
+        <a href="../../../api/tuning/tunable_module/" class="md-tabs__link">
           
   
   
@@ -1815,14 +1815,14 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../api/tuning/module/" class="md-nav__link">
+      <a href="../../../api/tuning/tunable_module/" class="md-nav__link">
         
   
   
   <span class="md-ellipsis">
     
   
-    Module
+    TunableModule
   
 
     
@@ -2873,7 +2873,7 @@ NOTE: This file has been modified by Intel Corporation.
 <a id="__codelineno-0-11" name="__codelineno-0-11" href="#__codelineno-0-11"></a>
 <a id="__codelineno-0-12" name="__codelineno-0-12" href="#__codelineno-0-12"></a><span class="n">strategy</span> <span class="o">=</span> <span class="n">tt</span><span class="o">.</span><span class="n">OneBackendStrategy</span><span class="p">(</span><span class="n">backend</span><span class="o">=</span><span class="n">backend</span><span class="p">)</span>
 <a id="__codelineno-0-13" name="__codelineno-0-13" href="#__codelineno-0-13"></a>
-<a id="__codelineno-0-14" name="__codelineno-0-14" href="#__codelineno-0-14"></a><span class="n">model</span> <span class="o">=</span> <span class="n">tt</span><span class="o">.</span><span class="n">Module</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="s2">"my-model"</span><span class="p">,</span> <span class="n">strategy</span><span class="o">=</span><span class="n">strategy</span><span class="p">)</span>
+<a id="__codelineno-0-14" name="__codelineno-0-14" href="#__codelineno-0-14"></a><span class="n">model</span> <span class="o">=</span> <span class="n">tt</span><span class="o">.</span><span class="n">TunableModule</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="s2">"my-model"</span><span class="p">,</span> <span class="n">strategy</span><span class="o">=</span><span class="n">strategy</span><span class="p">)</span>
 <a id="__codelineno-0-15" name="__codelineno-0-15" href="#__codelineno-0-15"></a><span class="n">tt</span><span class="o">.</span><span class="n">tune</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">input_data</span><span class="p">)</span>
 </code></pre></div>
 <h2 id="configuration-options">Configuration Options</h2>

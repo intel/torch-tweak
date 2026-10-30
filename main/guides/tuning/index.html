@@ -268,7 +268,7 @@
     
     
       <li class="md-tabs__item">
-        <a href="../../api/tuning/module/" class="md-tabs__link">
+        <a href="../../api/tuning/tunable_module/" class="md-tabs__link">
           
   
   
@@ -1760,14 +1760,14 @@
   
   
     <li class="md-nav__item">
-      <a href="../../api/tuning/module/" class="md-nav__link">
+      <a href="../../api/tuning/tunable_module/" class="md-nav__link">
         
   
   
   <span class="md-ellipsis">
     
   
-    Module
+    TunableModule
   
 
     
@@ -2805,8 +2805,8 @@ NOTE: This file has been modified by Intel Corporation.
 <div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="n">pipe</span> <span class="o">=</span> <span class="n">DiffusionPipeline</span><span class="o">.</span><span class="n">from_pretrained</span><span class="p">(</span><span class="s2">"stabilityai/stable-diffusion-3-medium-diffusers"</span><span class="p">)</span>
 <a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a><span class="n">pipe</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="s2">"xpu"</span><span class="p">)</span>
 <a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a>
-<a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a><span class="n">pipe</span><span class="o">.</span><span class="n">unet</span> <span class="o">=</span> <span class="n">tt</span><span class="o">.</span><span class="n">Module</span><span class="p">(</span><span class="n">pipe</span><span class="o">.</span><span class="n">unet</span><span class="p">,</span> <span class="n">strategy</span><span class="o">=</span><span class="n">strategy_for_unet</span><span class="p">)</span>
-<a id="__codelineno-3-5" name="__codelineno-3-5" href="#__codelineno-3-5"></a><span class="n">pipe</span><span class="o">.</span><span class="n">transformer</span> <span class="o">=</span> <span class="n">tt</span><span class="o">.</span><span class="n">Module</span><span class="p">(</span><span class="n">pipe</span><span class="o">.</span><span class="n">transformer</span><span class="p">,</span> <span class="n">strategy</span><span class="o">=</span><span class="n">strategy_for_transformer</span><span class="p">)</span>
+<a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a><span class="n">pipe</span><span class="o">.</span><span class="n">unet</span> <span class="o">=</span> <span class="n">tt</span><span class="o">.</span><span class="n">TunableModule</span><span class="p">(</span><span class="n">pipe</span><span class="o">.</span><span class="n">unet</span><span class="p">,</span> <span class="n">strategy</span><span class="o">=</span><span class="n">strategy_for_unet</span><span class="p">)</span>
+<a id="__codelineno-3-5" name="__codelineno-3-5" href="#__codelineno-3-5"></a><span class="n">pipe</span><span class="o">.</span><span class="n">transformer</span> <span class="o">=</span> <span class="n">tt</span><span class="o">.</span><span class="n">TunableModule</span><span class="p">(</span><span class="n">pipe</span><span class="o">.</span><span class="n">transformer</span><span class="p">,</span> <span class="n">strategy</span><span class="o">=</span><span class="n">strategy_for_transformer</span><span class="p">)</span>
 </code></pre></div>
 <h3 id="3-tuning-phase">3. Tuning Phase</h3>
 <p>The <code>tune</code> function executes the actual tuning:</p>
@@ -2909,7 +2909,7 @@ NOTE: This file has been modified by Intel Corporation.
 <a id="__codelineno-10-4" name="__codelineno-10-4" href="#__codelineno-10-4"></a><span class="kn">import</span><span class="w"> </span><span class="nn">torch_tweak.torch</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">tt</span>
 <a id="__codelineno-10-5" name="__codelineno-10-5" href="#__codelineno-10-5"></a>
 <a id="__codelineno-10-6" name="__codelineno-10-6" href="#__codelineno-10-6"></a><span class="n">model</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Sequential</span><span class="p">(</span><span class="n">nn</span><span class="o">.</span><span class="n">Linear</span><span class="p">(</span><span class="mi">32</span><span class="p">,</span> <span class="mi">32</span><span class="p">),</span> <span class="n">nn</span><span class="o">.</span><span class="n">ReLU</span><span class="p">(),</span> <span class="n">nn</span><span class="o">.</span><span class="n">Linear</span><span class="p">(</span><span class="mi">32</span><span class="p">,</span> <span class="mi">8</span><span class="p">))</span><span class="o">.</span><span class="n">eval</span><span class="p">()</span>
-<a id="__codelineno-10-7" name="__codelineno-10-7" href="#__codelineno-10-7"></a><span class="n">module</span> <span class="o">=</span> <span class="n">tt</span><span class="o">.</span><span class="n">Module</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s2">"mlp"</span><span class="p">)</span>
+<a id="__codelineno-10-7" name="__codelineno-10-7" href="#__codelineno-10-7"></a><span class="n">module</span> <span class="o">=</span> <span class="n">tt</span><span class="o">.</span><span class="n">TunableModule</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s2">"mlp"</span><span class="p">)</span>
 <a id="__codelineno-10-8" name="__codelineno-10-8" href="#__codelineno-10-8"></a><span class="n">sample</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">randn</span><span class="p">(</span><span class="mi">32</span><span class="p">)</span>
 <a id="__codelineno-10-9" name="__codelineno-10-9" href="#__codelineno-10-9"></a><span class="n">tt</span><span class="o">.</span><span class="n">tune</span><span class="p">(</span><span class="n">module</span><span class="p">,</span> <span class="n">sample</span><span class="p">,</span> <span class="n">batch_sizes</span><span class="o">=</span><span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">4</span><span class="p">],</span> <span class="n">device</span><span class="o">=</span><span class="s2">"xpu"</span><span class="p">,</span> <span class="n">dry_run</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
 </code></pre></div>

@@ -11,7 +11,7 @@
         <link rel="canonical" href="https://intel.github.io/torch-tweak/main/api/tuning/tuning/">
       
       
-        <link rel="prev" href="../module/">
+        <link rel="prev" href="../tunable_module/">
       
       
         <link rel="next" href="../config/">
@@ -270,7 +270,7 @@
     
     
       <li class="md-tabs__item md-tabs__item--active">
-        <a href="../module/" class="md-tabs__link">
+        <a href="../tunable_module/" class="md-tabs__link">
           
   
   
@@ -1540,14 +1540,14 @@
   
   
     <li class="md-nav__item">
-      <a href="../module/" class="md-nav__link">
+      <a href="../tunable_module/" class="md-nav__link">
         
   
   
   <span class="md-ellipsis">
     
   
-    Module
+    TunableModule
   
 
     
@@ -2912,7 +2912,7 @@ For example, if you want to save the module to the <code>ckpt</code> folder, you
 doctest.ELLIPSIS_MARKER = "***" # using *** instead of ... to avoid doctest failure
 import torch_tweak.torch as tt
 from torch.nn import Linear
-model = tt.Module(Linear(10, 10), "model", strategy=tt.FirstWinsStrategy([tt.backend.TorchEagerBackend()]))
+model = tt.TunableModule(Linear(10, 10), "model", strategy=tt.FirstWinsStrategy([tt.backend.TorchEagerBackend()]))
 dataset = torch.randn(10, 10)
 tt.tune(model, dataset, batch_sizes=[1, 2], device="cpu") # doctest: +ELLIPSIS
 <strong><em>🎯 Tuning module: <code>model</code> (all graphs)</em></strong>
@@ -2984,7 +2984,7 @@ loaded_model = tt.load(model, "tuned_model.tt", storage=storage)</p>
 <a id="torch_tweak.torch.save--source--__codelineno-0-131" name="torch_tweak.torch.save--source--__codelineno-0-131"></a><span class="sd">        &gt;&gt;&gt; doctest.ELLIPSIS_MARKER = "***" # using *** instead of ... to avoid doctest failure</span>
 <a id="torch_tweak.torch.save--source--__codelineno-0-132" name="torch_tweak.torch.save--source--__codelineno-0-132"></a><span class="sd">        &gt;&gt;&gt; import torch_tweak.torch as tt</span>
 <a id="torch_tweak.torch.save--source--__codelineno-0-133" name="torch_tweak.torch.save--source--__codelineno-0-133"></a><span class="sd">        &gt;&gt;&gt; from torch.nn import Linear</span>
-<a id="torch_tweak.torch.save--source--__codelineno-0-134" name="torch_tweak.torch.save--source--__codelineno-0-134"></a><span class="sd">        &gt;&gt;&gt; model = tt.Module(Linear(10, 10), "model", strategy=tt.FirstWinsStrategy([tt.backend.TorchEagerBackend()]))</span>
+<a id="torch_tweak.torch.save--source--__codelineno-0-134" name="torch_tweak.torch.save--source--__codelineno-0-134"></a><span class="sd">        &gt;&gt;&gt; model = tt.TunableModule(Linear(10, 10), "model", strategy=tt.FirstWinsStrategy([tt.backend.TorchEagerBackend()]))</span>
 <a id="torch_tweak.torch.save--source--__codelineno-0-135" name="torch_tweak.torch.save--source--__codelineno-0-135"></a><span class="sd">        &gt;&gt;&gt; dataset = torch.randn(10, 10)</span>
 <a id="torch_tweak.torch.save--source--__codelineno-0-136" name="torch_tweak.torch.save--source--__codelineno-0-136"></a><span class="sd">        &gt;&gt;&gt; tt.tune(model, dataset, batch_sizes=[1, 2], device="cpu") # doctest: +ELLIPSIS</span>
 <a id="torch_tweak.torch.save--source--__codelineno-0-137" name="torch_tweak.torch.save--source--__codelineno-0-137"></a><span class="sd">        ***🎯 Tuning module: `model` (all graphs)***</span>
@@ -3111,7 +3111,7 @@ loaded_model = tt.load(model, "tuned_model.tt", storage=storage)</p>
 <a id="torch_tweak.torch.load--source--__codelineno-0-152" name="torch_tweak.torch.load--source--__codelineno-0-152"></a>    <span class="n">storage</span><span class="p">:</span> <span class="n">Storage</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
 <a id="torch_tweak.torch.load--source--__codelineno-0-153" name="torch_tweak.torch.load--source--__codelineno-0-153"></a>    <span class="n">device_map</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">device</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
 <a id="torch_tweak.torch.load--source--__codelineno-0-154" name="torch_tweak.torch.load--source--__codelineno-0-154"></a>    <span class="n">disable_external_logging</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
-<a id="torch_tweak.torch.load--source--__codelineno-0-155" name="torch_tweak.torch.load--source--__codelineno-0-155"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span> <span class="o">|</span> <span class="n">Module</span><span class="p">:</span>
+<a id="torch_tweak.torch.load--source--__codelineno-0-155" name="torch_tweak.torch.load--source--__codelineno-0-155"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span> <span class="o">|</span> <span class="n">TunableModule</span><span class="p">:</span>
 <a id="torch_tweak.torch.load--source--__codelineno-0-156" name="torch_tweak.torch.load--source--__codelineno-0-156"></a><span class="w">    </span><span class="sd">"""Load the tuned module from a file.</span>
 <a id="torch_tweak.torch.load--source--__codelineno-0-157" name="torch_tweak.torch.load--source--__codelineno-0-157"></a>
 <a id="torch_tweak.torch.load--source--__codelineno-0-158" name="torch_tweak.torch.load--source--__codelineno-0-158"></a><span class="sd">    Args:</span>

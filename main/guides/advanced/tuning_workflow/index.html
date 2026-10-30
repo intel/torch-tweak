@@ -268,7 +268,7 @@
     
     
       <li class="md-tabs__item">
-        <a href="../../../api/tuning/module/" class="md-tabs__link">
+        <a href="../../../api/tuning/tunable_module/" class="md-tabs__link">
           
   
   
@@ -1816,14 +1816,14 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../api/tuning/module/" class="md-nav__link">
+      <a href="../../../api/tuning/tunable_module/" class="md-nav__link">
         
   
   
   <span class="md-ellipsis">
     
   
-    Module
+    TunableModule
   
 
     
@@ -2868,7 +2868,7 @@ NOTE: This file has been modified by Intel Corporation.
 <div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="kn">import</span><span class="w"> </span><span class="nn">torch_tweak.torch</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">tt</span>
 <a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>
 <a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="c1"># Wrap your module</span>
-<a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a><span class="n">module</span> <span class="o">=</span> <span class="n">tt</span><span class="o">.</span><span class="n">Module</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="s2">"my_model"</span><span class="p">)</span>
+<a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a><span class="n">module</span> <span class="o">=</span> <span class="n">tt</span><span class="o">.</span><span class="n">TunableModule</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="s2">"my_model"</span><span class="p">)</span>
 <a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a>
 <a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a><span class="c1"># Tune with different batch sizes</span>
 <a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a><span class="n">tt</span><span class="o">.</span><span class="n">tune</span><span class="p">(</span><span class="n">module</span><span class="p">,</span> <span class="n">dataset</span><span class="p">,</span> <span class="n">batch_sizes</span><span class="o">=</span><span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">4</span><span class="p">,</span> <span class="mi">8</span><span class="p">])</span>

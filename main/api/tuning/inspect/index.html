@@ -270,7 +270,7 @@
     
     
       <li class="md-tabs__item md-tabs__item--active">
-        <a href="../module/" class="md-tabs__link">
+        <a href="../tunable_module/" class="md-tabs__link">
           
   
   
@@ -1540,14 +1540,14 @@
   
   
     <li class="md-nav__item">
-      <a href="../module/" class="md-nav__link">
+      <a href="../tunable_module/" class="md-nav__link">
         
   
   
   <span class="md-ellipsis">
     
   
-    Module
+    TunableModule
   
 
     
@@ -2975,7 +2975,7 @@ The path limit is calculated from <code>depth</code>. Increase <code>depth</code
         </li>
         <li class="doc-section-item field-body">
             <b><code>strategies</code></b>
-              (<code><span title="torch_tweak.torch.module.wrapper_module.StrategyList">StrategyList</span> | <span title="torch_tweak.torch.module.wrapper_module.StrategyMap">StrategyMap</span> | None</code>, default:
+              (<code><span title="torch_tweak.torch.module.tunable_module.StrategyList">StrategyList</span> | <span title="torch_tweak.torch.module.tunable_module.StrategyMap">StrategyMap</span> | None</code>, default:
                   <code>None</code>
 )
           –
@@ -3051,11 +3051,11 @@ The path limit is calculated from <code>depth</code>. Increase <code>depth</code
 <a id="torch_tweak.torch.wrap--source--__codelineno-0-39" name="torch_tweak.torch.wrap--source--__codelineno-0-39"></a>    <span class="k">for</span> <span class="n">module_info</span> <span class="ow">in</span> <span class="n">modules</span><span class="p">:</span>
 <a id="torch_tweak.torch.wrap--source--__codelineno-0-40" name="torch_tweak.torch.wrap--source--__codelineno-0-40"></a>        <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">"Wrapping module: </span><span class="si">%s</span><span class="s2">"</span><span class="p">,</span> <span class="n">module_info</span><span class="o">.</span><span class="n">object_path</span> <span class="ow">or</span> <span class="n">module_info</span><span class="o">.</span><span class="n">name</span> <span class="ow">or</span> <span class="n">obj</span><span class="o">.</span><span class="vm">__class__</span><span class="o">.</span><span class="vm">__name__</span><span class="p">)</span>
 <a id="torch_tweak.torch.wrap--source--__codelineno-0-41" name="torch_tweak.torch.wrap--source--__codelineno-0-41"></a>        <span class="k">if</span> <span class="n">module_info</span><span class="o">.</span><span class="n">parent</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-<a id="torch_tweak.torch.wrap--source--__codelineno-0-42" name="torch_tweak.torch.wrap--source--__codelineno-0-42"></a>            <span class="k">return</span> <span class="n">Module</span><span class="p">(</span><span class="n">obj</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="n">obj</span><span class="o">.</span><span class="vm">__class__</span><span class="o">.</span><span class="vm">__name__</span><span class="p">,</span> <span class="n">strategy</span><span class="o">=</span><span class="n">strategy</span><span class="p">,</span> <span class="n">strategies</span><span class="o">=</span><span class="n">strategies</span><span class="p">)</span>
+<a id="torch_tweak.torch.wrap--source--__codelineno-0-42" name="torch_tweak.torch.wrap--source--__codelineno-0-42"></a>            <span class="k">return</span> <span class="n">TunableModule</span><span class="p">(</span><span class="n">obj</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="n">obj</span><span class="o">.</span><span class="vm">__class__</span><span class="o">.</span><span class="vm">__name__</span><span class="p">,</span> <span class="n">strategy</span><span class="o">=</span><span class="n">strategy</span><span class="p">,</span> <span class="n">strategies</span><span class="o">=</span><span class="n">strategies</span><span class="p">)</span>
 <a id="torch_tweak.torch.wrap--source--__codelineno-0-43" name="torch_tweak.torch.wrap--source--__codelineno-0-43"></a>
 <a id="torch_tweak.torch.wrap--source--__codelineno-0-44" name="torch_tweak.torch.wrap--source--__codelineno-0-44"></a>        <span class="c1"># `module_info.name` repeats across siblings (`layers.0.mlp`, `layers.1.mlp`); the path does not.</span>
 <a id="torch_tweak.torch.wrap--source--__codelineno-0-45" name="torch_tweak.torch.wrap--source--__codelineno-0-45"></a>        <span class="n">name</span> <span class="o">=</span> <span class="n">module_info</span><span class="o">.</span><span class="n">object_path</span><span class="o">.</span><span class="n">lstrip</span><span class="p">(</span><span class="s2">"."</span><span class="p">)</span>
-<a id="torch_tweak.torch.wrap--source--__codelineno-0-46" name="torch_tweak.torch.wrap--source--__codelineno-0-46"></a>        <span class="n">wrapped</span> <span class="o">=</span> <span class="n">Module</span><span class="p">(</span><span class="n">module_info</span><span class="o">.</span><span class="n">module</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="n">name</span><span class="p">,</span> <span class="n">strategy</span><span class="o">=</span><span class="n">strategy</span><span class="p">,</span> <span class="n">strategies</span><span class="o">=</span><span class="n">strategies</span><span class="p">)</span>
+<a id="torch_tweak.torch.wrap--source--__codelineno-0-46" name="torch_tweak.torch.wrap--source--__codelineno-0-46"></a>        <span class="n">wrapped</span> <span class="o">=</span> <span class="n">TunableModule</span><span class="p">(</span><span class="n">module_info</span><span class="o">.</span><span class="n">module</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="n">name</span><span class="p">,</span> <span class="n">strategy</span><span class="o">=</span><span class="n">strategy</span><span class="p">,</span> <span class="n">strategies</span><span class="o">=</span><span class="n">strategies</span><span class="p">)</span>
 <a id="torch_tweak.torch.wrap--source--__codelineno-0-47" name="torch_tweak.torch.wrap--source--__codelineno-0-47"></a>        <span class="n">module_info</span><span class="o">.</span><span class="n">parent</span><span class="o">.</span><span class="n">set_wrapped</span><span class="p">(</span><span class="n">module_info</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="n">wrapped</span><span class="p">)</span>
 <a id="torch_tweak.torch.wrap--source--__codelineno-0-48" name="torch_tweak.torch.wrap--source--__codelineno-0-48"></a>
 <a id="torch_tweak.torch.wrap--source--__codelineno-0-49" name="torch_tweak.torch.wrap--source--__codelineno-0-49"></a>    <span class="k">return</span> <span class="n">obj</span>

@@ -268,7 +268,7 @@
     
     
       <li class="md-tabs__item">
-        <a href="../../../api/tuning/module/" class="md-tabs__link">
+        <a href="../../../api/tuning/tunable_module/" class="md-tabs__link">
           
   
   
@@ -1793,14 +1793,14 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../api/tuning/module/" class="md-nav__link">
+      <a href="../../../api/tuning/tunable_module/" class="md-nav__link">
         
   
   
   <span class="md-ellipsis">
     
   
-    Module
+    TunableModule
   
 
     
@@ -2878,7 +2878,7 @@ NOTE: This file has been modified by Intel Corporation.
 <a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a><span class="n">strategy</span> <span class="o">=</span> <span class="n">tt</span><span class="o">.</span><span class="n">OneBackendStrategy</span><span class="p">(</span><span class="n">backend</span><span class="o">=</span><span class="n">backend</span><span class="p">)</span>
 <a id="__codelineno-0-10" name="__codelineno-0-10" href="#__codelineno-0-10"></a>
 <a id="__codelineno-0-11" name="__codelineno-0-11" href="#__codelineno-0-11"></a><span class="c1"># Use in tuning</span>
-<a id="__codelineno-0-12" name="__codelineno-0-12" href="#__codelineno-0-12"></a><span class="n">model</span> <span class="o">=</span> <span class="n">tt</span><span class="o">.</span><span class="n">Module</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="s2">"my-model"</span><span class="p">,</span> <span class="n">strategy</span><span class="o">=</span><span class="n">strategy</span><span class="p">)</span>
+<a id="__codelineno-0-12" name="__codelineno-0-12" href="#__codelineno-0-12"></a><span class="n">model</span> <span class="o">=</span> <span class="n">tt</span><span class="o">.</span><span class="n">TunableModule</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="s2">"my-model"</span><span class="p">,</span> <span class="n">strategy</span><span class="o">=</span><span class="n">strategy</span><span class="p">)</span>
 <a id="__codelineno-0-13" name="__codelineno-0-13" href="#__codelineno-0-13"></a><span class="n">tt</span><span class="o">.</span><span class="n">tune</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">input_data</span><span class="p">)</span>
 </code></pre></div>
 <h3 id="when-to-use">When to Use</h3>
@@ -2917,7 +2917,7 @@ NOTE: This file has been modified by Intel Corporation.
 <a id="__codelineno-1-17" name="__codelineno-1-17" href="#__codelineno-1-17"></a><span class="n">strategy</span> <span class="o">=</span> <span class="n">tt</span><span class="o">.</span><span class="n">FirstWinsStrategy</span><span class="p">(</span><span class="n">backends</span><span class="o">=</span><span class="n">backends</span><span class="p">)</span>
 <a id="__codelineno-1-18" name="__codelineno-1-18" href="#__codelineno-1-18"></a>
 <a id="__codelineno-1-19" name="__codelineno-1-19" href="#__codelineno-1-19"></a><span class="c1"># Use in tuning</span>
-<a id="__codelineno-1-20" name="__codelineno-1-20" href="#__codelineno-1-20"></a><span class="n">model</span> <span class="o">=</span> <span class="n">tt</span><span class="o">.</span><span class="n">Module</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="s2">"my-model"</span><span class="p">,</span> <span class="n">strategy</span><span class="o">=</span><span class="n">strategy</span><span class="p">)</span>
+<a id="__codelineno-1-20" name="__codelineno-1-20" href="#__codelineno-1-20"></a><span class="n">model</span> <span class="o">=</span> <span class="n">tt</span><span class="o">.</span><span class="n">TunableModule</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="s2">"my-model"</span><span class="p">,</span> <span class="n">strategy</span><span class="o">=</span><span class="n">strategy</span><span class="p">)</span>
 <a id="__codelineno-1-21" name="__codelineno-1-21" href="#__codelineno-1-21"></a><span class="n">tt</span><span class="o">.</span><span class="n">tune</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">input_data</span><span class="p">)</span>
 </code></pre></div>
 <h3 id="how-it-works">How It Works</h3>
@@ -2972,7 +2972,7 @@ NOTE: This file has been modified by Intel Corporation.
 <a id="__codelineno-2-20" name="__codelineno-2-20" href="#__codelineno-2-20"></a><span class="p">)</span>
 <a id="__codelineno-2-21" name="__codelineno-2-21" href="#__codelineno-2-21"></a>
 <a id="__codelineno-2-22" name="__codelineno-2-22" href="#__codelineno-2-22"></a><span class="c1"># Use in tuning</span>
-<a id="__codelineno-2-23" name="__codelineno-2-23" href="#__codelineno-2-23"></a><span class="n">model</span> <span class="o">=</span> <span class="n">tt</span><span class="o">.</span><span class="n">Module</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="s2">"my-model"</span><span class="p">,</span> <span class="n">strategy</span><span class="o">=</span><span class="n">strategy</span><span class="p">)</span>
+<a id="__codelineno-2-23" name="__codelineno-2-23" href="#__codelineno-2-23"></a><span class="n">model</span> <span class="o">=</span> <span class="n">tt</span><span class="o">.</span><span class="n">TunableModule</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="s2">"my-model"</span><span class="p">,</span> <span class="n">strategy</span><span class="o">=</span><span class="n">strategy</span><span class="p">)</span>
 <a id="__codelineno-2-24" name="__codelineno-2-24" href="#__codelineno-2-24"></a><span class="n">tt</span><span class="o">.</span><span class="n">tune</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">input_data</span><span class="p">)</span>
 </code></pre></div>
 <h3 id="how-it-works_1">How It Works</h3>
