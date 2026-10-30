@@ -72,5 +72,4 @@ repos:
     rev: 1.9.4
     hooks:
       - id: bandit
-        # Skip B101 (assert_used): assertions are expected in tests; all other checks run.
-        args: ["-s", "B101", "-x", "/.venv/"]
+        args: ["-x", "/.venv/", "-r", "-c", ".github/bandit.config"]
