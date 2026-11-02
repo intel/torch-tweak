@@ -20,7 +20,7 @@ from torch_tweak.torch.module.recording_module import Sample
 from torch_tweak.torch.module.sample_metadata import SampleMetadata
 from torch_tweak.torch.task.correctness import check_output_correctness, check_output_tensor_shapes
 from torch_tweak.torch.utils.module import count_parameters
-from torch_tweak.utils.logging import log
+from torch_tweak.utils.logging import control_output, log
 from torch_tweak.utils.permissions import secure_mkdir
 from torch_tweak.utils.system_monitor import SystemMonitor
 from torch_tweak.utils.timer import Timer
@@ -105,6 +105,45 @@ class TuneStrategy(ABC):
                 check_output_correctness(outputs, name=f"{name}.{graph_spec.name}.{backend.describe()}.output")
                 outputs_metadata = SampleMetadata.from_outputs(outputs)
                 check_output_tensor_shapes(graph_spec.output_spec.tensor_specs, outputs_metadata.tensor_specs)
+
+    def _build_and_validate(
+        self,
+        backend: Backend,
+        module: nn.Module,
+        name: str,
+        graph_spec: GraphSpec,
+        data: list[Sample],
+        device: torch.device,
+        cache_dir: Path,
+    ) -> Backend:
+        """Builds a copy of `backend` and checks its outputs.
+
+        Returns:
+            The built copy, active.
+
+        Raises:
+            Exception: whatever the build or the check raised, after the copy is deactivated and `module` is
+                back on `device`.
+        """
+        backend_cache_dir = cache_dir / backend.key()
+        log_file = self._log_file(backend_cache_dir, "build.log")
+        log("🤖 backend: %s", backend.describe(), sink=self._sink)
+        log("🔄 in progress...please wait", depth=2, sink=self._sink)
+        built = deepcopy(backend)
+        try:
+            with control_output(log_file=log_file):
+                built = built.build(module, graph_spec, deepcopy(data), device, backend_cache_dir)
+            log("✅ backend built", depth=2, sink=self._sink)
+            self.check_correctness(built, name, graph_spec, data)
+            log("✅ backend validated", depth=2, sink=self._sink)
+        except Exception:
+            if built.is_active:
+                built.deactivate()
+            log("❌ backend failed (log file: %s)", log_file, depth=2, sink=self._sink)
+            # A failed build can leave `module` on CPU.
+            module.to(device)
+            raise
+        return built
 
     def enable_correctness_check(self, enable: bool = True) -> "TuneStrategy":
         """Enable/disable correctness checking."""

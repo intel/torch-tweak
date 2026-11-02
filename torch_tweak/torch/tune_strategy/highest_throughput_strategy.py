@@ -12,7 +12,6 @@
 """
 
 from collections.abc import Iterable
-from copy import deepcopy
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
@@ -41,7 +40,7 @@ from torch_tweak.torch.task.profiling import (
 )
 from torch_tweak.torch.tune_strategy.default_backends import default_backends
 from torch_tweak.torch.tune_strategy.extension import TuneStrategyFindMaxBatchSizeExtension
-from torch_tweak.utils.logging import control_output, log
+from torch_tweak.utils.logging import log
 from torch_tweak.utils.timer import Timer
 
 
@@ -128,55 +127,47 @@ class HighestThroughputStrategy(TuneStrategyFindMaxBatchSizeExtension):
 
         # Run all backends with given max batch size.
         for backend in backends:
-            backend_cache_dir = cache_dir / backend.key()
-            log_file = self._log_file(backend_cache_dir, "build.log")
-
             with Timer(sink=self._sink, depth=2):
                 try:
-                    log("🤖 backend: %s", backend.describe(), sink=self._sink)
-                    log("🔄 in progress...please wait", depth=2, sink=self._sink)
-                    with control_output(log_file=log_file):
-                        backend = deepcopy(backend)
-                        backend.build(module, graph_spec, deepcopy(data), device, backend_cache_dir)
-                    log("✅ backend built", depth=2, sink=self._sink)
-                    self.check_correctness(backend, name, graph_spec, data)
-                    log("✅ backend validated", depth=2, sink=self._sink)
+                    built = self._build_and_validate(backend, module, name, graph_spec, data, device, cache_dir)
+                except Exception:
+                    continue
+                try:
                     batch_size, throughput, results = calculate_highest_throughput_for_backend(
-                        backend, name, graph_spec, data, self._get_profiling_config(batching, max_batch_size)
+                        built, name, graph_spec, data, self._get_profiling_config(batching, max_batch_size)
                     )
-                    highest_throughput_results.append(
-                        HighestThroughputResult(
-                            max_batch_size=batch_size, throughput=throughput, backend_details=backend.describe()
-                        )
+                except Exception:
+                    log("❌ backend profiling failed", depth=2, sink=self._sink)
+                    continue
+                finally:
+                    built.deactivate()
+
+                highest_throughput_results.append(
+                    HighestThroughputResult(
+                        max_batch_size=batch_size, throughput=throughput, backend_details=built.describe()
                     )
-                    measurements += results.entries
+                )
+                measurements += results.entries
+                log(
+                    "✅ backend profiled - throughput: %.2f samples/s, batch size: %s",
+                    throughput,
+                    batch_size,
+                    depth=2,
+                    sink=self._sink,
+                )
+
+                if best_backend is None or throughput > best_throughput:
                     log(
-                        "✅ backend profiled - throughput: %.2f samples/s, batch size: %s",
+                        "🎯 new best throughput for %s is %.2f samples/s, batch size: %s",
+                        built.describe(),
                         throughput,
                         batch_size,
                         depth=2,
                         sink=self._sink,
                     )
-
-                    if best_backend is None or throughput > best_throughput:
-                        log(
-                            "🎯 new best throughput for %s is %.2f samples/s, batch size: %s",
-                            backend.describe(),
-                            throughput,
-                            batch_size,
-                            depth=2,
-                            sink=self._sink,
-                        )
-                        best_backend = backend
-                        best_throughput = throughput
-                        best_batch_size = batch_size
-                    backend.deactivate()
-
-                except Exception:
-                    if backend.is_active:
-                        backend.deactivate()
-                    log("❌ backend failed (log file: %s)", log_file, depth=2, sink=self._sink)
-                    module.to(device)  # move module back to device as failed backend could move it to cpu
+                    best_backend = built
+                    best_throughput = throughput
+                    best_batch_size = batch_size
 
         if best_backend is None:
             log(
