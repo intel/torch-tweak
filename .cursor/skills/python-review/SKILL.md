@@ -5,8 +5,9 @@ SPDX-License-Identifier: Apache-2.0
 ---
 name: python-review
 description: >-
-  Review Python diffs in Torch Tweak for correctness, necessity, idiom, and
-  a simpler form, then apply the fixes on a self-review. Use after writing
+  Review Python diffs in Torch Tweak for correctness, necessity, duplicated
+  logic, idiom, and a simpler form, then apply the fixes on a self-review.
+  Use after writing
   Python, before treating the work as done, and when reviewing a change or
   pull request. Skips anything Ruff already enforces. Flags comments that
   restate the code or describe removed code.
@@ -23,7 +24,7 @@ Do not repeat either one in the review.
 Run this before you treat your own change as done.
 
 1. Read the diff you just wrote.
-2. Take each change through the four questions below.
+2. Take each change through the five questions below.
 3. Edit the code. A review note left in a comment is not a fix.
 4. Read the diff again.
 5. Stop when the new pass finds nothing the previous pass missed.
@@ -34,7 +35,7 @@ narrow `except`, or the `*` that forces a keyword argument.
 
 ## Review for someone else
 
-Same four questions. Report. Edit only if the user asked you to change
+Same five questions. Report. Edit only if the user asked you to change
 the code.
 
 Start with the bug that would reach users.
@@ -43,7 +44,7 @@ Skip a remark that would not change behavior or a decision.
 If the author is about to open a pull request, end with the behavior
 questions a reviewer will ask. Those belong in the pull request description.
 
-## The four questions
+## The five questions
 
 ### Correct
 
@@ -75,6 +76,11 @@ questions a reviewer will ask. Those belong in the pull request description.
 - A `_name` read from outside the class or module that owns it.
 - A class hierarchy standing in for one function. A decorator with a single call site.
 - Threads, `asyncio`, a cache, or `slots` on a path that is not hot.
+
+### Duplicated
+
+- A new function that repeats a job an existing function in this repository already does. Call that function.
+- The same logic at two call sites, when one helper would be shorter and easier to read.
 
 ### Idiomatic
 
