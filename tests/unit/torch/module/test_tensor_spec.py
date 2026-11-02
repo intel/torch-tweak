@@ -12,7 +12,7 @@ from torch_tweak.torch.module.tensor_spec import (
     TensorSpec,
     _dtype_by_name,
     dtype_from_name,
-    recovered_batch_dim_bounds,
+    logical_batch_bounds,
 )
 
 
@@ -157,32 +157,85 @@ def test_has_batch_axis():
     assert spec1.has_batch_axis()
 
 
-def test_recovered_batch_dim_bounds_consistent():
-    spec_a = TensorSpec.from_tensor("args_0", torch.randn(1, 8), batch_size=1)
-    spec_b = TensorSpec.from_tensor("args_1", torch.randn(1, 15), batch_size=1)
-    spec_a2 = TensorSpec.from_tensor("args_0", torch.randn(8, 8), batch_size=8)
-    spec_b2 = TensorSpec.from_tensor("args_1", torch.randn(8, 15), batch_size=8)
-    spec_a.update_shapes_seen(spec_a2)
-    spec_b.update_shapes_seen(spec_b2)
-    assert recovered_batch_dim_bounds([spec_a, spec_b]) == (1, 8)
+def test_logical_batch_bounds_are_physical_size_divided_by_multiplier():
+    stacked = TensorSpec(
+        name="stacked",
+        shape=["batch0"],
+        min_shape=[6],
+        max_shape=[24],
+        dtype=None,
+        _bs_multipliers=[3.0],
+    )
+    plain = TensorSpec(
+        name="plain",
+        shape=[7, "batch1"],
+        min_shape=[7, 2],
+        max_shape=[7, 8],
+        dtype=None,
+        _bs_multipliers=[float("nan"), 1.0],
+    )
+
+    bounds = logical_batch_bounds([stacked, plain])
+
+    assert bounds == (2, 8)
 
 
-def test_recovered_batch_dim_bounds_inconsistent_min():
-    spec_a = TensorSpec.from_tensor("args_0", torch.randn(1, 8), batch_size=1)
-    spec_b = TensorSpec.from_tensor("args_1", torch.randn(1, 15), batch_size=1)
-    spec_a2 = TensorSpec.from_tensor("args_0", torch.randn(8, 8), batch_size=8)
-    spec_b2 = TensorSpec.from_tensor("args_1", torch.randn(8, 15), batch_size=8)
-    spec_a.update_shapes_seen(spec_a2)
-    spec_b.update_shapes_seen(spec_b2)
-    spec_b.min_shape[0] = 4
-    with pytest.raises(ValueError, match="Inconsistent recovered minimum batch size"):
-        recovered_batch_dim_bounds([spec_a, spec_b])
+def test_logical_batch_bounds_reject_a_different_minimum():
+    low = TensorSpec(
+        name="low",
+        shape=["batch0"],
+        min_shape=[1],
+        max_shape=[8],
+        dtype=None,
+        _bs_multipliers=[1.0],
+    )
+    high = TensorSpec(
+        name="high",
+        shape=["batch0"],
+        min_shape=[4],
+        max_shape=[8],
+        dtype=None,
+        _bs_multipliers=[1.0],
+    )
+
+    with pytest.raises(ValueError, match="Inconsistent logical minimum batch size"):
+        logical_batch_bounds([low, high])
 
 
-def test_recovered_batch_dim_bounds_no_batch_axes():
-    spec = TensorSpec.from_tensor("test", torch.randn(1, 2), batch_size=1)
+def test_logical_batch_bounds_reject_a_different_maximum():
+    narrow = TensorSpec(
+        name="narrow",
+        shape=["batch0"],
+        min_shape=[1],
+        max_shape=[4],
+        dtype=None,
+        _bs_multipliers=[1.0],
+    )
+    wide = TensorSpec(
+        name="wide",
+        shape=["batch0"],
+        min_shape=[1],
+        max_shape=[8],
+        dtype=None,
+        _bs_multipliers=[1.0],
+    )
+
+    with pytest.raises(ValueError, match="Inconsistent logical maximum batch size"):
+        logical_batch_bounds([narrow, wide])
+
+
+def test_logical_batch_bounds_reject_specs_without_a_batch_axis():
+    spec = TensorSpec(
+        name="static",
+        shape=[4, "dim1"],
+        min_shape=[4, 2],
+        max_shape=[4, 9],
+        dtype=None,
+        _bs_multipliers=[1.0, float("nan")],
+    )
+
     with pytest.raises(ValueError, match="No batch axes found"):
-        recovered_batch_dim_bounds([spec])
+        logical_batch_bounds([spec])
 
 
 def test_has_dynamic_axis():

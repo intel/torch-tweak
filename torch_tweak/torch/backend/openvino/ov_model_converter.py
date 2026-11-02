@@ -19,7 +19,7 @@ from torch_tweak.torch.module.graph_spec import GraphSpec
 from torch_tweak.torch.module.locator import Locator, ObjectType
 from torch_tweak.torch.module.recording_module import Sample
 from torch_tweak.torch.module.sample_metadata import SampleMetadata
-from torch_tweak.torch.module.tensor_spec import TensorSpec, recovered_batch_dim_bounds
+from torch_tweak.torch.module.tensor_spec import TensorSpec, logical_batch_bounds
 from torch_tweak.torch.utils.module import get_arguments_names
 from torch_tweak.utils.permissions import secure_file, secure_mkdir
 
@@ -102,7 +102,7 @@ def _prepare_sample(sample: Sample, input_spec: SampleMetadata) -> tuple[tuple, 
     return input_spec.make_batch(
         args,
         kwargs,
-        batch_size=max(recovered_batch_dim_bounds(input_spec.tensor_specs)[0], 2),
+        batch_size=max(logical_batch_bounds(input_spec.tensor_specs)[0], 2),
     )
 
 
@@ -301,7 +301,7 @@ def _create_dynamic_shapes_from_tensor_spec(
                 continue
             if idx in batch_multipliers:
                 if batch_dim is None:
-                    batch_min, batch_max = recovered_batch_dim_bounds(tensor_specs)
+                    batch_min, batch_max = logical_batch_bounds(tensor_specs)
                     batch_dim = torch.export.Dim("batch", min=batch_min, max=batch_max)
                 multiplier: int = batch_multipliers[idx]
                 # multiplying Dim object creates a new _DerivedDim object

@@ -239,14 +239,14 @@ class TensorSpec:
         return not math.isnan(value) and int(value) == value
 
 
-def recovered_batch_dim_bounds(tensor_specs: Sequence[TensorSpec]) -> tuple[int, int]:
-    """Recover logical batch min/max from all batch axes across *tensor_specs*.
+def logical_batch_bounds(tensor_specs: Sequence[TensorSpec]) -> tuple[int, int]:
+    """Return the logical batch minimum and maximum shared by every batch axis.
 
     Each batch axis stores physical ``min_shape`` / ``max_shape`` as ``multiplier * batch``.
-    All recovered min (and separately max) values must agree; otherwise metadata is inconsistent.
+    All logical minimum values must agree, and all logical maximum values must agree.
 
     Raises:
-        ValueError: No batch axes, or batch axes disagree on recovered bounds.
+        ValueError: No batch axes, or batch axes disagree on the bounds.
     """
     entries: list[tuple[str, int, int, int]] = []
     for tensor_spec in tensor_specs:
@@ -259,13 +259,13 @@ def recovered_batch_dim_bounds(tensor_specs: Sequence[TensorSpec]) -> tuple[int,
             ))
 
     if not entries:
-        raise ValueError("No batch axes found in tensor specs; cannot recover batch dimension bounds.")
+        raise ValueError("No batch axes found in tensor specs; cannot determine logical batch bounds.")
 
     bounds: list[int] = []
     for kind, value_index in (("minimum", 2), ("maximum", 3)):
-        values = [entry[value_index] for entry in entries]
-        if len(set(values)) != 1:
+        values = {entry[value_index] for entry in entries}
+        if len(values) != 1:
             details = ", ".join(f"{entry[0]} axis {entry[1]} -> {entry[value_index]}" for entry in entries)
-            raise ValueError(f"Inconsistent recovered {kind} batch size across inputs: {details}")
-        bounds.append(values[0])
+            raise ValueError(f"Inconsistent logical {kind} batch size across inputs: {details}")
+        bounds.append(values.pop())
     return bounds[0], bounds[1]
