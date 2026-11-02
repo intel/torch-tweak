@@ -81,6 +81,25 @@ def test_highest_throughput_strategy_tune_highest_throughput_backend(torch_devic
     assert highest_throughput_backend.sleep_time == faster.sleep_time
 
 
+def test_without_backends_tunes_with_the_default_backends_for_the_device(torch_device, tmp_path, monkeypatch):
+    monkeypatch.setattr(
+        "torch_tweak.torch.tune_strategy.highest_throughput_strategy.default_backends",
+        lambda device: {torch_device: [SleepBackend(sleep_time=2e-5)]}[device],
+    )
+    strategy = HighestThroughputStrategy()
+    strategy.set_find_max_batch_size_profiling_config(
+        TuneStrategyFindMaxBatchSizeExtension.default_profiling_config(max_batch_size=8)
+    )
+    strategy.enable_correctness_check(False)
+    model = ToyTorchModel().eval().to(torch_device)
+    sample = model.sample().unsqueeze(0).to(torch_device)
+    graph_spec = model.graph_spec(batch_sizes=[1, 2], device=torch_device)
+
+    backend = strategy.tune(model, "test", graph_spec, [((sample,), {})], torch_device, tmp_path)
+
+    assert cast(SleepBackend, backend).sleep_time == 2e-5
+
+
 def test_highest_throughput_strategy_max_batch_size_in_graph_spec(torch_device, tmp_path):
     profiling_config = TuneStrategyFindMaxBatchSizeExtension.default_profiling_config(max_batch_size=8)
     strategy = HighestThroughputStrategy(backends=[SleepBackend(sleep_time=1e-5)])
