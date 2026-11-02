@@ -114,7 +114,11 @@ funcs.append(lambda i=i: i)
 ## Return one shape
 
 Each branch returns the same kind of value.
-Signal failure by raising the exception type callers already catch.
+A value from one branch and `None` from another is one shape only when
+the success value cannot itself be `None`.
+If a stored `None` and a miss would look the same, raise the exception
+callers already catch, or return a small named type with a field for
+each fact.
 A result with several fields is a dataclass or a `NamedTuple`, and every
 field is set on every path.
 
@@ -132,6 +136,7 @@ Prefer `first, *rest = items` to reading `items[0]` and `items[1]`.
 Loop over a dict with `.items()`.
 
 `.get` returns a value and does not insert a key.
+A read uses `.get`. It does not assign a missing key.
 `setdefault` inserts a missing key, and it always runs the default
 expression, even when the key is already present. Keep that expression cheap.
 Use `defaultdict` when every missing key should be created by a factory
@@ -172,10 +177,25 @@ A single call site does not need a decorator.
 
 ## Control flow
 
-The `else` on `for` or `while` runs when the loop never hit `break`.
-The `else` on `try` runs when the body did not raise.
-Remove an `else` on a loop that has no `break`.
-Use this form instead of a `found = False` flag.
+The `else` on `for` or `while` runs when the loop did not `break`.
+A `return` inside the body leaves the function first, so that `else`
+does not run for that call either.
+This search is already that form. Leave it in place:
+
+```python
+for key, value in pairs:
+    if key == target:
+        return value
+else:
+    return "missing"
+```
+
+Delete an `else` that always runs. It always runs when the body never
+`break`s and never `return`s.
+A `found = False` flag repeats the same search. Return from the loop,
+or `break`, and use `else` for the miss.
+The `else` on `try` runs when the body did not raise. Keep it when that
+is the condition you need.
 
 Catch a specific exception when the missing case is normal and the
 attempt is cheap: a missing key, a missing attribute, a missing file.
@@ -183,7 +203,8 @@ Check first when the failure would be a long compile, a device error, or
 a tensor used as a boolean.
 
 Handle the specific exception before the broader one.
-`raise NewError(...) from exc` keeps the original error attached.
+When you replace a caught error, write `raise NewError(...) from exc`.
+The original stays attached. `raise NewError(...)` by itself drops it.
 `from None` hides that original traceback. Use it only on purpose.
 Do not catch `Exception` and keep going.
 

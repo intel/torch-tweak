@@ -67,7 +67,7 @@ questions a reviewer will ask. Those belong in the pull request description.
 ### Necessary
 
 - A helper used once, whose name does not make the call easier to read.
-- A `found` flag where `for`/`else` or `try`/`else` already says the same thing.
+- A `found` flag where a `return` or `break` in the loop, plus `else` for the miss, already says the same thing.
 - A wrapper that only calls one other function.
 - A comment that repeats the next line.
 - A comment about deleted code, the previous behavior, or why an older version differed.
@@ -88,6 +88,12 @@ A strategy that stores no fields is a function.
 
 Fewer names and less nesting, with the same behavior and the same cost.
 Prefer that edit over a new abstraction.
+
+### Leave these alone
+
+- A `for`/`else` search that returns the match from the loop. The `else` is the miss.
+- A result that already has one shape, including a stand-in string for a miss. Do not invent an exception for it.
+- Anything in the Ruff list below.
 
 ## Leave these to Ruff
 
