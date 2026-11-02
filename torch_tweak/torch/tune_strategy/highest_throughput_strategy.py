@@ -170,6 +170,7 @@ class HighestThroughputStrategy(TuneStrategyFindMaxBatchSizeExtension):
                         best_backend = backend
                         best_throughput = throughput
                         best_batch_size = batch_size
+                    backend.deactivate()
 
                 except Exception:
                     if backend.is_active:
@@ -193,6 +194,10 @@ class HighestThroughputStrategy(TuneStrategyFindMaxBatchSizeExtension):
                 measurements=measurements,
             )
         )
+        # A later build can move `module`.
+        # `OpenVINOBackend._build` offloads it to CPU.
+        # `activate` rebuilds the winner on the weights `module` holds now.
+        module.to(device)
         best_backend.activate()
         log("🎯 Strategy %s execution finished:", self.__class__.__name__, sink=self._sink)
         log(

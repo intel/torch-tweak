@@ -294,6 +294,11 @@ class TunableModule(wrapt.CallableObjectProxy):
             if dry_run:
                 strategy.tune_dry_run(self.__wrapped__, self._self_name, graph_spec, data, device, cache_dir)
             else:
+                # Tuning this graph can move the weights an earlier backend was built on.
+                # `OpenVINOBackend._build` offloads the module to CPU.
+                # Earlier backends are rebuilt after the loop.
+                for selected in backends.values():
+                    selected.deactivate()
                 try:
                     self._restore_original_forward()
                     backends[graph_spec.input_spec] = strategy.tune(
@@ -307,6 +312,8 @@ class TunableModule(wrapt.CallableObjectProxy):
                 self._self_prev_recording = recording
                 self._self_state = ModuleState.TUNED
                 self._self_wrapper = TunedModule(backends)
+                self.__wrapped__.to(device)
+                self._activate_wrapper()
                 self._offload(backends)
             finally:
                 recording.cleanup()

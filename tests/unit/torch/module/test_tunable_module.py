@@ -181,7 +181,7 @@ def test_tune(module, torch_device):
     module(2, b=2)
     module.tune(strategy=strategy, dry_run=False, device=torch_device)
 
-    strategy.tune.assert_has_calls([
+    assert strategy.tune.call_args_list == [
         call(
             module,
             TEST_MODULE_NAME,
@@ -206,7 +206,7 @@ def test_tune(module, torch_device):
             torch_device,
             torch_tweak_cache_dir() / module._self_name / module.graph_specs[1].name,
         ),
-    ])
+    ]
 
     assert module.state == ModuleState.TUNED
 
