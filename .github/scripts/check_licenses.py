@@ -18,7 +18,8 @@ Rules enforced (check mode)
 ---------------------------
 Rule 1 - Original Header Retention
     For every modified file: if the upstream baseline version contained an upstream
-    copyright line, the PR version must keep that exact line unchanged.
+    copyright line, the PR version must keep that exact line unchanged. The same
+    applies to the ``SPDX-License-Identifier: Apache-2.0`` line, if present.
 
 Rule 2 - Intel Copyright & Modification Notice
     Every modified file that carried an upstream copyright in the baseline must
@@ -69,9 +70,9 @@ _UPSTREAM_COPYRIGHT_RE = re.compile(
     r"SPDX-FileCopyrightText:\s*Copyright\s*\(c\)\s*\d+\s*NVIDIA",
 )
 
-# Rule 1 also covers this tag: accidental deletion/edit must be caught, same as the
-# NVIDIA copyright line above.
-_SPDX_LICENSE_IDENTIFIER_RE = re.compile(r"SPDX-License-Identifier:\s*\S+")
+# Matched verbatim (no year range here) to avoid catching this string anywhere
+# other than an actual header.
+_APACHE_COPYRIGHT_RE = re.compile(r"SPDX-License-Identifier:\s*Apache-2\.0\b")
 
 _INTEL_COPYRIGHT_RE = re.compile(
     r"Copyright\s*\(c\)\s*\d+\s*Intel Corporation",
@@ -158,8 +159,8 @@ def _upstream_copyright_lines(text: str) -> list[str]:
     return [ln.rstrip("\n") for ln in text.splitlines() if _UPSTREAM_COPYRIGHT_RE.search(ln)]
 
 
-def _spdx_license_lines(text: str) -> list[str]:
-    return [ln.rstrip("\n") for ln in text.splitlines() if _SPDX_LICENSE_IDENTIFIER_RE.search(ln)]
+def _apache_license_lines(text: str) -> list[str]:
+    return [ln.rstrip("\n") for ln in text.splitlines() if _APACHE_COPYRIGHT_RE.search(ln)]
 
 
 # ---------------------------------------------------------------------------
@@ -282,10 +283,6 @@ def _file_at_baseline(filepath: str) -> str | None:
     return None
 
 
-def _baseline_upstream_lines(filepath: str) -> list[str]:
-    return _upstream_copyright_lines(_file_at_baseline(filepath) or "")
-
-
 def _file_is_upstream_derived(filepath: str, head: str) -> bool:
     """True when *head* is an Intel-modified derivative of an upstream-authored file.
 
@@ -373,14 +370,15 @@ def _insert_intel_modification_notice(lines: list[str]) -> list[str]:
 def _normalize_python_headers(filepath: str, content: str) -> str:
     """Return *content* after applying all automatic Python header fixes (Rules 2-3 / CPY001)."""
     lines = content.splitlines(keepends=True)
-    upstream_from_baseline = _baseline_upstream_lines(filepath)
+    baseline_text = _file_at_baseline(filepath) or ""
+    retained_from_baseline = _upstream_copyright_lines(baseline_text) + _apache_license_lines(baseline_text)
     derived = _file_is_upstream_derived(filepath, content)
 
     head_stripped = {ln.strip() for ln in _cpy_head_lines(lines)}
-    missing_upstream = [ln for ln in upstream_from_baseline if ln.strip() not in head_stripped]
-    # Restore baseline upstream lines when the working tree lost them (Rule 1 retention).
-    if missing_upstream:
-        lines = _insert_lines(lines, _prologue_end(lines), missing_upstream)
+    missing_retained = [ln for ln in retained_from_baseline if ln.strip() not in head_stripped]
+    # Restore retained baseline lines (upstream copyright, Apache SPDX tag) when lost (Rule 1).
+    if missing_retained:
+        lines = _insert_lines(lines, _prologue_end(lines), missing_retained)
 
     head = _cpy_head_text("".join(lines))
 
@@ -616,22 +614,12 @@ def _original_content_before_pr(
     )
 
 
-def _check_spdx_license_identifier_retention(original: str, head: str) -> list[str]:
-    """Rule 1, extended to SPDX-License-Identifier: it must survive verbatim too."""
+def _check_retention(expected_lines: list[str], head: str, *, label: str) -> list[str]:
+    """Rule 1: every *label* line from the original must survive verbatim in *head*."""
     head_lines_stripped = {ln.strip() for ln in head.splitlines()}
     return [
-        f"  Original SPDX-License-Identifier line missing or altered.\n  Expected verbatim: {orig_line.strip()!r}"
-        for orig_line in _spdx_license_lines(original)
-        if orig_line.strip() not in head_lines_stripped
-    ]
-
-
-def _check_upstream_copyright_retention(upstream_in_original: list[str], head: str) -> list[str]:
-    """Rule 1: every original upstream copyright line must survive verbatim."""
-    head_lines_stripped = {ln.strip() for ln in head.splitlines()}
-    return [
-        f"  Original upstream copyright line missing or altered.\n  Expected verbatim: {orig_line.strip()!r}"
-        for orig_line in upstream_in_original
+        f"  Original {label} line missing or altered.\n  Expected verbatim: {orig_line.strip()!r}"
+        for orig_line in expected_lines
         if orig_line.strip() not in head_lines_stripped
     ]
 
@@ -679,9 +667,7 @@ def _check_notebook(
         has_upstream = _UPSTREAM_COPYRIGHT_RE.search(preamble) is not None
         return _notebook_intel_errors(preamble, modification=has_upstream)
 
-    original = _file_at_git_ref(UPSTREAM_BASELINE_SHA, original_filepath or filepath) or _file_at_git_ref(
-        _resolve_git_ref(base_ref), filepath
-    )
+    original = _original_content_before_pr(filepath, base_ref, original_filepath)
     if original is None:
         return []
 
@@ -724,13 +710,13 @@ def _check_modified(
         return []
 
     upstream_in_original = _upstream_copyright_lines(original)
-    errors: list[str] = _check_spdx_license_identifier_retention(original, head)
+    errors: list[str] = _check_retention(_apache_license_lines(original), head, label="SPDX-License-Identifier")
 
     # No upstream copyright in original - not an upstream file, nothing to enforce.
     if not upstream_in_original:
         return errors + (check_header(filepath) if _is_python(filepath) else [])
 
-    errors.extend(_check_upstream_copyright_retention(upstream_in_original, head))
+    errors.extend(_check_retention(upstream_in_original, head, label="upstream copyright"))
 
     if _is_python(filepath):
         errors.extend(check_header(filepath))
