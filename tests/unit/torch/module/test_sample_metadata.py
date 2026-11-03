@@ -481,3 +481,25 @@ def test_detected_dynamic_axis():
     # Manually modify tensor spec to have batch axis
     metadata3.tensor_specs[0].shape[0] = "batch0"
     assert metadata3.detected_dynamic_axis()
+
+
+def test_inputs_differing_in_a_non_batch_dimension_are_equal_by_default():
+    first = SampleMetadata.from_inputs((torch.zeros(2, 4, 8),), {})
+    second = SampleMetadata.from_inputs((torch.zeros(2, 4, 16),), {})
+
+    assert first == second
+
+
+def test_exact_shapes_separates_inputs_differing_in_a_non_batch_dimension():
+    first = SampleMetadata.from_inputs((torch.zeros(2, 4, 8),), {}, exact_shapes=True)
+    second = SampleMetadata.from_inputs((torch.zeros(2, 4, 16),), {}, exact_shapes=True)
+
+    assert first != second
+
+
+def test_exact_shapes_survive_a_dict_round_trip():
+    metadata = SampleMetadata.from_inputs((torch.zeros(2, 4, 8),), {}, exact_shapes=True)
+
+    restored = SampleMetadata.from_dict(metadata.to_dict())
+
+    assert restored == metadata

@@ -5,6 +5,8 @@
 """Tuned module."""
 
 from collections import OrderedDict
+from collections.abc import Callable
+from logging import getLogger
 from typing import Any
 
 import torch
@@ -14,6 +16,8 @@ from torch_tweak.torch.config import TorchTweakConfig
 from torch_tweak.torch.config import config as global_config
 from torch_tweak.torch.module.recording_module import Sample
 from torch_tweak.torch.module.sample_metadata import SampleMetadata
+
+logger = getLogger(__name__)
 
 
 class TunedModule:
@@ -57,6 +61,9 @@ class TunedModule:
             self._backend_func = self.call_unique_backend
 
         self._config = config if config is not None else global_config
+        # Runs a call whose graph has no backend. None raises instead.
+        self.fallback: Callable[..., Any] | None = None
+        self._unknown_graphs: set[SampleMetadata] = set()
 
     def __call__(self, *args: Any, **kwargs: Any) -> Any:
         """Run the call through the tuned module."""
@@ -86,9 +93,16 @@ class TunedModule:
     def safe_call_backend(self, sample: Sample):
         """Calls the backend according to the metadata of the sample."""
         args, kwargs = sample
-        sample_metadata = SampleMetadata.from_inputs(args, kwargs, strict=self._config.strict_mode)
+        sample_metadata = SampleMetadata.from_inputs(
+            args, kwargs, strict=self._config.strict_mode, exact_shapes=self._config.exact_shapes
+        )
         if sample_metadata not in self._backends:
-            raise RuntimeError(self.ERROR_NO_BACKEND_FOUND.format(sample_metadata))
+            if self.fallback is None:
+                raise RuntimeError(self.ERROR_NO_BACKEND_FOUND.format(sample_metadata))
+            if sample_metadata not in self._unknown_graphs:
+                self._unknown_graphs.add(sample_metadata)
+                logger.warning("No tuned backend for a graph, running the original module: %s", sample_metadata)
+            return self.fallback(*args, **kwargs)
 
         backend = self._backends[sample_metadata]
         return backend.infer(*args, **kwargs)
@@ -109,8 +123,11 @@ class TunedModule:
             backend.deploy(device=device)
 
     @staticmethod
-    def from_dict(module: torch.nn.Module, state_dict: dict):
+    def from_dict(module: torch.nn.Module, state_dict: dict, config: TorchTweakConfig | None = None):
         """Creates a TunedModule from a state_dict."""
+        from torch_tweak.torch.backend import import_optional_backends
+
+        import_optional_backends()
         backend_classes = {cls.__name__: cls for cls in Backend.__subclasses__()}
         backends = OrderedDict()
 
@@ -128,6 +145,7 @@ class TunedModule:
         return TunedModule(
             backends=backends,
             check_graph=state_dict[TunedModule.CHECK_GRAPH_KEY],
+            config=config,
         )
 
     def to_dict(self):

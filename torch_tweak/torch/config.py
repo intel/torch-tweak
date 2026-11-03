@@ -49,6 +49,8 @@ class TorchTweakConfig:
         self._device_after_tuning: str = DEFAULT_DEVICE_AFTER_TUNING
         self.strict_mode: bool = True
         self.enable_hf_integrations: bool = True
+        # When True, inputs that differ in any tensor shape or dtype are separate graphs.
+        self.exact_shapes: bool = False
 
     @property
     def min_num_samples(self) -> int:

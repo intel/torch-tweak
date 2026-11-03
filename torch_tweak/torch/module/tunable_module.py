@@ -309,7 +309,7 @@ class TunableModule(wrapt.CallableObjectProxy):
 
         if not dry_run:
             try:
-                tuned = TunedModule(backends)
+                tuned = TunedModule(backends, config=recording.config)
                 try:
                     self.__wrapped__.to(device)
                     self._activate_wrapper(tuned)

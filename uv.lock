@@ -1770,10 +1770,8 @@ default-groups = ["xpu-stable"]
 dependencies = [
     { name = "numpy", version = "2.4.6", source = { registry = "https://download.pytorch.org/whl/xpu" }, marker = "python_full_version < '3.12'" },
     { name = "numpy", version = "2.5.4", source = { registry = "https://download.pytorch.org/whl/xpu" }, marker = "python_full_version >= '3.12'" },
-    { name = "openvino" },
     { name = "psutil" },
     { name = "tabulate" },
-    { name = "torchao" },
     { name = "wrapt" },
 ]
 
@@ -1815,6 +1813,9 @@ doc = [
     { name = "properdocs" },
     { name = "ruff" },
 ]
+openvino = [
+    { name = "openvino" },
+]
 test = [
     { name = "coverage" },
     { name = "datasets" },
@@ -1830,9 +1831,14 @@ test = [
     { name = "transformers" },
     { name = "urllib3" },
 ]
+torchao = [
+    { name = "torchao" },
+]
 xpu = [
     { name = "fsspec" },
+    { name = "openvino" },
     { name = "torch", version = "2.15.0+xpu", source = { registry = "https://download.pytorch.org/whl/xpu" } },
+    { name = "torchao" },
 ]
 
 [package.dev-dependencies]
@@ -1874,7 +1880,8 @@ requires-dist = [
     { name = "multidict", marker = "extra == 'dev'", specifier = ">=6.9.1" },
     { name = "multidict", marker = "extra == 'test'", specifier = ">=6.9.1" },
     { name = "numpy", specifier = ">=2" },
-    { name = "openvino", specifier = ">=2026.2.1" },
+    { name = "openvino", marker = "extra == 'openvino'", specifier = ">=2026.2.1" },
+    { name = "openvino", marker = "extra == 'xpu'", specifier = ">=2026.2.1" },
     { name = "pillow", marker = "extra == 'dev'", specifier = ">=13.0.0" },
     { name = "pillow", marker = "extra == 'test'", specifier = ">=13.0.0" },
     { name = "pre-commit", marker = "extra == 'dev'" },
@@ -1896,7 +1903,8 @@ requires-dist = [
     { name = "timm", marker = "extra == 'dev'" },
     { name = "timm", marker = "extra == 'test'" },
     { name = "torch", marker = "extra == 'xpu'", specifier = ">=2.13.0", index = "https://download.pytorch.org/whl/xpu", conflict = { package = "torch-tweak", extra = "xpu" } },
-    { name = "torchao", specifier = ">=0.17.0", index = "https://download.pytorch.org/whl/cpu" },
+    { name = "torchao", marker = "extra == 'torchao'", specifier = ">=0.17.0", index = "https://download.pytorch.org/whl/cpu" },
+    { name = "torchao", marker = "extra == 'xpu'", specifier = ">=0.17.0", index = "https://download.pytorch.org/whl/cpu" },
     { name = "transformers", marker = "extra == 'dev'", specifier = ">=5.13.0,<6" },
     { name = "transformers", marker = "extra == 'test'", specifier = ">=5.13.0,<6" },
     { name = "urllib3", marker = "extra == 'dev'", specifier = ">=2.7.0" },
@@ -1905,7 +1913,7 @@ requires-dist = [
     { name = "virtualenv", marker = "extra == 'dev'", specifier = ">=21.7.13" },
     { name = "wrapt", specifier = "~=2.2" },
 ]
-provides-extras = ["dev", "doc", "test", "xpu"]
+provides-extras = ["dev", "doc", "openvino", "test", "torchao", "xpu"]
 
 [package.metadata.requires-dev]
 coverage = [

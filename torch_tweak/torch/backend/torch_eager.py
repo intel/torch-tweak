@@ -13,7 +13,13 @@ from typing import Any
 import torch
 import torch.nn as nn
 
-from torch_tweak.torch.backend.backend import Backend, BackendConfig, BackendState
+from torch_tweak.torch.backend.backend import (
+    Backend,
+    BackendConfig,
+    BackendState,
+    load_checkpoint_weights,
+    weights_for_checkpoint,
+)
 from torch_tweak.torch.module.graph_spec import GraphSpec
 from torch_tweak.torch.module.recording_module import Sample
 from torch_tweak.utils.trace import annotate
@@ -140,7 +146,7 @@ class TorchEagerBackend(Backend):
         return {
             self.STATE_TYPE: self.__class__.__name__,
             self.STATE_CONFIG: self._config.to_dict(),
-            self.STATE_ORIG_MODULE: self._orig_module.state_dict(),
+            self.STATE_ORIG_MODULE: weights_for_checkpoint(self._orig_module),
             self.STATE_OUTPUT_DTYPE: self._output_dtype,
             self.STATE_DEVICE: self.device,
         }
@@ -160,6 +166,6 @@ class TorchEagerBackend(Backend):
         backend._output_dtype = state_dict[cls.STATE_OUTPUT_DTYPE]
         backend._set_device(state_dict[cls.STATE_DEVICE])
         backend._orig_module = module
-        module.load_state_dict(state_dict[cls.STATE_ORIG_MODULE], strict=False)
+        load_checkpoint_weights(module, state_dict[cls.STATE_ORIG_MODULE])
         backend.state = BackendState.CHECKPOINT_LOADED
         return backend

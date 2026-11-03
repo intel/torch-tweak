@@ -9,6 +9,9 @@ import gc
 import json
 import logging
 from abc import ABC, abstractmethod
+from collections.abc import Generator
+from contextlib import contextmanager
+from contextvars import ContextVar
 from dataclasses import asdict, dataclass, fields, is_dataclass
 from enum import Enum
 from pathlib import Path
@@ -41,6 +44,33 @@ def samples_for_checkpoint(data: list[Sample] | None) -> list[Sample] | None:
             "%d of %d samples cannot be saved and are left out of the checkpoint.", len(data) - len(safe), len(data)
         )
     return safe
+
+
+_checkpoint_weights: ContextVar[bool] = ContextVar("checkpoint_weights", default=True)
+
+
+@contextmanager
+def checkpoint_without_weights() -> Generator[None]:
+    """Backends converted with to_dict inside this context leave out the module weights.
+
+    Loading such a checkpoint keeps the weights the module already holds.
+    """
+    token = _checkpoint_weights.set(False)
+    try:
+        yield
+    finally:
+        _checkpoint_weights.reset(token)
+
+
+def weights_for_checkpoint(module: nn.Module) -> dict[str, Any] | None:
+    """The state_dict of module, or None inside checkpoint_without_weights."""
+    return module.state_dict() if _checkpoint_weights.get() else None
+
+
+def load_checkpoint_weights(module: nn.Module, weights: dict[str, Any] | None) -> None:
+    """Loads weights saved by weights_for_checkpoint. None leaves the weights of module in place."""
+    if weights is not None:
+        module.load_state_dict(weights, strict=False)
 
 
 class BackendState(Enum):

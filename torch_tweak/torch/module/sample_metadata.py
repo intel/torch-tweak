@@ -166,15 +166,18 @@ class SampleMetadata:
         other_data: tuple[tuple[Locator, str, Any]],
         strict: bool = False,
         llm_phase: Literal["prefill", "decode"] | None = None,
+        shape_key: tuple[tuple[str, tuple[int, ...], str], ...] | None = None,
     ) -> None:
         """Create SampleMetadata from provided tensor data and other data.
 
         If strict is False, other data is empty i.e. everything except tensors is ignored.
+        shape_key holds the name, shape, and dtype of every tensor. When set, it is part of equality and hash.
         """
         self._tensor_data = tensor_data
         self._other_data = other_data
         self._strict = strict
         self._llm_phase = llm_phase
+        self._shape_key = shape_key
 
     def __str__(self) -> str:
         """Convert sample metadata to string."""
@@ -190,7 +193,11 @@ class SampleMetadata:
             return False
 
         if self._llm_phase is None:
-            return self._tensor_data == __value._tensor_data and self._other_data == __value._other_data
+            return (
+                self._tensor_data == __value._tensor_data
+                and self._other_data == __value._other_data
+                and self._shape_key == __value._shape_key
+            )
         else:
             # LLM integration: check only LLM phase
             return self._llm_phase == __value._llm_phase
@@ -198,7 +205,7 @@ class SampleMetadata:
     def __hash__(self) -> int:
         """Compute hash of sample metadata."""
         if self._llm_phase is None:
-            return hash(self._tensor_data) ^ hash(self._other_data)
+            return hash(self._tensor_data) ^ hash(self._other_data) ^ hash(self._shape_key)
         else:
             # LLM integration: hash only LLM phase
             return hash(self._llm_phase)
@@ -263,11 +270,17 @@ class SampleMetadata:
 
     @staticmethod
     def from_inputs(
-        args: Any, kwargs: dict[str, Any], strict: bool = False, batch_size: int | None = None
+        args: Any,
+        kwargs: dict[str, Any],
+        strict: bool = False,
+        batch_size: int | None = None,
+        *,
+        exact_shapes: bool = False,
     ) -> "SampleMetadata":
         """Create SampleMetadata from inputs: args and kwargs.
 
         If strict is True, then other data is also included.
+        If exact_shapes is True, inputs that differ in any tensor shape or dtype get unequal metadata.
         """
         batch_size = batch_size or global_context.get(BATCH_SIZE_KEY, float("nan"))
         tensor_data, other_data, cache_position = [], [], None
@@ -287,7 +300,8 @@ class SampleMetadata:
         else:
             llm_phase = "prefill" if cache_position[0].item() == 0 else "decode"
 
-        return SampleMetadata(tuple(tensor_data), tuple(other_data), strict, llm_phase)
+        shape_key = _shape_key(tensor_data) if exact_shapes else None
+        return SampleMetadata(tuple(tensor_data), tuple(other_data), strict, llm_phase, shape_key)
 
     @staticmethod
     def from_outputs(output: Any, strict: bool = False, batch_size: int | None = None) -> "SampleMetadata":
@@ -330,7 +344,10 @@ class SampleMetadata:
             )
             for entry in data["other_data"]
         )
-        return SampleMetadata(tensor_data, other_data, data["strict"], data["llm_phase"])
+        shape_key = data.get("shape_key")
+        if shape_key is not None:
+            shape_key = tuple((name, tuple(shape), dtype) for name, shape, dtype in shape_key)
+        return SampleMetadata(tensor_data, other_data, data["strict"], data["llm_phase"], shape_key)
 
     def to_dict(self) -> dict:
         """Convert sample metadata to a serializable dictionary.
@@ -341,7 +358,7 @@ class SampleMetadata:
         Raises:
             TypeError: If non-tensor data holds a value which cannot be stored safely.
         """
-        return {
+        data = {
             "tensor_data": [
                 {"locator": locator.to_dict(), "tensor_spec": tensor_spec.to_dict()}
                 for locator, tensor_spec in self._tensor_data
@@ -357,6 +374,9 @@ class SampleMetadata:
             "strict": self._strict,
             "llm_phase": self._llm_phase,
         }
+        if self._shape_key is not None:
+            data["shape_key"] = [list(entry) for entry in self._shape_key]
+        return data
 
     def describe(self, info_level: InfoLevel = InfoLevel.FULL) -> str:
         """Get information describing sample metadata."""
@@ -431,6 +451,10 @@ class SampleMetadata:
     def has_batch_axis(self) -> bool:
         """Check if metadata has batch axis."""
         return all(tensor_spec.has_batch_axis() for tensor_spec in self.tensor_specs)
+
+
+def _shape_key(tensor_data: list[tuple[Locator, TensorSpec]]) -> tuple[tuple[str, tuple[int, ...], str], ...]:
+    return tuple((spec.name, tuple(spec.shape), str(spec.dtype)) for _, spec in tensor_data)
 
 
 def batch_tensor(tensor: torch.Tensor, tensor_spec: TensorSpec, batch_size: int) -> torch.Tensor:

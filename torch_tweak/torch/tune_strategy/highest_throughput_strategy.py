@@ -13,6 +13,7 @@
    that sends those batch sizes to it.
 """
 
+import gc
 from collections.abc import Iterable
 from copy import deepcopy
 from dataclasses import dataclass, field
@@ -189,6 +190,7 @@ class HighestThroughputStrategy(TuneStrategyFindMaxBatchSizeExtension):
                         backend.deactivate()
                     log("❌ backend failed (log file: %s)", log_file, depth=2, sink=self._sink)
                     module.to(device)  # move module back to device as failed backend could move it to cpu
+            _release_device_memory(device, self._sink)
 
         if best_backend is None:
             log(
@@ -247,3 +249,20 @@ class HighestThroughputStrategy(TuneStrategyFindMaxBatchSizeExtension):
             "backends:",
             *[f"  {backend}" for backend in backends],
         ]
+
+
+def _release_device_memory(device: torch.device, sink) -> None:
+    """Frees the cached blocks a deactivated backend left, so the next backend profiles with the same free memory."""
+    if torch.device(device).type != "xpu":
+        return
+    gc.collect()
+    torch.xpu.synchronize(device)
+    torch.xpu.empty_cache()
+    log(
+        "💾 device memory: %.2f GiB allocated, %.2f GiB reserved, %.2f GiB peak",
+        torch.xpu.memory_allocated(device) / 2**30,
+        torch.xpu.memory_reserved(device) / 2**30,
+        torch.xpu.max_memory_reserved(device) / 2**30,
+        depth=2,
+        sink=sink,
+    )
