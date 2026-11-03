@@ -2819,7 +2819,7 @@ NOTE: This file has been modified by Intel Corporation.
 <ul>
 <li><strong>OpenVINO</strong> requires converting the model to an OpenVINO representation. Models with unsupported operators, complex dynamic control flow, or symbolic shape constraints may fail during conversion or model compilation. Memory constraints can also prevent the model from being compiled.</li>
 <li><strong>Torch Inductor</strong> uses <code>torch.compile</code>, which may encounter <em>graph breaks</em> on unsupported Python constructs or operations, causing partial or failed compilation.</li>
-<li><strong>XPU Graph</strong> records the module for replay, so it requires static tensor shapes. A failed recording or a mismatch against eager output rejects the backend for that module and input.</li>
+<li><strong>XPU Graph</strong> records the module for replay. It pads the batch axis to a recorded batch size and rejects any other dynamic axis. A failed recording or a mismatch against eager output rejects the backend for that module and input.</li>
 <li><strong>TorchAO</strong> applies quantization transformations that may not support all layer types or model architectures.</li>
 <li><strong>Torch Eager</strong> runs the module unchanged, so it always succeeds, which makes it a useful last-resort fallback.</li>
 </ul>

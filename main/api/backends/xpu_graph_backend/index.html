@@ -1946,6 +1946,17 @@
 </li>
         
           <li class="md-nav__item">
+  <a href="#torch_tweak.torch.backend.XPUGraphBackend.recorded_batch_sizes" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        recorded_batch_sizes
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#torch_tweak.torch.backend.XPUGraphBackend.activate" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -2077,6 +2088,17 @@
   
     <nav class="md-nav" aria-label="XPUGraphBackendConfig">
       <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#torch_tweak.torch.backend.XPUGraphBackendConfig.__post_init__" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        __post_init__
+      
+    </span>
+  </a>
+  
+</li>
         
           <li class="md-nav__item">
   <a href="#torch_tweak.torch.backend.XPUGraphBackendConfig.describe" class="md-nav__link">
@@ -2685,6 +2707,17 @@
 </li>
         
           <li class="md-nav__item">
+  <a href="#torch_tweak.torch.backend.XPUGraphBackend.recorded_batch_sizes" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        recorded_batch_sizes
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#torch_tweak.torch.backend.XPUGraphBackend.activate" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -2818,6 +2851,17 @@
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
+  <a href="#torch_tweak.torch.backend.XPUGraphBackendConfig.__post_init__" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        __post_init__
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#torch_tweak.torch.backend.XPUGraphBackendConfig.describe" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -2929,7 +2973,10 @@ SPDX-License-Identifier: Apache-2.0
 
 
 
-        <p>Backend that records one XPU graph while tuning and replays it for inference.</p>
+        <p>Backend that records XPU graphs while tuning and replays them for inference.</p>
+<p>A graph spec with static shapes records one graph.
+A graph spec with a batch axis records graphs for 1, 2, 4, every multiple of 8 below the largest batch size seen, and that size.
+A call pads its batch with zeros up to the nearest recorded size and gets the real rows back.</p>
 
         <p>Initializes backend.</p>
 
@@ -2962,35 +3009,37 @@ SPDX-License-Identifier: Apache-2.0
 
                   <details class="mkdocstrings-source">
                     <summary>Source code in <code>torch_tweak/torch/backend/xpu_graph_backend.py</code></summary>
-                    <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#torch_tweak.torch.backend.XPUGraphBackend--source--__codelineno-0-54">54</a></span>
-<span class="normal"><a href="#torch_tweak.torch.backend.XPUGraphBackend--source--__codelineno-0-55">55</a></span>
-<span class="normal"><a href="#torch_tweak.torch.backend.XPUGraphBackend--source--__codelineno-0-56">56</a></span>
-<span class="normal"><a href="#torch_tweak.torch.backend.XPUGraphBackend--source--__codelineno-0-57">57</a></span>
-<span class="normal"><a href="#torch_tweak.torch.backend.XPUGraphBackend--source--__codelineno-0-58">58</a></span>
-<span class="normal"><a href="#torch_tweak.torch.backend.XPUGraphBackend--source--__codelineno-0-59">59</a></span>
-<span class="normal"><a href="#torch_tweak.torch.backend.XPUGraphBackend--source--__codelineno-0-60">60</a></span>
-<span class="normal"><a href="#torch_tweak.torch.backend.XPUGraphBackend--source--__codelineno-0-61">61</a></span>
-<span class="normal"><a href="#torch_tweak.torch.backend.XPUGraphBackend--source--__codelineno-0-62">62</a></span>
-<span class="normal"><a href="#torch_tweak.torch.backend.XPUGraphBackend--source--__codelineno-0-63">63</a></span>
-<span class="normal"><a href="#torch_tweak.torch.backend.XPUGraphBackend--source--__codelineno-0-64">64</a></span>
-<span class="normal"><a href="#torch_tweak.torch.backend.XPUGraphBackend--source--__codelineno-0-65">65</a></span>
-<span class="normal"><a href="#torch_tweak.torch.backend.XPUGraphBackend--source--__codelineno-0-66">66</a></span>
-<span class="normal"><a href="#torch_tweak.torch.backend.XPUGraphBackend--source--__codelineno-0-67">67</a></span>
-<span class="normal"><a href="#torch_tweak.torch.backend.XPUGraphBackend--source--__codelineno-0-68">68</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="torch_tweak.torch.backend.XPUGraphBackend--source--__codelineno-0-54" name="torch_tweak.torch.backend.XPUGraphBackend--source--__codelineno-0-54"></a><span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">config</span><span class="p">:</span> <span class="n">XPUGraphBackendConfig</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">):</span>
-<a id="torch_tweak.torch.backend.XPUGraphBackend--source--__codelineno-0-55" name="torch_tweak.torch.backend.XPUGraphBackend--source--__codelineno-0-55"></a><span class="w">    </span><span class="sd">"""Initializes backend.</span>
-<a id="torch_tweak.torch.backend.XPUGraphBackend--source--__codelineno-0-56" name="torch_tweak.torch.backend.XPUGraphBackend--source--__codelineno-0-56"></a>
-<a id="torch_tweak.torch.backend.XPUGraphBackend--source--__codelineno-0-57" name="torch_tweak.torch.backend.XPUGraphBackend--source--__codelineno-0-57"></a><span class="sd">    Args:</span>
-<a id="torch_tweak.torch.backend.XPUGraphBackend--source--__codelineno-0-58" name="torch_tweak.torch.backend.XPUGraphBackend--source--__codelineno-0-58"></a><span class="sd">        config: Recording and autocast configuration.</span>
-<a id="torch_tweak.torch.backend.XPUGraphBackend--source--__codelineno-0-59" name="torch_tweak.torch.backend.XPUGraphBackend--source--__codelineno-0-59"></a><span class="sd">    """</span>
-<a id="torch_tweak.torch.backend.XPUGraphBackend--source--__codelineno-0-60" name="torch_tweak.torch.backend.XPUGraphBackend--source--__codelineno-0-60"></a>    <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
-<a id="torch_tweak.torch.backend.XPUGraphBackend--source--__codelineno-0-61" name="torch_tweak.torch.backend.XPUGraphBackend--source--__codelineno-0-61"></a>    <span class="bp">self</span><span class="o">.</span><span class="n">_config</span><span class="p">:</span> <span class="n">XPUGraphBackendConfig</span> <span class="o">=</span> <span class="n">config</span> <span class="ow">or</span> <span class="n">XPUGraphBackendConfig</span><span class="p">()</span>
-<a id="torch_tweak.torch.backend.XPUGraphBackend--source--__codelineno-0-62" name="torch_tweak.torch.backend.XPUGraphBackend--source--__codelineno-0-62"></a>    <span class="bp">self</span><span class="o">.</span><span class="n">_orig_module</span><span class="p">:</span> <span class="n">nn</span><span class="o">.</span><span class="n">Module</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
-<a id="torch_tweak.torch.backend.XPUGraphBackend--source--__codelineno-0-63" name="torch_tweak.torch.backend.XPUGraphBackend--source--__codelineno-0-63"></a>    <span class="bp">self</span><span class="o">.</span><span class="n">_data</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">Sample</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
-<a id="torch_tweak.torch.backend.XPUGraphBackend--source--__codelineno-0-64" name="torch_tweak.torch.backend.XPUGraphBackend--source--__codelineno-0-64"></a>    <span class="bp">self</span><span class="o">.</span><span class="n">_graph</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">xpu</span><span class="o">.</span><span class="n">XPUGraph</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
-<a id="torch_tweak.torch.backend.XPUGraphBackend--source--__codelineno-0-65" name="torch_tweak.torch.backend.XPUGraphBackend--source--__codelineno-0-65"></a>    <span class="bp">self</span><span class="o">.</span><span class="n">_static_args</span><span class="p">:</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">list</span><span class="p">[</span><span class="n">Any</span><span class="p">],</span> <span class="n">TreeSpec</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
-<a id="torch_tweak.torch.backend.XPUGraphBackend--source--__codelineno-0-66" name="torch_tweak.torch.backend.XPUGraphBackend--source--__codelineno-0-66"></a>    <span class="bp">self</span><span class="o">.</span><span class="n">_static_kwargs</span><span class="p">:</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">list</span><span class="p">[</span><span class="n">Any</span><span class="p">],</span> <span class="n">TreeSpec</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
-<a id="torch_tweak.torch.backend.XPUGraphBackend--source--__codelineno-0-67" name="torch_tweak.torch.backend.XPUGraphBackend--source--__codelineno-0-67"></a>    <span class="bp">self</span><span class="o">.</span><span class="n">_captured</span><span class="p">:</span> <span class="n">Any</span> <span class="o">=</span> <span class="kc">None</span>
-<a id="torch_tweak.torch.backend.XPUGraphBackend--source--__codelineno-0-68" name="torch_tweak.torch.backend.XPUGraphBackend--source--__codelineno-0-68"></a>    <span class="bp">self</span><span class="o">.</span><span class="n">_warned_eager</span> <span class="o">=</span> <span class="kc">False</span>
+                    <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#torch_tweak.torch.backend.XPUGraphBackend--source--__codelineno-0-104">104</a></span>
+<span class="normal"><a href="#torch_tweak.torch.backend.XPUGraphBackend--source--__codelineno-0-105">105</a></span>
+<span class="normal"><a href="#torch_tweak.torch.backend.XPUGraphBackend--source--__codelineno-0-106">106</a></span>
+<span class="normal"><a href="#torch_tweak.torch.backend.XPUGraphBackend--source--__codelineno-0-107">107</a></span>
+<span class="normal"><a href="#torch_tweak.torch.backend.XPUGraphBackend--source--__codelineno-0-108">108</a></span>
+<span class="normal"><a href="#torch_tweak.torch.backend.XPUGraphBackend--source--__codelineno-0-109">109</a></span>
+<span class="normal"><a href="#torch_tweak.torch.backend.XPUGraphBackend--source--__codelineno-0-110">110</a></span>
+<span class="normal"><a href="#torch_tweak.torch.backend.XPUGraphBackend--source--__codelineno-0-111">111</a></span>
+<span class="normal"><a href="#torch_tweak.torch.backend.XPUGraphBackend--source--__codelineno-0-112">112</a></span>
+<span class="normal"><a href="#torch_tweak.torch.backend.XPUGraphBackend--source--__codelineno-0-113">113</a></span>
+<span class="normal"><a href="#torch_tweak.torch.backend.XPUGraphBackend--source--__codelineno-0-114">114</a></span>
+<span class="normal"><a href="#torch_tweak.torch.backend.XPUGraphBackend--source--__codelineno-0-115">115</a></span>
+<span class="normal"><a href="#torch_tweak.torch.backend.XPUGraphBackend--source--__codelineno-0-116">116</a></span>
+<span class="normal"><a href="#torch_tweak.torch.backend.XPUGraphBackend--source--__codelineno-0-117">117</a></span>
+<span class="normal"><a href="#torch_tweak.torch.backend.XPUGraphBackend--source--__codelineno-0-118">118</a></span>
+<span class="normal"><a href="#torch_tweak.torch.backend.XPUGraphBackend--source--__codelineno-0-119">119</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="torch_tweak.torch.backend.XPUGraphBackend--source--__codelineno-0-104" name="torch_tweak.torch.backend.XPUGraphBackend--source--__codelineno-0-104"></a><span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">config</span><span class="p">:</span> <span class="n">XPUGraphBackendConfig</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">):</span>
+<a id="torch_tweak.torch.backend.XPUGraphBackend--source--__codelineno-0-105" name="torch_tweak.torch.backend.XPUGraphBackend--source--__codelineno-0-105"></a><span class="w">    </span><span class="sd">"""Initializes backend.</span>
+<a id="torch_tweak.torch.backend.XPUGraphBackend--source--__codelineno-0-106" name="torch_tweak.torch.backend.XPUGraphBackend--source--__codelineno-0-106"></a>
+<a id="torch_tweak.torch.backend.XPUGraphBackend--source--__codelineno-0-107" name="torch_tweak.torch.backend.XPUGraphBackend--source--__codelineno-0-107"></a><span class="sd">    Args:</span>
+<a id="torch_tweak.torch.backend.XPUGraphBackend--source--__codelineno-0-108" name="torch_tweak.torch.backend.XPUGraphBackend--source--__codelineno-0-108"></a><span class="sd">        config: Recording and autocast configuration.</span>
+<a id="torch_tweak.torch.backend.XPUGraphBackend--source--__codelineno-0-109" name="torch_tweak.torch.backend.XPUGraphBackend--source--__codelineno-0-109"></a><span class="sd">    """</span>
+<a id="torch_tweak.torch.backend.XPUGraphBackend--source--__codelineno-0-110" name="torch_tweak.torch.backend.XPUGraphBackend--source--__codelineno-0-110"></a>    <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
+<a id="torch_tweak.torch.backend.XPUGraphBackend--source--__codelineno-0-111" name="torch_tweak.torch.backend.XPUGraphBackend--source--__codelineno-0-111"></a>    <span class="bp">self</span><span class="o">.</span><span class="n">_config</span><span class="p">:</span> <span class="n">XPUGraphBackendConfig</span> <span class="o">=</span> <span class="n">config</span> <span class="ow">or</span> <span class="n">XPUGraphBackendConfig</span><span class="p">()</span>
+<a id="torch_tweak.torch.backend.XPUGraphBackend--source--__codelineno-0-112" name="torch_tweak.torch.backend.XPUGraphBackend--source--__codelineno-0-112"></a>    <span class="bp">self</span><span class="o">.</span><span class="n">_orig_module</span><span class="p">:</span> <span class="n">nn</span><span class="o">.</span><span class="n">Module</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
+<a id="torch_tweak.torch.backend.XPUGraphBackend--source--__codelineno-0-113" name="torch_tweak.torch.backend.XPUGraphBackend--source--__codelineno-0-113"></a>    <span class="bp">self</span><span class="o">.</span><span class="n">_data</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">Sample</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
+<a id="torch_tweak.torch.backend.XPUGraphBackend--source--__codelineno-0-114" name="torch_tweak.torch.backend.XPUGraphBackend--source--__codelineno-0-114"></a>    <span class="bp">self</span><span class="o">.</span><span class="n">_input_spec</span><span class="p">:</span> <span class="n">SampleMetadata</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
+<a id="torch_tweak.torch.backend.XPUGraphBackend--source--__codelineno-0-115" name="torch_tweak.torch.backend.XPUGraphBackend--source--__codelineno-0-115"></a>    <span class="bp">self</span><span class="o">.</span><span class="n">_layout</span><span class="p">:</span> <span class="n">_Layout</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
+<a id="torch_tweak.torch.backend.XPUGraphBackend--source--__codelineno-0-116" name="torch_tweak.torch.backend.XPUGraphBackend--source--__codelineno-0-116"></a>    <span class="c1"># Keyed by batch size in ascending order. A graph spec without a batch axis has one recording under key 1.</span>
+<a id="torch_tweak.torch.backend.XPUGraphBackend--source--__codelineno-0-117" name="torch_tweak.torch.backend.XPUGraphBackend--source--__codelineno-0-117"></a>    <span class="bp">self</span><span class="o">.</span><span class="n">_recordings</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="n">_Recording</span><span class="p">]</span> <span class="o">=</span> <span class="p">{}</span>
+<a id="torch_tweak.torch.backend.XPUGraphBackend--source--__codelineno-0-118" name="torch_tweak.torch.backend.XPUGraphBackend--source--__codelineno-0-118"></a>    <span class="bp">self</span><span class="o">.</span><span class="n">_pool</span><span class="p">:</span> <span class="n">Any</span> <span class="o">=</span> <span class="kc">None</span>
+<a id="torch_tweak.torch.backend.XPUGraphBackend--source--__codelineno-0-119" name="torch_tweak.torch.backend.XPUGraphBackend--source--__codelineno-0-119"></a>    <span class="bp">self</span><span class="o">.</span><span class="n">_warned_eager</span> <span class="o">=</span> <span class="kc">False</span>
 </code></pre></div></td></tr></table></div>
                   </details>
 
@@ -3083,6 +3132,30 @@ SPDX-License-Identifier: Apache-2.0
     <div class="doc doc-contents ">
 
         <p>Name of a backend.</p>
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-attribute">
+
+
+
+<h4 id="torch_tweak.torch.backend.XPUGraphBackend.recorded_batch_sizes" class="doc doc-heading">
+            <span class="doc doc-object-name doc-attribute-name">recorded_batch_sizes</span>
+
+
+  <span class="doc doc-labels">
+      <small class="doc doc-label doc-label-property"><code>property</code></small>
+  </span>
+
+</h4>
+<div class="doc-signature highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="n">recorded_batch_sizes</span>
+</code></pre></div>
+
+    <div class="doc doc-contents ">
+
+        <p>Batch sizes with a recorded graph, in ascending order.</p>
 
     </div>
 
@@ -3369,11 +3442,11 @@ inputs at most once so that subsequent calls have exact same state as the first 
 
             <details class="mkdocstrings-source">
               <summary>Source code in <code>torch_tweak/torch/backend/xpu_graph_backend.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#torch_tweak.torch.backend.XPUGraphBackend.describe--source--__codelineno-0-74">74</a></span>
-<span class="normal"><a href="#torch_tweak.torch.backend.XPUGraphBackend.describe--source--__codelineno-0-75">75</a></span>
-<span class="normal"><a href="#torch_tweak.torch.backend.XPUGraphBackend.describe--source--__codelineno-0-76">76</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="torch_tweak.torch.backend.XPUGraphBackend.describe--source--__codelineno-0-74" name="torch_tweak.torch.backend.XPUGraphBackend.describe--source--__codelineno-0-74"></a><span class="k">def</span><span class="w"> </span><span class="nf">describe</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
-<a id="torch_tweak.torch.backend.XPUGraphBackend.describe--source--__codelineno-0-75" name="torch_tweak.torch.backend.XPUGraphBackend.describe--source--__codelineno-0-75"></a><span class="w">    </span><span class="sd">"""Returns the description of the backend."""</span>
-<a id="torch_tweak.torch.backend.XPUGraphBackend.describe--source--__codelineno-0-76" name="torch_tweak.torch.backend.XPUGraphBackend.describe--source--__codelineno-0-76"></a>    <span class="k">return</span> <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="o">.</span><span class="vm">__name__</span><span class="si">}</span><span class="s2">(</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">_config</span><span class="o">.</span><span class="n">describe</span><span class="p">()</span><span class="si">}</span><span class="s2">)"</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#torch_tweak.torch.backend.XPUGraphBackend.describe--source--__codelineno-0-125">125</a></span>
+<span class="normal"><a href="#torch_tweak.torch.backend.XPUGraphBackend.describe--source--__codelineno-0-126">126</a></span>
+<span class="normal"><a href="#torch_tweak.torch.backend.XPUGraphBackend.describe--source--__codelineno-0-127">127</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="torch_tweak.torch.backend.XPUGraphBackend.describe--source--__codelineno-0-125" name="torch_tweak.torch.backend.XPUGraphBackend.describe--source--__codelineno-0-125"></a><span class="k">def</span><span class="w"> </span><span class="nf">describe</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<a id="torch_tweak.torch.backend.XPUGraphBackend.describe--source--__codelineno-0-126" name="torch_tweak.torch.backend.XPUGraphBackend.describe--source--__codelineno-0-126"></a><span class="w">    </span><span class="sd">"""Returns the description of the backend."""</span>
+<a id="torch_tweak.torch.backend.XPUGraphBackend.describe--source--__codelineno-0-127" name="torch_tweak.torch.backend.XPUGraphBackend.describe--source--__codelineno-0-127"></a>    <span class="k">return</span> <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="o">.</span><span class="vm">__name__</span><span class="si">}</span><span class="s2">(</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">_config</span><span class="o">.</span><span class="n">describe</span><span class="p">()</span><span class="si">}</span><span class="s2">)"</span>
 </code></pre></div></td></tr></table></div>
             </details>
     </div>
@@ -3402,37 +3475,41 @@ inputs at most once so that subsequent calls have exact same state as the first 
 
             <details class="mkdocstrings-source">
               <summary>Source code in <code>torch_tweak/torch/backend/xpu_graph_backend.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#torch_tweak.torch.backend.XPUGraphBackend.from_dict--source--__codelineno-0-234">234</a></span>
-<span class="normal"><a href="#torch_tweak.torch.backend.XPUGraphBackend.from_dict--source--__codelineno-0-235">235</a></span>
-<span class="normal"><a href="#torch_tweak.torch.backend.XPUGraphBackend.from_dict--source--__codelineno-0-236">236</a></span>
-<span class="normal"><a href="#torch_tweak.torch.backend.XPUGraphBackend.from_dict--source--__codelineno-0-237">237</a></span>
-<span class="normal"><a href="#torch_tweak.torch.backend.XPUGraphBackend.from_dict--source--__codelineno-0-238">238</a></span>
-<span class="normal"><a href="#torch_tweak.torch.backend.XPUGraphBackend.from_dict--source--__codelineno-0-239">239</a></span>
-<span class="normal"><a href="#torch_tweak.torch.backend.XPUGraphBackend.from_dict--source--__codelineno-0-240">240</a></span>
-<span class="normal"><a href="#torch_tweak.torch.backend.XPUGraphBackend.from_dict--source--__codelineno-0-241">241</a></span>
-<span class="normal"><a href="#torch_tweak.torch.backend.XPUGraphBackend.from_dict--source--__codelineno-0-242">242</a></span>
-<span class="normal"><a href="#torch_tweak.torch.backend.XPUGraphBackend.from_dict--source--__codelineno-0-243">243</a></span>
-<span class="normal"><a href="#torch_tweak.torch.backend.XPUGraphBackend.from_dict--source--__codelineno-0-244">244</a></span>
-<span class="normal"><a href="#torch_tweak.torch.backend.XPUGraphBackend.from_dict--source--__codelineno-0-245">245</a></span>
-<span class="normal"><a href="#torch_tweak.torch.backend.XPUGraphBackend.from_dict--source--__codelineno-0-246">246</a></span>
-<span class="normal"><a href="#torch_tweak.torch.backend.XPUGraphBackend.from_dict--source--__codelineno-0-247">247</a></span>
-<span class="normal"><a href="#torch_tweak.torch.backend.XPUGraphBackend.from_dict--source--__codelineno-0-248">248</a></span>
-<span class="normal"><a href="#torch_tweak.torch.backend.XPUGraphBackend.from_dict--source--__codelineno-0-249">249</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="torch_tweak.torch.backend.XPUGraphBackend.from_dict--source--__codelineno-0-234" name="torch_tweak.torch.backend.XPUGraphBackend.from_dict--source--__codelineno-0-234"></a><span class="nd">@classmethod</span>
-<a id="torch_tweak.torch.backend.XPUGraphBackend.from_dict--source--__codelineno-0-235" name="torch_tweak.torch.backend.XPUGraphBackend.from_dict--source--__codelineno-0-235"></a><span class="k">def</span><span class="w"> </span><span class="nf">from_dict</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">module</span><span class="p">:</span> <span class="n">nn</span><span class="o">.</span><span class="n">Module</span> <span class="o">|</span> <span class="kc">None</span><span class="p">,</span> <span class="n">state_dict</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">Self</span><span class="p">:</span>
-<a id="torch_tweak.torch.backend.XPUGraphBackend.from_dict--source--__codelineno-0-236" name="torch_tweak.torch.backend.XPUGraphBackend.from_dict--source--__codelineno-0-236"></a><span class="w">    </span><span class="sd">"""Creates a backend from a state_dict."""</span>
-<a id="torch_tweak.torch.backend.XPUGraphBackend.from_dict--source--__codelineno-0-237" name="torch_tweak.torch.backend.XPUGraphBackend.from_dict--source--__codelineno-0-237"></a>    <span class="k">if</span> <span class="n">state_dict</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="bp">cls</span><span class="o">.</span><span class="n">STATE_TYPE</span><span class="p">)</span> <span class="o">!=</span> <span class="bp">cls</span><span class="o">.</span><span class="vm">__name__</span><span class="p">:</span>
-<a id="torch_tweak.torch.backend.XPUGraphBackend.from_dict--source--__codelineno-0-238" name="torch_tweak.torch.backend.XPUGraphBackend.from_dict--source--__codelineno-0-238"></a>        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Invalid state_dict type: </span><span class="si">{</span><span class="n">state_dict</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="bp">cls</span><span class="o">.</span><span class="n">STATE_TYPE</span><span class="p">)</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
-<a id="torch_tweak.torch.backend.XPUGraphBackend.from_dict--source--__codelineno-0-239" name="torch_tweak.torch.backend.XPUGraphBackend.from_dict--source--__codelineno-0-239"></a>    <span class="k">if</span> <span class="n">module</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-<a id="torch_tweak.torch.backend.XPUGraphBackend.from_dict--source--__codelineno-0-240" name="torch_tweak.torch.backend.XPUGraphBackend.from_dict--source--__codelineno-0-240"></a>        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"Module is required to create a backend from a state_dict."</span><span class="p">)</span>
-<a id="torch_tweak.torch.backend.XPUGraphBackend.from_dict--source--__codelineno-0-241" name="torch_tweak.torch.backend.XPUGraphBackend.from_dict--source--__codelineno-0-241"></a>
-<a id="torch_tweak.torch.backend.XPUGraphBackend.from_dict--source--__codelineno-0-242" name="torch_tweak.torch.backend.XPUGraphBackend.from_dict--source--__codelineno-0-242"></a>    <span class="n">config</span> <span class="o">=</span> <span class="n">XPUGraphBackendConfig</span><span class="o">.</span><span class="n">from_dict</span><span class="p">(</span><span class="n">state_dict</span><span class="p">[</span><span class="bp">cls</span><span class="o">.</span><span class="n">STATE_CONFIG</span><span class="p">])</span>
-<a id="torch_tweak.torch.backend.XPUGraphBackend.from_dict--source--__codelineno-0-243" name="torch_tweak.torch.backend.XPUGraphBackend.from_dict--source--__codelineno-0-243"></a>    <span class="n">backend</span> <span class="o">=</span> <span class="bp">cls</span><span class="p">(</span><span class="n">config</span><span class="o">=</span><span class="n">config</span><span class="p">)</span>
-<a id="torch_tweak.torch.backend.XPUGraphBackend.from_dict--source--__codelineno-0-244" name="torch_tweak.torch.backend.XPUGraphBackend.from_dict--source--__codelineno-0-244"></a>    <span class="n">backend</span><span class="o">.</span><span class="n">_data</span> <span class="o">=</span> <span class="n">state_dict</span><span class="p">[</span><span class="bp">cls</span><span class="o">.</span><span class="n">STATE_DATA</span><span class="p">]</span>
-<a id="torch_tweak.torch.backend.XPUGraphBackend.from_dict--source--__codelineno-0-245" name="torch_tweak.torch.backend.XPUGraphBackend.from_dict--source--__codelineno-0-245"></a>    <span class="n">backend</span><span class="o">.</span><span class="n">_device</span> <span class="o">=</span> <span class="n">state_dict</span><span class="p">[</span><span class="bp">cls</span><span class="o">.</span><span class="n">STATE_DEVICE</span><span class="p">]</span>
-<a id="torch_tweak.torch.backend.XPUGraphBackend.from_dict--source--__codelineno-0-246" name="torch_tweak.torch.backend.XPUGraphBackend.from_dict--source--__codelineno-0-246"></a>    <span class="n">backend</span><span class="o">.</span><span class="n">_orig_module</span> <span class="o">=</span> <span class="n">module</span>
-<a id="torch_tweak.torch.backend.XPUGraphBackend.from_dict--source--__codelineno-0-247" name="torch_tweak.torch.backend.XPUGraphBackend.from_dict--source--__codelineno-0-247"></a>    <span class="n">module</span><span class="o">.</span><span class="n">load_state_dict</span><span class="p">(</span><span class="n">state_dict</span><span class="p">[</span><span class="bp">cls</span><span class="o">.</span><span class="n">STATE_ORIG_MODULE</span><span class="p">],</span> <span class="n">strict</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
-<a id="torch_tweak.torch.backend.XPUGraphBackend.from_dict--source--__codelineno-0-248" name="torch_tweak.torch.backend.XPUGraphBackend.from_dict--source--__codelineno-0-248"></a>    <span class="n">backend</span><span class="o">.</span><span class="n">state</span> <span class="o">=</span> <span class="n">BackendState</span><span class="o">.</span><span class="n">CHECKPOINT_LOADED</span>
-<a id="torch_tweak.torch.backend.XPUGraphBackend.from_dict--source--__codelineno-0-249" name="torch_tweak.torch.backend.XPUGraphBackend.from_dict--source--__codelineno-0-249"></a>    <span class="k">return</span> <span class="n">backend</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#torch_tweak.torch.backend.XPUGraphBackend.from_dict--source--__codelineno-0-479">479</a></span>
+<span class="normal"><a href="#torch_tweak.torch.backend.XPUGraphBackend.from_dict--source--__codelineno-0-480">480</a></span>
+<span class="normal"><a href="#torch_tweak.torch.backend.XPUGraphBackend.from_dict--source--__codelineno-0-481">481</a></span>
+<span class="normal"><a href="#torch_tweak.torch.backend.XPUGraphBackend.from_dict--source--__codelineno-0-482">482</a></span>
+<span class="normal"><a href="#torch_tweak.torch.backend.XPUGraphBackend.from_dict--source--__codelineno-0-483">483</a></span>
+<span class="normal"><a href="#torch_tweak.torch.backend.XPUGraphBackend.from_dict--source--__codelineno-0-484">484</a></span>
+<span class="normal"><a href="#torch_tweak.torch.backend.XPUGraphBackend.from_dict--source--__codelineno-0-485">485</a></span>
+<span class="normal"><a href="#torch_tweak.torch.backend.XPUGraphBackend.from_dict--source--__codelineno-0-486">486</a></span>
+<span class="normal"><a href="#torch_tweak.torch.backend.XPUGraphBackend.from_dict--source--__codelineno-0-487">487</a></span>
+<span class="normal"><a href="#torch_tweak.torch.backend.XPUGraphBackend.from_dict--source--__codelineno-0-488">488</a></span>
+<span class="normal"><a href="#torch_tweak.torch.backend.XPUGraphBackend.from_dict--source--__codelineno-0-489">489</a></span>
+<span class="normal"><a href="#torch_tweak.torch.backend.XPUGraphBackend.from_dict--source--__codelineno-0-490">490</a></span>
+<span class="normal"><a href="#torch_tweak.torch.backend.XPUGraphBackend.from_dict--source--__codelineno-0-491">491</a></span>
+<span class="normal"><a href="#torch_tweak.torch.backend.XPUGraphBackend.from_dict--source--__codelineno-0-492">492</a></span>
+<span class="normal"><a href="#torch_tweak.torch.backend.XPUGraphBackend.from_dict--source--__codelineno-0-493">493</a></span>
+<span class="normal"><a href="#torch_tweak.torch.backend.XPUGraphBackend.from_dict--source--__codelineno-0-494">494</a></span>
+<span class="normal"><a href="#torch_tweak.torch.backend.XPUGraphBackend.from_dict--source--__codelineno-0-495">495</a></span>
+<span class="normal"><a href="#torch_tweak.torch.backend.XPUGraphBackend.from_dict--source--__codelineno-0-496">496</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="torch_tweak.torch.backend.XPUGraphBackend.from_dict--source--__codelineno-0-479" name="torch_tweak.torch.backend.XPUGraphBackend.from_dict--source--__codelineno-0-479"></a><span class="nd">@classmethod</span>
+<a id="torch_tweak.torch.backend.XPUGraphBackend.from_dict--source--__codelineno-0-480" name="torch_tweak.torch.backend.XPUGraphBackend.from_dict--source--__codelineno-0-480"></a><span class="k">def</span><span class="w"> </span><span class="nf">from_dict</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">module</span><span class="p">:</span> <span class="n">nn</span><span class="o">.</span><span class="n">Module</span> <span class="o">|</span> <span class="kc">None</span><span class="p">,</span> <span class="n">state_dict</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">Self</span><span class="p">:</span>
+<a id="torch_tweak.torch.backend.XPUGraphBackend.from_dict--source--__codelineno-0-481" name="torch_tweak.torch.backend.XPUGraphBackend.from_dict--source--__codelineno-0-481"></a><span class="w">    </span><span class="sd">"""Creates a backend from a state_dict."""</span>
+<a id="torch_tweak.torch.backend.XPUGraphBackend.from_dict--source--__codelineno-0-482" name="torch_tweak.torch.backend.XPUGraphBackend.from_dict--source--__codelineno-0-482"></a>    <span class="k">if</span> <span class="n">state_dict</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="bp">cls</span><span class="o">.</span><span class="n">STATE_TYPE</span><span class="p">)</span> <span class="o">!=</span> <span class="bp">cls</span><span class="o">.</span><span class="vm">__name__</span><span class="p">:</span>
+<a id="torch_tweak.torch.backend.XPUGraphBackend.from_dict--source--__codelineno-0-483" name="torch_tweak.torch.backend.XPUGraphBackend.from_dict--source--__codelineno-0-483"></a>        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Invalid state_dict type: </span><span class="si">{</span><span class="n">state_dict</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="bp">cls</span><span class="o">.</span><span class="n">STATE_TYPE</span><span class="p">)</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+<a id="torch_tweak.torch.backend.XPUGraphBackend.from_dict--source--__codelineno-0-484" name="torch_tweak.torch.backend.XPUGraphBackend.from_dict--source--__codelineno-0-484"></a>    <span class="k">if</span> <span class="n">module</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+<a id="torch_tweak.torch.backend.XPUGraphBackend.from_dict--source--__codelineno-0-485" name="torch_tweak.torch.backend.XPUGraphBackend.from_dict--source--__codelineno-0-485"></a>        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"Module is required to create a backend from a state_dict."</span><span class="p">)</span>
+<a id="torch_tweak.torch.backend.XPUGraphBackend.from_dict--source--__codelineno-0-486" name="torch_tweak.torch.backend.XPUGraphBackend.from_dict--source--__codelineno-0-486"></a>
+<a id="torch_tweak.torch.backend.XPUGraphBackend.from_dict--source--__codelineno-0-487" name="torch_tweak.torch.backend.XPUGraphBackend.from_dict--source--__codelineno-0-487"></a>    <span class="n">config</span> <span class="o">=</span> <span class="n">XPUGraphBackendConfig</span><span class="o">.</span><span class="n">from_dict</span><span class="p">(</span><span class="n">state_dict</span><span class="p">[</span><span class="bp">cls</span><span class="o">.</span><span class="n">STATE_CONFIG</span><span class="p">])</span>
+<a id="torch_tweak.torch.backend.XPUGraphBackend.from_dict--source--__codelineno-0-488" name="torch_tweak.torch.backend.XPUGraphBackend.from_dict--source--__codelineno-0-488"></a>    <span class="n">backend</span> <span class="o">=</span> <span class="bp">cls</span><span class="p">(</span><span class="n">config</span><span class="o">=</span><span class="n">config</span><span class="p">)</span>
+<a id="torch_tweak.torch.backend.XPUGraphBackend.from_dict--source--__codelineno-0-489" name="torch_tweak.torch.backend.XPUGraphBackend.from_dict--source--__codelineno-0-489"></a>    <span class="n">backend</span><span class="o">.</span><span class="n">_data</span> <span class="o">=</span> <span class="n">state_dict</span><span class="p">[</span><span class="bp">cls</span><span class="o">.</span><span class="n">STATE_DATA</span><span class="p">]</span>
+<a id="torch_tweak.torch.backend.XPUGraphBackend.from_dict--source--__codelineno-0-490" name="torch_tweak.torch.backend.XPUGraphBackend.from_dict--source--__codelineno-0-490"></a>    <span class="n">backend</span><span class="o">.</span><span class="n">_device</span> <span class="o">=</span> <span class="n">state_dict</span><span class="p">[</span><span class="bp">cls</span><span class="o">.</span><span class="n">STATE_DEVICE</span><span class="p">]</span>
+<a id="torch_tweak.torch.backend.XPUGraphBackend.from_dict--source--__codelineno-0-491" name="torch_tweak.torch.backend.XPUGraphBackend.from_dict--source--__codelineno-0-491"></a>    <span class="n">input_spec</span> <span class="o">=</span> <span class="n">state_dict</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="bp">cls</span><span class="o">.</span><span class="n">STATE_INPUT_SPEC</span><span class="p">)</span>
+<a id="torch_tweak.torch.backend.XPUGraphBackend.from_dict--source--__codelineno-0-492" name="torch_tweak.torch.backend.XPUGraphBackend.from_dict--source--__codelineno-0-492"></a>    <span class="n">backend</span><span class="o">.</span><span class="n">_input_spec</span> <span class="o">=</span> <span class="kc">None</span> <span class="k">if</span> <span class="n">input_spec</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">SampleMetadata</span><span class="o">.</span><span class="n">from_dict</span><span class="p">(</span><span class="n">input_spec</span><span class="p">)</span>
+<a id="torch_tweak.torch.backend.XPUGraphBackend.from_dict--source--__codelineno-0-493" name="torch_tweak.torch.backend.XPUGraphBackend.from_dict--source--__codelineno-0-493"></a>    <span class="n">backend</span><span class="o">.</span><span class="n">_orig_module</span> <span class="o">=</span> <span class="n">module</span>
+<a id="torch_tweak.torch.backend.XPUGraphBackend.from_dict--source--__codelineno-0-494" name="torch_tweak.torch.backend.XPUGraphBackend.from_dict--source--__codelineno-0-494"></a>    <span class="n">module</span><span class="o">.</span><span class="n">load_state_dict</span><span class="p">(</span><span class="n">state_dict</span><span class="p">[</span><span class="bp">cls</span><span class="o">.</span><span class="n">STATE_ORIG_MODULE</span><span class="p">],</span> <span class="n">strict</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+<a id="torch_tweak.torch.backend.XPUGraphBackend.from_dict--source--__codelineno-0-495" name="torch_tweak.torch.backend.XPUGraphBackend.from_dict--source--__codelineno-0-495"></a>    <span class="n">backend</span><span class="o">.</span><span class="n">state</span> <span class="o">=</span> <span class="n">BackendState</span><span class="o">.</span><span class="n">CHECKPOINT_LOADED</span>
+<a id="torch_tweak.torch.backend.XPUGraphBackend.from_dict--source--__codelineno-0-496" name="torch_tweak.torch.backend.XPUGraphBackend.from_dict--source--__codelineno-0-496"></a>    <span class="k">return</span> <span class="n">backend</span>
 </code></pre></div></td></tr></table></div>
             </details>
     </div>
@@ -3545,11 +3622,11 @@ inputs at most once so that subsequent calls have exact same state as the first 
 
             <details class="mkdocstrings-source">
               <summary>Source code in <code>torch_tweak/torch/backend/xpu_graph_backend.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#torch_tweak.torch.backend.XPUGraphBackend.key--source--__codelineno-0-70">70</a></span>
-<span class="normal"><a href="#torch_tweak.torch.backend.XPUGraphBackend.key--source--__codelineno-0-71">71</a></span>
-<span class="normal"><a href="#torch_tweak.torch.backend.XPUGraphBackend.key--source--__codelineno-0-72">72</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="torch_tweak.torch.backend.XPUGraphBackend.key--source--__codelineno-0-70" name="torch_tweak.torch.backend.XPUGraphBackend.key--source--__codelineno-0-70"></a><span class="k">def</span><span class="w"> </span><span class="nf">key</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
-<a id="torch_tweak.torch.backend.XPUGraphBackend.key--source--__codelineno-0-71" name="torch_tweak.torch.backend.XPUGraphBackend.key--source--__codelineno-0-71"></a><span class="w">    </span><span class="sd">"""Returns the key of the backend."""</span>
-<a id="torch_tweak.torch.backend.XPUGraphBackend.key--source--__codelineno-0-72" name="torch_tweak.torch.backend.XPUGraphBackend.key--source--__codelineno-0-72"></a>    <span class="k">return</span> <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="o">.</span><span class="vm">__name__</span><span class="si">}</span><span class="s2">_</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">_config</span><span class="o">.</span><span class="n">key</span><span class="p">()</span><span class="si">}</span><span class="s2">"</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#torch_tweak.torch.backend.XPUGraphBackend.key--source--__codelineno-0-121">121</a></span>
+<span class="normal"><a href="#torch_tweak.torch.backend.XPUGraphBackend.key--source--__codelineno-0-122">122</a></span>
+<span class="normal"><a href="#torch_tweak.torch.backend.XPUGraphBackend.key--source--__codelineno-0-123">123</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="torch_tweak.torch.backend.XPUGraphBackend.key--source--__codelineno-0-121" name="torch_tweak.torch.backend.XPUGraphBackend.key--source--__codelineno-0-121"></a><span class="k">def</span><span class="w"> </span><span class="nf">key</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<a id="torch_tweak.torch.backend.XPUGraphBackend.key--source--__codelineno-0-122" name="torch_tweak.torch.backend.XPUGraphBackend.key--source--__codelineno-0-122"></a><span class="w">    </span><span class="sd">"""Returns the key of the backend."""</span>
+<a id="torch_tweak.torch.backend.XPUGraphBackend.key--source--__codelineno-0-123" name="torch_tweak.torch.backend.XPUGraphBackend.key--source--__codelineno-0-123"></a>    <span class="k">return</span> <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="o">.</span><span class="vm">__name__</span><span class="si">}</span><span class="s2">_</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">_config</span><span class="o">.</span><span class="n">key</span><span class="p">()</span><span class="si">}</span><span class="s2">"</span>
 </code></pre></div></td></tr></table></div>
             </details>
     </div>
@@ -3574,27 +3651,29 @@ inputs at most once so that subsequent calls have exact same state as the first 
 
             <details class="mkdocstrings-source">
               <summary>Source code in <code>torch_tweak/torch/backend/xpu_graph_backend.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#torch_tweak.torch.backend.XPUGraphBackend.to_dict--source--__codelineno-0-222">222</a></span>
-<span class="normal"><a href="#torch_tweak.torch.backend.XPUGraphBackend.to_dict--source--__codelineno-0-223">223</a></span>
-<span class="normal"><a href="#torch_tweak.torch.backend.XPUGraphBackend.to_dict--source--__codelineno-0-224">224</a></span>
-<span class="normal"><a href="#torch_tweak.torch.backend.XPUGraphBackend.to_dict--source--__codelineno-0-225">225</a></span>
-<span class="normal"><a href="#torch_tweak.torch.backend.XPUGraphBackend.to_dict--source--__codelineno-0-226">226</a></span>
-<span class="normal"><a href="#torch_tweak.torch.backend.XPUGraphBackend.to_dict--source--__codelineno-0-227">227</a></span>
-<span class="normal"><a href="#torch_tweak.torch.backend.XPUGraphBackend.to_dict--source--__codelineno-0-228">228</a></span>
-<span class="normal"><a href="#torch_tweak.torch.backend.XPUGraphBackend.to_dict--source--__codelineno-0-229">229</a></span>
-<span class="normal"><a href="#torch_tweak.torch.backend.XPUGraphBackend.to_dict--source--__codelineno-0-230">230</a></span>
-<span class="normal"><a href="#torch_tweak.torch.backend.XPUGraphBackend.to_dict--source--__codelineno-0-231">231</a></span>
-<span class="normal"><a href="#torch_tweak.torch.backend.XPUGraphBackend.to_dict--source--__codelineno-0-232">232</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="torch_tweak.torch.backend.XPUGraphBackend.to_dict--source--__codelineno-0-222" name="torch_tweak.torch.backend.XPUGraphBackend.to_dict--source--__codelineno-0-222"></a><span class="k">def</span><span class="w"> </span><span class="nf">to_dict</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span>
-<a id="torch_tweak.torch.backend.XPUGraphBackend.to_dict--source--__codelineno-0-223" name="torch_tweak.torch.backend.XPUGraphBackend.to_dict--source--__codelineno-0-223"></a><span class="w">    </span><span class="sd">"""Returns the state_dict of the backend."""</span>
-<a id="torch_tweak.torch.backend.XPUGraphBackend.to_dict--source--__codelineno-0-224" name="torch_tweak.torch.backend.XPUGraphBackend.to_dict--source--__codelineno-0-224"></a>    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_orig_module</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-<a id="torch_tweak.torch.backend.XPUGraphBackend.to_dict--source--__codelineno-0-225" name="torch_tweak.torch.backend.XPUGraphBackend.to_dict--source--__codelineno-0-225"></a>        <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span><span class="s2">"Backend has not been properly initialized. Please call build() first."</span><span class="p">)</span>
-<a id="torch_tweak.torch.backend.XPUGraphBackend.to_dict--source--__codelineno-0-226" name="torch_tweak.torch.backend.XPUGraphBackend.to_dict--source--__codelineno-0-226"></a>    <span class="k">return</span> <span class="p">{</span>
-<a id="torch_tweak.torch.backend.XPUGraphBackend.to_dict--source--__codelineno-0-227" name="torch_tweak.torch.backend.XPUGraphBackend.to_dict--source--__codelineno-0-227"></a>        <span class="bp">self</span><span class="o">.</span><span class="n">STATE_TYPE</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="o">.</span><span class="vm">__name__</span><span class="p">,</span>
-<a id="torch_tweak.torch.backend.XPUGraphBackend.to_dict--source--__codelineno-0-228" name="torch_tweak.torch.backend.XPUGraphBackend.to_dict--source--__codelineno-0-228"></a>        <span class="bp">self</span><span class="o">.</span><span class="n">STATE_CONFIG</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">_config</span><span class="o">.</span><span class="n">to_dict</span><span class="p">(),</span>
-<a id="torch_tweak.torch.backend.XPUGraphBackend.to_dict--source--__codelineno-0-229" name="torch_tweak.torch.backend.XPUGraphBackend.to_dict--source--__codelineno-0-229"></a>        <span class="bp">self</span><span class="o">.</span><span class="n">STATE_ORIG_MODULE</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">_orig_module</span><span class="o">.</span><span class="n">state_dict</span><span class="p">(),</span>
-<a id="torch_tweak.torch.backend.XPUGraphBackend.to_dict--source--__codelineno-0-230" name="torch_tweak.torch.backend.XPUGraphBackend.to_dict--source--__codelineno-0-230"></a>        <span class="bp">self</span><span class="o">.</span><span class="n">STATE_DATA</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">_data</span><span class="p">,</span>
-<a id="torch_tweak.torch.backend.XPUGraphBackend.to_dict--source--__codelineno-0-231" name="torch_tweak.torch.backend.XPUGraphBackend.to_dict--source--__codelineno-0-231"></a>        <span class="bp">self</span><span class="o">.</span><span class="n">STATE_DEVICE</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">_device</span><span class="p">,</span>
-<a id="torch_tweak.torch.backend.XPUGraphBackend.to_dict--source--__codelineno-0-232" name="torch_tweak.torch.backend.XPUGraphBackend.to_dict--source--__codelineno-0-232"></a>    <span class="p">}</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#torch_tweak.torch.backend.XPUGraphBackend.to_dict--source--__codelineno-0-466">466</a></span>
+<span class="normal"><a href="#torch_tweak.torch.backend.XPUGraphBackend.to_dict--source--__codelineno-0-467">467</a></span>
+<span class="normal"><a href="#torch_tweak.torch.backend.XPUGraphBackend.to_dict--source--__codelineno-0-468">468</a></span>
+<span class="normal"><a href="#torch_tweak.torch.backend.XPUGraphBackend.to_dict--source--__codelineno-0-469">469</a></span>
+<span class="normal"><a href="#torch_tweak.torch.backend.XPUGraphBackend.to_dict--source--__codelineno-0-470">470</a></span>
+<span class="normal"><a href="#torch_tweak.torch.backend.XPUGraphBackend.to_dict--source--__codelineno-0-471">471</a></span>
+<span class="normal"><a href="#torch_tweak.torch.backend.XPUGraphBackend.to_dict--source--__codelineno-0-472">472</a></span>
+<span class="normal"><a href="#torch_tweak.torch.backend.XPUGraphBackend.to_dict--source--__codelineno-0-473">473</a></span>
+<span class="normal"><a href="#torch_tweak.torch.backend.XPUGraphBackend.to_dict--source--__codelineno-0-474">474</a></span>
+<span class="normal"><a href="#torch_tweak.torch.backend.XPUGraphBackend.to_dict--source--__codelineno-0-475">475</a></span>
+<span class="normal"><a href="#torch_tweak.torch.backend.XPUGraphBackend.to_dict--source--__codelineno-0-476">476</a></span>
+<span class="normal"><a href="#torch_tweak.torch.backend.XPUGraphBackend.to_dict--source--__codelineno-0-477">477</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="torch_tweak.torch.backend.XPUGraphBackend.to_dict--source--__codelineno-0-466" name="torch_tweak.torch.backend.XPUGraphBackend.to_dict--source--__codelineno-0-466"></a><span class="k">def</span><span class="w"> </span><span class="nf">to_dict</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span>
+<a id="torch_tweak.torch.backend.XPUGraphBackend.to_dict--source--__codelineno-0-467" name="torch_tweak.torch.backend.XPUGraphBackend.to_dict--source--__codelineno-0-467"></a><span class="w">    </span><span class="sd">"""Returns the state_dict of the backend."""</span>
+<a id="torch_tweak.torch.backend.XPUGraphBackend.to_dict--source--__codelineno-0-468" name="torch_tweak.torch.backend.XPUGraphBackend.to_dict--source--__codelineno-0-468"></a>    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_orig_module</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+<a id="torch_tweak.torch.backend.XPUGraphBackend.to_dict--source--__codelineno-0-469" name="torch_tweak.torch.backend.XPUGraphBackend.to_dict--source--__codelineno-0-469"></a>        <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span><span class="s2">"Backend has not been properly initialized. Please call build() first."</span><span class="p">)</span>
+<a id="torch_tweak.torch.backend.XPUGraphBackend.to_dict--source--__codelineno-0-470" name="torch_tweak.torch.backend.XPUGraphBackend.to_dict--source--__codelineno-0-470"></a>    <span class="k">return</span> <span class="p">{</span>
+<a id="torch_tweak.torch.backend.XPUGraphBackend.to_dict--source--__codelineno-0-471" name="torch_tweak.torch.backend.XPUGraphBackend.to_dict--source--__codelineno-0-471"></a>        <span class="bp">self</span><span class="o">.</span><span class="n">STATE_TYPE</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="o">.</span><span class="vm">__name__</span><span class="p">,</span>
+<a id="torch_tweak.torch.backend.XPUGraphBackend.to_dict--source--__codelineno-0-472" name="torch_tweak.torch.backend.XPUGraphBackend.to_dict--source--__codelineno-0-472"></a>        <span class="bp">self</span><span class="o">.</span><span class="n">STATE_CONFIG</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">_config</span><span class="o">.</span><span class="n">to_dict</span><span class="p">(),</span>
+<a id="torch_tweak.torch.backend.XPUGraphBackend.to_dict--source--__codelineno-0-473" name="torch_tweak.torch.backend.XPUGraphBackend.to_dict--source--__codelineno-0-473"></a>        <span class="bp">self</span><span class="o">.</span><span class="n">STATE_ORIG_MODULE</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">_orig_module</span><span class="o">.</span><span class="n">state_dict</span><span class="p">(),</span>
+<a id="torch_tweak.torch.backend.XPUGraphBackend.to_dict--source--__codelineno-0-474" name="torch_tweak.torch.backend.XPUGraphBackend.to_dict--source--__codelineno-0-474"></a>        <span class="bp">self</span><span class="o">.</span><span class="n">STATE_DATA</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">_data</span><span class="p">,</span>
+<a id="torch_tweak.torch.backend.XPUGraphBackend.to_dict--source--__codelineno-0-475" name="torch_tweak.torch.backend.XPUGraphBackend.to_dict--source--__codelineno-0-475"></a>        <span class="bp">self</span><span class="o">.</span><span class="n">STATE_DEVICE</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">_device</span><span class="p">,</span>
+<a id="torch_tweak.torch.backend.XPUGraphBackend.to_dict--source--__codelineno-0-476" name="torch_tweak.torch.backend.XPUGraphBackend.to_dict--source--__codelineno-0-476"></a>        <span class="bp">self</span><span class="o">.</span><span class="n">STATE_INPUT_SPEC</span><span class="p">:</span> <span class="kc">None</span> <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_input_spec</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="bp">self</span><span class="o">.</span><span class="n">_input_spec</span><span class="o">.</span><span class="n">to_dict</span><span class="p">(),</span>
+<a id="torch_tweak.torch.backend.XPUGraphBackend.to_dict--source--__codelineno-0-477" name="torch_tweak.torch.backend.XPUGraphBackend.to_dict--source--__codelineno-0-477"></a>    <span class="p">}</span>
 </code></pre></div></td></tr></table></div>
             </details>
     </div>
@@ -3623,7 +3702,7 @@ inputs at most once so that subsequent calls have exact same state as the first 
   </span>
 
 </h3>
-<div class="doc-signature highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">XPUGraphBackendConfig</span><span class="p">(</span><span class="n">autocast_enabled</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">autocast_dtype</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span>
+<div class="doc-signature highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">XPUGraphBackendConfig</span><span class="p">(</span><span class="n">autocast_enabled</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">autocast_dtype</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">max_recorded_batch_size</span><span class="o">=</span><span class="mi">256</span><span class="p">)</span>
 </code></pre></div>
 
     <div class="doc doc-contents first">
@@ -3663,6 +3742,19 @@ The autocast cache is disabled so later eager calls cannot reuse tensors capture
             <p>The dtype to use for autocast.</p>
           </div>
         </li>
+        <li class="doc-section-item field-body">
+            <b><code>max_recorded_batch_size</code></b>
+              (<code><a class="autorefs autorefs-external" href="https://docs.python.org/3/builtins/functions.html#int">int</a></code>, default:
+                  <code>256</code>
+)
+          –
+          <div class="doc-md-description">
+            <p>Caps the largest batch size recorded for a graph spec with a batch axis.
+Graphs are recorded for 1, 2, 4, every multiple of 8 below the limit, and the limit itself.
+The limit is this value or the largest batch size seen during tuning, whichever is smaller.
+A larger batch replays in chunks of the largest recorded size.</p>
+          </div>
+        </li>
     </ul>
 
 
@@ -3685,6 +3777,37 @@ The autocast cache is disabled so later eager calls cannot reuse tensors capture
 
 
 
+
+<div class="doc doc-object doc-function">
+
+
+<h4 id="torch_tweak.torch.backend.XPUGraphBackendConfig.__post_init__" class="doc doc-heading">
+            <span class="doc doc-object-name doc-function-name">__post_init__</span>
+
+
+</h4>
+<div class="doc-signature highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">__post_init__</span><span class="p">()</span>
+</code></pre></div>
+
+    <div class="doc doc-contents ">
+
+        <p>Rejects a max_recorded_batch_size below 1.</p>
+
+
+            <details class="mkdocstrings-source">
+              <summary>Source code in <code>torch_tweak/torch/backend/xpu_graph_backend.py</code></summary>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#torch_tweak.torch.backend.XPUGraphBackendConfig.__post_init__--source--__codelineno-0-47">47</a></span>
+<span class="normal"><a href="#torch_tweak.torch.backend.XPUGraphBackendConfig.__post_init__--source--__codelineno-0-48">48</a></span>
+<span class="normal"><a href="#torch_tweak.torch.backend.XPUGraphBackendConfig.__post_init__--source--__codelineno-0-49">49</a></span>
+<span class="normal"><a href="#torch_tweak.torch.backend.XPUGraphBackendConfig.__post_init__--source--__codelineno-0-50">50</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="torch_tweak.torch.backend.XPUGraphBackendConfig.__post_init__--source--__codelineno-0-47" name="torch_tweak.torch.backend.XPUGraphBackendConfig.__post_init__--source--__codelineno-0-47"></a><span class="k">def</span><span class="w"> </span><span class="nf">__post_init__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<a id="torch_tweak.torch.backend.XPUGraphBackendConfig.__post_init__--source--__codelineno-0-48" name="torch_tweak.torch.backend.XPUGraphBackendConfig.__post_init__--source--__codelineno-0-48"></a><span class="w">    </span><span class="sd">"""Rejects a max_recorded_batch_size below 1."""</span>
+<a id="torch_tweak.torch.backend.XPUGraphBackendConfig.__post_init__--source--__codelineno-0-49" name="torch_tweak.torch.backend.XPUGraphBackendConfig.__post_init__--source--__codelineno-0-49"></a>    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">max_recorded_batch_size</span> <span class="o">&lt;</span> <span class="mi">1</span><span class="p">:</span>
+<a id="torch_tweak.torch.backend.XPUGraphBackendConfig.__post_init__--source--__codelineno-0-50" name="torch_tweak.torch.backend.XPUGraphBackendConfig.__post_init__--source--__codelineno-0-50"></a>        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"max_recorded_batch_size must be at least 1, got </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">max_recorded_batch_size</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+</code></pre></div></td></tr></table></div>
+            </details>
+    </div>
+
+</div>
 
 <div class="doc doc-object doc-function">
 
@@ -3741,13 +3864,13 @@ The autocast cache is disabled so later eager calls cannot reuse tensors capture
 
             <details class="mkdocstrings-source">
               <summary>Source code in <code>torch_tweak/torch/backend/xpu_graph_backend.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#torch_tweak.torch.backend.XPUGraphBackendConfig.from_dict--source--__codelineno-0-36">36</a></span>
-<span class="normal"><a href="#torch_tweak.torch.backend.XPUGraphBackendConfig.from_dict--source--__codelineno-0-37">37</a></span>
-<span class="normal"><a href="#torch_tweak.torch.backend.XPUGraphBackendConfig.from_dict--source--__codelineno-0-38">38</a></span>
-<span class="normal"><a href="#torch_tweak.torch.backend.XPUGraphBackendConfig.from_dict--source--__codelineno-0-39">39</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="torch_tweak.torch.backend.XPUGraphBackendConfig.from_dict--source--__codelineno-0-36" name="torch_tweak.torch.backend.XPUGraphBackendConfig.from_dict--source--__codelineno-0-36"></a><span class="nd">@classmethod</span>
-<a id="torch_tweak.torch.backend.XPUGraphBackendConfig.from_dict--source--__codelineno-0-37" name="torch_tweak.torch.backend.XPUGraphBackendConfig.from_dict--source--__codelineno-0-37"></a><span class="k">def</span><span class="w"> </span><span class="nf">from_dict</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">state_dict</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">Self</span><span class="p">:</span>
-<a id="torch_tweak.torch.backend.XPUGraphBackendConfig.from_dict--source--__codelineno-0-38" name="torch_tweak.torch.backend.XPUGraphBackendConfig.from_dict--source--__codelineno-0-38"></a><span class="w">    </span><span class="sd">"""Convert dict to XPUGraphBackendConfig."""</span>
-<a id="torch_tweak.torch.backend.XPUGraphBackendConfig.from_dict--source--__codelineno-0-39" name="torch_tweak.torch.backend.XPUGraphBackendConfig.from_dict--source--__codelineno-0-39"></a>    <span class="k">return</span> <span class="bp">cls</span><span class="p">(</span><span class="o">**</span><span class="n">state_dict</span><span class="p">)</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#torch_tweak.torch.backend.XPUGraphBackendConfig.from_dict--source--__codelineno-0-52">52</a></span>
+<span class="normal"><a href="#torch_tweak.torch.backend.XPUGraphBackendConfig.from_dict--source--__codelineno-0-53">53</a></span>
+<span class="normal"><a href="#torch_tweak.torch.backend.XPUGraphBackendConfig.from_dict--source--__codelineno-0-54">54</a></span>
+<span class="normal"><a href="#torch_tweak.torch.backend.XPUGraphBackendConfig.from_dict--source--__codelineno-0-55">55</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="torch_tweak.torch.backend.XPUGraphBackendConfig.from_dict--source--__codelineno-0-52" name="torch_tweak.torch.backend.XPUGraphBackendConfig.from_dict--source--__codelineno-0-52"></a><span class="nd">@classmethod</span>
+<a id="torch_tweak.torch.backend.XPUGraphBackendConfig.from_dict--source--__codelineno-0-53" name="torch_tweak.torch.backend.XPUGraphBackendConfig.from_dict--source--__codelineno-0-53"></a><span class="k">def</span><span class="w"> </span><span class="nf">from_dict</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">state_dict</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">Self</span><span class="p">:</span>
+<a id="torch_tweak.torch.backend.XPUGraphBackendConfig.from_dict--source--__codelineno-0-54" name="torch_tweak.torch.backend.XPUGraphBackendConfig.from_dict--source--__codelineno-0-54"></a><span class="w">    </span><span class="sd">"""Convert dict to XPUGraphBackendConfig."""</span>
+<a id="torch_tweak.torch.backend.XPUGraphBackendConfig.from_dict--source--__codelineno-0-55" name="torch_tweak.torch.backend.XPUGraphBackendConfig.from_dict--source--__codelineno-0-55"></a>    <span class="k">return</span> <span class="bp">cls</span><span class="p">(</span><span class="o">**</span><span class="n">state_dict</span><span class="p">)</span>
 </code></pre></div></td></tr></table></div>
             </details>
     </div>

@@ -2431,7 +2431,9 @@ SPDX-License-Identifier: Apache-2.0
 -->
 
 <h1 id="minimal-backend-selection">Minimal backend selection</h1>
-<p>Tunes a small MLP and prints the faster of Torch Inductor and Torch Eager. Uses an Intel XPU when one is available, and CPU otherwise.</p>
+<p>Tunes a small MLP on batch sizes 1 and 4 and prints each backend, fastest first.
+The backends are Torch Inductor, the XPU graph, and eager.
+The XPU graph is recorded when an Intel GPU is available. CPU keeps Inductor and eager.</p>
 <h2 id="run-from-the-repository">Run from the repository</h2>
 <p>From the repository root, after <code>uv sync --extra dev</code>:</p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>uv<span class="w"> </span>run<span class="w"> </span>python<span class="w"> </span>examples/Minimal/demo.py
