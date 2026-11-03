@@ -211,7 +211,7 @@ class TunableModule(wrapt.CallableObjectProxy):
     def activate(self):
         """Activates the module backends."""
         if self._self_state == ModuleState.TUNED:
-            self._activate_wrapper()
+            self._activate_wrapper(cast(TunedModule, self._self_wrapper))
         elif self._self_state == ModuleState.PASSTHROUGH:
             return
         else:
@@ -309,12 +309,17 @@ class TunableModule(wrapt.CallableObjectProxy):
 
         if not dry_run:
             try:
+                tuned = TunedModule(backends)
+                try:
+                    self.__wrapped__.to(device)
+                    self._activate_wrapper(tuned)
+                    self._offload(backends)
+                except Exception:
+                    tuned.deactivate()
+                    raise
                 self._self_prev_recording = recording
                 self._self_state = ModuleState.TUNED
-                self._self_wrapper = TunedModule(backends)
-                self.__wrapped__.to(device)
-                self._activate_wrapper()
-                self._offload(backends)
+                self._self_wrapper = tuned
             finally:
                 recording.cleanup()
 
@@ -324,11 +329,10 @@ class TunableModule(wrapt.CallableObjectProxy):
         secure_mkdir(cache_dir)
         return cache_dir
 
-    def _activate_wrapper(self):
+    def _activate_wrapper(self, wrapper: TunedModule):
         try:
             # Restore the original forward for backend activation and compilation.
             self._restore_original_forward()
-            wrapper = cast(TunedModule, self._self_wrapper)
             wrapper.activate()
         finally:
             self._proxy_forward()
