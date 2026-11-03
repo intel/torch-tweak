@@ -37,6 +37,7 @@ from torch_tweak.torch.backend import (
     XPUGraphBackendConfig,
 )
 from torch_tweak.torch.backend.backend import checkpoint_without_weights
+from torch_tweak.torch.checkpoint.storage_tasks import STATE_DICT_FILE, TorchLoadTask, TorchSaveTask
 from torch_tweak.torch.config import config as global_config
 from torch_tweak.torch.module.recording_module import RecordingModule
 from torch_tweak.torch.module.tunable_module import ModuleState, TunableModule, sanitize_model_name
@@ -46,7 +47,7 @@ from torch_tweak.torch.utils.path_utils import MAX_FILENAME_BYTES, sanitize_file
 
 logger = logging.getLogger(__name__)
 
-TUNED_FILE = "tuned.pt"
+TUNED_DIR = "tuned"
 RECORDING_DIR = "recording"
 TUNE_LOG = "tune.log"
 
@@ -119,7 +120,8 @@ class ServedModule(TunableModule):
         self._self_serving_device = device or self._self_device
         self._self_dir = config.workdir / _module_dir_name(name)
         self._self_recording_dir = self._self_dir / RECORDING_DIR
-        self._self_tuned_path = self._self_dir / TUNED_FILE
+        self._self_tuned_dir = self._self_dir / TUNED_DIR
+        self._self_tuned_path = self._self_tuned_dir / STATE_DICT_FILE
         self._self_module_config = copy.copy(global_config)
         self._self_module_config.exact_shapes = True
         self._self_mode = self._resolve_mode(config.mode)
@@ -177,11 +179,13 @@ class ServedModule(TunableModule):
             self.tune(device=self._self_serving_device)
             tuned = self._tuned_module()
             with checkpoint_without_weights():
-                torch.save(tuned.to_dict(), self._self_tuned_path)
+                state = tuned.to_dict()
+            self._self_tuned_dir.mkdir(exist_ok=True)
+            TorchSaveTask().save(self._self_tuned_dir, state)
             self._describe_choice(tuned)
 
     def _load_tuned(self) -> None:
-        state = torch.load(self._self_tuned_path, weights_only=False)  # nosec B614: written by _tune_recording
+        state = TorchLoadTask().load(self._self_tuned_dir)
         self._self_wrapper = TunedModule.from_dict(self.__wrapped__, state, config=self._self_module_config)
         self._self_state = ModuleState.TUNED
         self._deploy_wrapper(self._self_serving_device)
