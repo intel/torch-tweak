@@ -261,11 +261,15 @@ class XPUGraphBackend(Backend):
             return self._orig_module(*args, **kwargs)
 
     def _eager(self, sample: Sample) -> Any:
-        """Runs the original module on a copy of sample, so in-place writes do not change sample."""
+        """Runs the recorded callable without a graph on a copy of sample, so in-place writes do not change sample.
+
+        Before recording starts, that callable is the original module.
+        """
         assert self._orig_module is not None
+        module = self._orig_module if self._recorded_module is None else self._recorded_module
         args, kwargs = _clone_tree(sample)
         with self._autocast(), torch.no_grad():
-            return _clone_tree(self._orig_module(*args, **kwargs))
+            return _clone_tree(module(*args, **kwargs))
 
     def _record(self) -> None:
         """Records every batch size, then rejects the backend when replay disagrees with eager."""
