@@ -71,8 +71,11 @@ class BatchSizeRouterBackend(Backend):
         self._routes = routes
         self._input_spec = input_spec
         self._device = routes[0][1].device
-        if all(backend.is_active for _, backend in routes):
+        states = {backend.state for _, backend in routes}
+        if states == {BackendState.ACTIVE}:
             self.state = BackendState.ACTIVE
+        elif states <= {BackendState.ACTIVE, BackendState.INACTIVE}:
+            self.state = BackendState.INACTIVE
 
     @property
     def routes(self) -> list[Route]:
