@@ -211,6 +211,35 @@ class ActivateFailsBackend(SleepBackend):
         raise RuntimeError("Activate failed")
 
 
+class ReactivateFailsBackend(SleepBackend):
+    """Activates for the profiled build and fails every activation after it."""
+
+    def __init__(self, sleep_time):
+        super().__init__(sleep_time)
+        self.activations = 0
+
+    def _activate(self):
+        self.activations += 1
+        if self.activations > 1:
+            raise RuntimeError("Reactivate failed")
+
+
+def test_next_fastest_backend_is_selected_when_the_fastest_fails_to_reactivate(torch_device, tmp_path):
+    strategy = HighestThroughputStrategy(
+        backends=[ReactivateFailsBackend(sleep_time=1e-5), SleepBackend(sleep_time=1e-2)]
+    )
+    strategy.enable_find_max_batch_size(False)
+    strategy.enable_correctness_check(False)
+    model = ToyTorchModel()
+    sample = model.sample().unsqueeze(0)
+
+    selected = strategy.tune(
+        model, "test", model.graph_spec(batch_sizes=[1]), [((sample,), {})], torch_device, tmp_path
+    )
+
+    assert selected.name == "SleepBackend with sleep time 0.01"
+
+
 def test_highest_throughput_strategy_fails_backend_if_all_of_backends_fails(torch_device):
     """If all backends fails it should raise an error."""
     strategy = HighestThroughputStrategy(

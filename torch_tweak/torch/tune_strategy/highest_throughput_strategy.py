@@ -8,7 +8,7 @@
 1. Finds max batch size for Torch Eager as a baseline.
 2. Runs all backends with given max batch size.
 3. Finds the highest throughput for each backend.
-4. Returns the backend with the highest throughput.
+4. Returns the backend with the highest throughput that activates again.
    When another backend is faster for some batch sizes, returns a BatchSizeRouterBackend
    that sends those batch sizes to it.
 """
@@ -17,6 +17,7 @@ import gc
 from collections.abc import Iterable
 from copy import deepcopy
 from dataclasses import dataclass, field
+from operator import itemgetter
 from pathlib import Path
 from typing import Any
 
@@ -128,9 +129,7 @@ class HighestThroughputStrategy(TuneStrategyFindMaxBatchSizeExtension):
         # we can assume that max batch size is included in the graph spec.
         max_batch_size = graph_spec.get_max_batch_size()
 
-        best_backend = None
-        best_throughput = float("-inf")
-        best_batch_size = 1
+        profiled: list[tuple[float, int, Backend]] = []
         throughputs: list[tuple[Backend, dict[int, float]]] = []
 
         backends = list(self._backends or default_backends(device))
@@ -171,7 +170,7 @@ class HighestThroughputStrategy(TuneStrategyFindMaxBatchSizeExtension):
                         sink=self._sink,
                     )
 
-                    if best_backend is None or throughput > best_throughput:
+                    if not profiled or throughput > max(entry[0] for entry in profiled):
                         log(
                             "🎯 new best throughput for %s is %.2f samples/s, batch size: %s",
                             backend.describe(),
@@ -180,9 +179,7 @@ class HighestThroughputStrategy(TuneStrategyFindMaxBatchSizeExtension):
                             depth=2,
                             sink=self._sink,
                         )
-                        best_backend = backend
-                        best_throughput = throughput
-                        best_batch_size = batch_size
+                    profiled.append((throughput, batch_size, backend))
                     backend.deactivate()
 
                 except Exception:
@@ -192,10 +189,9 @@ class HighestThroughputStrategy(TuneStrategyFindMaxBatchSizeExtension):
                     module.to(device)  # move module back to device as failed backend could move it to cpu
             _release_device_memory(device, self._sink)
 
-        if best_backend is None:
+        if not profiled:
             log(
-                "ℹ️ No correct backend found with throughput %f > 0. Backends considered: %s",
-                best_throughput,
+                "ℹ️ No correct backend found. Backends considered: %s",
                 ", ".join([backend.describe() for backend in backends]),
                 sink=self._sink,
             )
@@ -208,14 +204,9 @@ class HighestThroughputStrategy(TuneStrategyFindMaxBatchSizeExtension):
                 measurements=measurements,
             )
         )
-        routes = routes_by_throughput(throughputs, best_backend)
-        if len(routes) > 1:
-            best_backend = BatchSizeRouterBackend(routes, graph_spec.input_spec)
-        # A later build can move `module`.
-        # `OpenVINOBackend._build` offloads it to CPU.
-        # `activate` rebuilds the winner on the weights `module` holds now.
-        module.to(device)
-        best_backend.activate()
+        best_backend, best_throughput, best_batch_size = self._activate_fastest(
+            module, graph_spec, device, profiled, throughputs
+        )
         log("🎯 Strategy %s execution finished:", self.__class__.__name__, sink=self._sink)
         log(
             "✅ Selected %s for module %s and graph spec %s.",
@@ -227,6 +218,32 @@ class HighestThroughputStrategy(TuneStrategyFindMaxBatchSizeExtension):
         log("   Batch size: %s, throughput: %.2f samples/s", best_batch_size, best_throughput, sink=self._sink)
 
         return best_backend
+
+    def _activate_fastest(
+        self,
+        module: nn.Module,
+        graph_spec: GraphSpec,
+        device: torch.device,
+        profiled: list[tuple[float, int, Backend]],
+        throughputs: list[tuple[Backend, dict[int, float]]],
+    ) -> tuple[Backend, float, int]:
+        """Activates the fastest profiled backend. A rebuild can fail where the profiled build passed."""
+        for throughput, batch_size, candidate in sorted(profiled, key=itemgetter(0), reverse=True):
+            routes = routes_by_throughput(throughputs, candidate)
+            backend = candidate if len(routes) == 1 else BatchSizeRouterBackend(routes, graph_spec.input_spec)
+            # A later build can move `module`.
+            # `OpenVINOBackend._build` offloads it to CPU.
+            # `activate` rebuilds the winner on the weights `module` holds now.
+            module.to(device)
+            try:
+                backend.activate()
+            except Exception as exc:
+                log("❌ %s failed to activate: %s", backend.describe(), exc, sink=self._sink)
+                if backend.is_active:
+                    backend.deactivate()
+            else:
+                return backend, throughput, batch_size
+        raise RuntimeError("No profiled backend could be activated")
 
     def _get_profiling_config(self, batching: bool, max_batch_size: int) -> ProfilingConfig:
         """Gets profiling configuration."""
