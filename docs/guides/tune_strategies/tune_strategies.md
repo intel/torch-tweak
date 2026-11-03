@@ -24,7 +24,7 @@ Not every backend can successfully tune every model. Each backend relies on a di
 
 - **OpenVINO** requires converting the model to an OpenVINO representation. Models with unsupported operators, complex dynamic control flow, or symbolic shape constraints may fail during conversion or model compilation. Memory constraints can also prevent the model from being compiled.
 - **Torch Inductor** uses `torch.compile`, which may encounter *graph breaks* on unsupported Python constructs or operations, causing partial or failed compilation.
-- **XPU Graph** records the module for replay, so it requires static tensor shapes. A failed recording or a mismatch against eager output rejects the backend for that module and input.
+- **XPU Graph** records the module for replay. It pads the batch axis to a recorded batch size and rejects any other dynamic axis. A failed recording or a mismatch against eager output rejects the backend for that module and input.
 - **TorchAO** applies quantization transformations that may not support all layer types or model architectures.
 - **Torch Eager** runs the module unchanged, so it always succeeds, which makes it a useful last-resort fallback.
 

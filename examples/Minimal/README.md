@@ -5,7 +5,9 @@ SPDX-License-Identifier: Apache-2.0
 
 # Minimal backend selection
 
-Tunes a small MLP and prints the faster of Torch Inductor and Torch Eager. Uses an Intel XPU when one is available, and CPU otherwise.
+Tunes a small MLP on batch sizes 1 and 4 and prints each backend, fastest first.
+The backends are Torch Inductor, the XPU graph, and eager.
+The XPU graph is recorded when an Intel GPU is available. CPU keeps Inductor and eager.
 
 ## Run from the repository
 
