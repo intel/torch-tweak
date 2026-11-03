@@ -102,7 +102,7 @@ class ServingConfig:
 class ServedModule(TunableModule):
     """TunableModule driven by the calls of a serving framework instead of a dataset."""
 
-    def __init__(self, module: nn.Module, name: str, config: ServingConfig, device: torch.device | None = None):
+    def __init__(self, module: nn.Module, name: str, config: ServingConfig, *, device: torch.device | None = None):
         """Wraps module in place. Calls to module go through this wrapper.
 
         Args:
@@ -177,7 +177,7 @@ class ServedModule(TunableModule):
         with _log_to(self._self_dir / TUNE_LOG):
             logger.info("Torch Tweak tunes `%s` on %d recorded graphs.", self.name, len(self.graph_specs))
             self.tune(device=self._self_serving_device)
-            tuned = self._tuned_module()
+            tuned = self._tuned_with_fallback()
             with checkpoint_without_weights():
                 state = tuned.to_dict()
             self._self_tuned_dir.mkdir(exist_ok=True)
@@ -189,9 +189,9 @@ class ServedModule(TunableModule):
         self._self_wrapper = TunedModule.from_dict(self.__wrapped__, state, config=self._self_module_config)
         self._self_state = ModuleState.TUNED
         self._deploy_wrapper(self._self_serving_device)
-        self._describe_choice(self._tuned_module())
+        self._describe_choice(self._tuned_with_fallback())
 
-    def _tuned_module(self) -> TunedModule:
+    def _tuned_with_fallback(self) -> TunedModule:
         tuned = self._self_wrapper
         assert isinstance(tuned, TunedModule)
         tuned.fallback = self.__wrapped__
@@ -227,8 +227,3 @@ def _module_dir_name(name: str) -> str:
         return safe
     digest = hashlib.sha1(name.encode()).hexdigest()[:10]
     return f"{safe[-(MAX_FILENAME_BYTES - len(digest) - 1) :].lstrip('._-')}-{digest}"
-
-
-def serve(module: nn.Module, name: str, config: ServingConfig, *, device: torch.device | None = None) -> ServedModule:
-    """Wraps module in place for a serving framework. See ServedModule."""
-    return ServedModule(module, name, config, device)

@@ -5,7 +5,7 @@ SPDX-License-Identifier: Apache-2.0
 
 # Serving Frameworks
 
-`tt.serve` tunes modules inside a framework that loads the model and runs the requests itself.
+`tt.ServedModule` tunes modules inside a framework that loads the model and runs the requests itself.
 Torch Tweak never sees a dataset or a training loop.
 It sees the calls the framework makes.
 
@@ -13,7 +13,7 @@ It sees the calls the framework makes.
 import torch_tweak.torch as tt
 
 config = tt.ServingConfig(workdir="/var/cache/my-server/torch-tweak")
-tt.serve(pipeline.transformer, "wan2.1-1.3b.transformer.rank0", config, device=torch.device("xpu"))
+tt.ServedModule(pipeline.transformer, "wan2.1-1.3b.transformer.rank0", config, device=torch.device("xpu"))
 ```
 
 The module is wrapped in place.
