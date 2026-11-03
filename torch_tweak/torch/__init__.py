@@ -16,6 +16,7 @@ from torch_tweak.torch.tune_strategy import (
     HighestThroughputStrategy,
     OneBackendStrategy,
     TuneStrategy,
+    default_strategy,
 )
 from torch_tweak.torch.tuning import load, save, tune
 
@@ -32,6 +33,7 @@ __all__ = [
     "OneBackendStrategy",
     "FirstWinsStrategy",
     "HighestThroughputStrategy",
+    "default_strategy",
     "LocalTorchStorage",
     "DataLoaderFactory",
 ]

@@ -181,7 +181,7 @@ def test_tune(module, torch_device):
     module(2, b=2)
     module.tune(strategy=strategy, dry_run=False, device=torch_device)
 
-    strategy.tune.assert_has_calls([
+    assert strategy.tune.call_args_list == [
         call(
             module,
             TEST_MODULE_NAME,
@@ -206,7 +206,7 @@ def test_tune(module, torch_device):
             torch_device,
             torch_tweak_cache_dir() / module._self_name / module.graph_specs[1].name,
         ),
-    ])
+    ]
 
     assert module.state == ModuleState.TUNED
 
@@ -222,6 +222,23 @@ def test_tune_with_provided_strategy(torch_device):
 
     strategy.tune.call_count = 2
     assert module.state == ModuleState.TUNED
+
+
+def test_tune_without_strategy_builds_a_default_strategy_per_graph_for_the_device(torch_device, monkeypatch):
+    requested_devices = []
+
+    def default_strategy_stub(device):
+        requested_devices.append(device)
+        return Mock()
+
+    monkeypatch.setattr("torch_tweak.torch.module.tunable_module.default_strategy", default_strategy_stub)
+    module = TunableModule(Identity(), TEST_MODULE_NAME)
+    module(1, a=1)
+    module(2, b=2)
+
+    module.tune(device=torch_device)
+
+    assert requested_devices == [torch_device, torch_device]
 
 
 def test_tune_with_list_of_strategies(torch_device):

@@ -12,10 +12,13 @@ import pytest
 import torch
 from torch.utils.data import Dataset
 
+from tests.toy_backends import SleepBackend
 from torch_tweak.torch import tuning
 from torch_tweak.torch.config import DEFAULT_DEVICE
 from torch_tweak.torch.dataloader import DataLoaderFactory
+from torch_tweak.torch.module.tunable_module import ModuleState, TunableModule
 from torch_tweak.torch.module_registry import MODULE_REGISTRY
+from torch_tweak.torch.tune_strategy import OneBackendStrategy
 from torch_tweak.torch.tuning import LOG_FORMAT, tune
 
 
@@ -200,3 +203,53 @@ def test_tune_disable_external_logging(mocker):
 
     # then
     spy_libraries_logging.assert_called_once_with(True)
+
+
+class ReactivationFails(SleepBackend):
+    """Build succeeds. Activation after a deactivate raises."""
+
+    def __init__(self):
+        super().__init__()
+        self._deactivated = False
+
+    def _deactivate(self):
+        self._deactivated = True
+
+    def _activate(self):
+        if self._deactivated:
+            raise RuntimeError("reactivation failed")
+
+
+def test_failed_reactivation_lets_the_next_module_tune(torch_device):
+    failing_model = torch.nn.Linear(2, 1, bias=False).to(torch_device)
+    later_model = torch.nn.Linear(2, 1, bias=False).to(torch_device)
+    sample = torch.tensor([[1.0, 2.0]], device=torch_device)
+    sample_with_different_shape = torch.tensor([1.0, 2.0], device=torch_device)
+    eager = later_model(sample)
+
+    failing = TunableModule(
+        failing_model,
+        "fails-reactivation",
+        strategy=OneBackendStrategy(ReactivationFails()).enable_find_max_batch_size(False),
+    )
+    later = TunableModule(
+        later_model,
+        "tunes-after-failure",
+        strategy=OneBackendStrategy(SleepBackend()).enable_find_max_batch_size(False),
+    )
+
+    def pipeline(x):
+        failing(x)
+        later(x)
+
+    tune(
+        pipeline,
+        [sample, sample_with_different_shape],
+        batch_sizes=[1],
+        device=torch_device,
+        ignore_failing_modules=True,
+    )
+
+    assert failing.state == ModuleState.PASSTHROUGH
+    assert later.state == ModuleState.TUNED
+    torch.testing.assert_close(later(sample), eager, rtol=1e-4, atol=1e-5)
