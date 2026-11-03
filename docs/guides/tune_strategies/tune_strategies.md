@@ -18,6 +18,21 @@ Torch Tweak provides three built-in strategies:
 - **FirstWinsStrategy**: Tries backends in order, uses the first that succeeds
 - **HighestThroughputStrategy**: Profiles all backends, selects the fastest
 
+## Default Strategy
+
+A module without a strategy is tuned with `tt.default_strategy(device)`.
+It is `HighestThroughputStrategy` over `default_backends(device)`, every backend that runs on the device and keeps the results of the model:
+
+| Device | Backends |
+|---|---|
+| XPU | XPU graph, Torch Inductor, OpenVINO, Torch Eager |
+| CPU | Torch Inductor, OpenVINO, Torch Eager |
+
+TorchAO is left out because quantization changes the results.
+Every module gets its own strategy instance, built for the device it is tuned on.
+`FirstWinsStrategy` and `HighestThroughputStrategy` without a backend list use the same `default_backends(device)`.
+Without a strategy, tuning on any other device raises `ValueError`.
+
 ## Why Backends Can Fail
 
 Not every backend can successfully tune every model. Each backend relies on a different compilation or export technology, and each has its own limitations:
@@ -82,7 +97,7 @@ tt.tune(model, input_data)
 
 ## FirstWinsStrategy
 
-Tries backends in priority order and returns the first one that successfully builds and validates. If a backend fails, the strategy moves on to the next candidate instead of aborting. If all backends fail, the error is caught and the original model is used as-is. The default order is XPU graph, Torch Inductor, OpenVINO, then eager. Put a backend earlier only when you want that one to win as soon as it builds.
+Tries backends in priority order and returns the first one that successfully builds and validates. If a backend fails, the strategy moves on to the next candidate instead of aborting. If all backends fail, the error is caught and the original model is used as-is. Without a backend list it tries `default_backends(device)`: XPU graph, Torch Inductor, OpenVINO, then eager, with XPU graph skipped on CPU. Put a backend earlier only when you want that one to win as soon as it builds.
 
 ### Usage
 
