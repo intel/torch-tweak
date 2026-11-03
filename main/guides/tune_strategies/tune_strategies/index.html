@@ -979,6 +979,17 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#default-strategy" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Default Strategy
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#why-backends-can-fail" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -2584,6 +2595,17 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#default-strategy" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Default Strategy
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#why-backends-can-fail" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -2814,6 +2836,31 @@ NOTE: This file has been modified by Intel Corporation.
 <li><strong>FirstWinsStrategy</strong>: Tries backends in order, uses the first that succeeds</li>
 <li><strong>HighestThroughputStrategy</strong>: Profiles all backends, selects the fastest</li>
 </ul>
+<h2 id="default-strategy">Default Strategy</h2>
+<p>A module without a strategy is tuned with <code>tt.default_strategy(device)</code>.
+It is <code>HighestThroughputStrategy</code> over <code>default_backends(device)</code>, every backend that runs on the device and keeps the results of the model:</p>
+<table>
+<thead>
+<tr>
+<th>Device</th>
+<th>Backends</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>XPU</td>
+<td>XPU graph, Torch Inductor, OpenVINO, Torch Eager</td>
+</tr>
+<tr>
+<td>CPU</td>
+<td>Torch Inductor, OpenVINO, Torch Eager</td>
+</tr>
+</tbody>
+</table>
+<p>TorchAO is left out because quantization changes the results.
+Every module gets its own strategy instance, built for the device it is tuned on.
+<code>FirstWinsStrategy</code> and <code>HighestThroughputStrategy</code> without a backend list use the same <code>default_backends(device)</code>.
+Without a strategy, tuning on any other device raises <code>ValueError</code>.</p>
 <h2 id="why-backends-can-fail">Why Backends Can Fail</h2>
 <p>Not every backend can successfully tune every model. Each backend relies on a different compilation or export technology, and each has its own limitations:</p>
 <ul>
@@ -2896,7 +2943,7 @@ NOTE: This file has been modified by Intel Corporation.
 <li>Maximum performance discovery</li>
 </ul>
 <h2 id="firstwinsstrategy">FirstWinsStrategy</h2>
-<p>Tries backends in priority order and returns the first one that successfully builds and validates. If a backend fails, the strategy moves on to the next candidate instead of aborting. If all backends fail, the error is caught and the original model is used as-is. The default order is XPU graph, Torch Inductor, OpenVINO, then eager. Put a backend earlier only when you want that one to win as soon as it builds.</p>
+<p>Tries backends in priority order and returns the first one that successfully builds and validates. If a backend fails, the strategy moves on to the next candidate instead of aborting. If all backends fail, the error is caught and the original model is used as-is. Without a backend list it tries <code>default_backends(device)</code>: XPU graph, Torch Inductor, OpenVINO, then eager, with XPU graph skipped on CPU. Put a backend earlier only when you want that one to win as soon as it builds.</p>
 <h3 id="usage_1">Usage</h3>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">torch_tweak.torch.backend</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
 <a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>    <span class="n">XPUGraphBackend</span><span class="p">,</span>

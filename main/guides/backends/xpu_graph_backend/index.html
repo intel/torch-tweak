@@ -2526,8 +2526,10 @@ An out-of-memory error while recording a size skips that size and keeps the smal
 <a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a>
 <a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a><span class="n">strategy</span> <span class="o">=</span> <span class="n">HighestThroughputStrategy</span><span class="p">(</span><span class="n">backends</span><span class="o">=</span><span class="p">[</span><span class="n">XPUGraphBackend</span><span class="p">()])</span>
 </code></pre></div>
-<p>The backend is first in the default <code>FirstWinsStrategy</code> list, before Torch Inductor.
-It is also in the default <code>HighestThroughputStrategy</code> list.</p>
+<p>You do not have to add this backend yourself.
+On XPU, <code>tt.default_strategy(device)</code>, <code>FirstWinsStrategy()</code>, and <code>HighestThroughputStrategy()</code> include it when you pass no backends.
+<code>FirstWinsStrategy()</code> tries it first.
+On CPU none of them use it.</p>
 <p>PyTorch records a native SYCL graph when it was built with a SYCL compiler of 2026.1 or newer, except on Intel Data Center GPU Max Series.
 An older build records the legacy SYCL command graph.
 This backend uses the recording that build already performs.</p>

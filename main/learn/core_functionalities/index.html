@@ -2559,7 +2559,7 @@ NOTE: This file has been modified by Intel Corporation.
 <a id="__codelineno-5-9" name="__codelineno-5-9" href="#__codelineno-5-9"></a>    <span class="p">]</span>
 <a id="__codelineno-5-10" name="__codelineno-5-10" href="#__codelineno-5-10"></a><span class="p">)</span>
 </code></pre></div>
-<p>That order is also the default when you construct <code>FirstWinsStrategy</code> with no backend list. The first backend that builds and validates is kept.</p>
+<p><code>FirstWinsStrategy</code> with no backend list tries <code>default_backends(device)</code> in that order. On CPU it skips XPU graph. The first backend that builds and validates is kept.</p>
 <h2 id="onebackendstrategy">OneBackendStrategy</h2>
 <p>Uses exactly one backend, failing immediately with the original error if it cannot build. Use this when you have already validated that a backend works and want deterministic behavior. Unlike <code>FirstWinsStrategy</code> with a single backend, <code>OneBackendStrategy</code> surfaces the original exception rather than catching it.</p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">torch_tweak.torch.tune_strategy</span><span class="w"> </span><span class="kn">import</span> <span class="n">OneBackendStrategy</span>
@@ -2567,7 +2567,7 @@ NOTE: This file has been modified by Intel Corporation.
 <a id="__codelineno-6-3" name="__codelineno-6-3" href="#__codelineno-6-3"></a><span class="n">strategy</span> <span class="o">=</span> <span class="n">OneBackendStrategy</span><span class="p">(</span><span class="n">backend</span><span class="o">=</span><span class="n">OpenVINOBackend</span><span class="p">())</span>
 </code></pre></div>
 <h2 id="highestthroughputstrategy">HighestThroughputStrategy</h2>
-<p>Profiles all compatible backends and selects the fastest. Use this when maximum throughput matters and you can afford longer tuning time. <code>HighestThroughputStrategy()</code> with no backend list compares Torch Inductor, XPU graph, and eager.</p>
+<p>Profiles all compatible backends and selects the fastest. Use this when maximum throughput matters and you can afford longer tuning time. <code>HighestThroughputStrategy()</code> with no backend list compares <code>default_backends(device)</code>: XPU graph, Torch Inductor, OpenVINO, and eager on XPU, and the same without XPU graph on CPU.</p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">torch_tweak.torch.tune_strategy</span><span class="w"> </span><span class="kn">import</span> <span class="n">HighestThroughputStrategy</span>
 <a id="__codelineno-7-2" name="__codelineno-7-2" href="#__codelineno-7-2"></a>
 <a id="__codelineno-7-3" name="__codelineno-7-3" href="#__codelineno-7-3"></a><span class="n">strategy</span> <span class="o">=</span> <span class="n">HighestThroughputStrategy</span><span class="p">(</span>
