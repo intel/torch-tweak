@@ -146,11 +146,9 @@ def _profile(
         )
 
     except Exception as e:
-        return ProfilingResult(
-            status=ProfilingResult.Status.FAILURE,
-            error=e,
-            throughput_per_batch_size=throughput_per_batch_size,
-        )
+        # A larger batch size failing ends the search. The sizes measured before it stand.
+        status = ProfilingResult.Status.SUCCESS if throughput_per_batch_size else ProfilingResult.Status.FAILURE
+        return ProfilingResult(status=status, error=e, throughput_per_batch_size=throughput_per_batch_size)
 
 
 def _run_profiling_batch_size(
@@ -189,7 +187,7 @@ def _run_profiling_batch_size(
             batch_size,
             e,
         )
-        return None
+        raise
 
     # Note: keeping and returning all entries
     return entries

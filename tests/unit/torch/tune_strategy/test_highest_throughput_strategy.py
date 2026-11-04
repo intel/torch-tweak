@@ -234,6 +234,25 @@ def test_tune_fails_with_the_last_error_when_no_backend_reactivates(torch_device
     assert str(raised.value.__cause__) == "Reactivate failed"
 
 
+class InferFailsBackend(SleepBackend):
+    def _infer(self, *args, **kwargs):
+        raise RuntimeError("Infer failed")
+
+
+def test_failure_after_the_build_is_written_to_the_backend_log(torch_device, tmp_path):
+    backend = InferFailsBackend()
+    strategy = HighestThroughputStrategy(backends=[backend, SleepBackend(sleep_time=1e-2)])
+    strategy.enable_find_max_batch_size(False)
+    strategy.enable_correctness_check(False)
+    model = ToyTorchModel().to(torch_device)
+    sample = model.sample().unsqueeze(0).to(torch_device)
+    graph_spec = model.graph_spec(batch_sizes=[1], device=torch_device)
+
+    strategy.tune(model, "test", graph_spec, [((sample,), {})], torch_device, tmp_path)
+
+    assert "RuntimeError: Infer failed" in (tmp_path / backend.key() / "build.log").read_text()
+
+
 def test_highest_throughput_strategy_fails_backend_if_all_of_backends_fails(torch_device):
     """If all backends fails it should raise an error."""
     strategy = HighestThroughputStrategy(

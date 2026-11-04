@@ -6,6 +6,7 @@
 """Base class for tune strategy."""
 
 import logging
+import traceback
 from abc import ABC, abstractmethod
 from collections.abc import Callable
 from copy import deepcopy
@@ -215,6 +216,13 @@ class TuneStrategy(ABC):
         secure_mkdir(cache_dir)
         log_file = cache_dir / filename
         return log_file
+
+    def _log_failure(self, exc: Exception, log_file: Path) -> None:
+        """Appends the traceback of `exc` to `log_file` and reports the first line of its message."""
+        with open(log_file, "a") as file:
+            file.write(traceback.format_exc())
+        reason = (str(exc).splitlines() or [""])[0]
+        log("❌ backend failed: %s: %s (log file: %s)", type(exc).__name__, reason, log_file, depth=2, sink=self._sink)
 
     @property
     def _logger(self) -> logging.Logger:

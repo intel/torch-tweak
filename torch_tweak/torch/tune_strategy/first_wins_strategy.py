@@ -68,10 +68,10 @@ class FirstWinsStrategy(TuneStrategyFindMaxBatchSizeExtension):
                     log("✅ backend validated", depth=2, sink=self._sink)
                     selected_backend = backend
                     break
-                except Exception:
+                except Exception as exc:
                     if backend.is_active:
                         backend.deactivate()
-                    log("❌ backend failed (log file: %s)", log_file, depth=2, sink=self._sink)
+                    self._log_failure(exc, log_file)
                     module.to(device)  # move module back to device as failed backend could move it to cpu
 
         if selected_backend:
