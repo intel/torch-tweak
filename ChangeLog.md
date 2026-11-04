@@ -26,6 +26,8 @@ SPDX-License-Identifier: Apache-2.0
   `OnlineTunedModule` runs a shape without a backend only on this error. Any other tuning error reaches the caller.
 - feat: `OnlineTunedModule` saves the selected backend per weights and shapes, and a later process restores it without tuning.
   `OpenVINOBackendConfig(reuse_ir=True)` compiles the saved IR instead of converting the module again (#88)
+- feat: `HighestThroughputStrategy` measures a backend again when another process computed on the device during the measurement.
+  `OnlineTunedModule` does not save a selection tuned on a shared device (#89)
 
 ## 0.4.1
 

@@ -6,9 +6,11 @@ import pytest
 import torch
 
 from tests.toy_backends import BuildFailsBackend, SleepBackend
+from tests.utilities.device_probes import ScriptedProbe
 from tests.utilities.helpers import requires_leo
 from torch_tweak.torch import HighestThroughputStrategy, OneBackendStrategy, OnlineTunedModule
 from torch_tweak.torch.module import online_tuned_module
+from torch_tweak.torch.utils.device_load import DeviceLoadProbe
 
 
 @pytest.fixture(autouse=True)
@@ -19,8 +21,8 @@ def cache_dir(tmp_path, monkeypatch):
 class CountingStrategy(HighestThroughputStrategy):
     """Counts how many times it tunes."""
 
-    def __init__(self, backends):
-        super().__init__(backends=backends)
+    def __init__(self, backends, device_probe=None):
+        super().__init__(backends=backends, device_probe=device_probe)
         self.tune_calls = 0
 
     def tune(self, *args, **kwargs):
@@ -28,8 +30,8 @@ class CountingStrategy(HighestThroughputStrategy):
         return super().tune(*args, **kwargs)
 
 
-def sleep_strategy(backends=None) -> CountingStrategy:
-    strategy = CountingStrategy(backends=backends or [SleepBackend()])
+def sleep_strategy(backends=None, device_probe: DeviceLoadProbe | None = None) -> CountingStrategy:
+    strategy = CountingStrategy(backends=backends or [SleepBackend()], device_probe=device_probe)
     strategy.enable_find_max_batch_size(False)
     strategy.enable_correctness_check(False)
     return strategy
@@ -137,6 +139,16 @@ def test_a_later_module_with_other_weights_tunes_again():
     strategy = sleep_strategy()
 
     OnlineTunedModule(tripling(), "linear", strategy=strategy)(torch.tensor([[1.0, 3.0]]))
+
+    assert len(strategy.results) == 1
+
+
+def test_a_selection_tuned_on_a_shared_device_is_tuned_again_later():
+    shared = sleep_strategy(device_probe=ScriptedProbe([1.0, 20.0, 1.0, 20.0, 1.0, 20.0]))
+    OnlineTunedModule(doubling(), "doubling", strategy=shared)(torch.tensor([[1.0, 3.0]]))
+    strategy = sleep_strategy()
+
+    OnlineTunedModule(doubling(), "doubling", strategy=strategy)(torch.tensor([[1.0, 3.0]]))
 
     assert len(strategy.results) == 1
 

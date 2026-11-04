@@ -247,6 +247,7 @@ Call `reset()` after the owner changes the weights in any way: moves them, repla
 The selected backend is saved under `<cache dir>/<name>/<weights fingerprint>/<shapes digest>/`.
 A later process with the same weights builds that backend without tuning.
 OpenVINO compiles the IR saved there instead of converting the module again.
+A selection tuned while another process used the device is not saved, so the next process tunes those shapes again.
 
 ## Dry Run Mode
 
