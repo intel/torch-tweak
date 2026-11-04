@@ -82,11 +82,10 @@ class OpenVINOModelConverter:
         )
         ordered_kwargs: dict[str, Any] = _ordered_kwargs_for_export(non_posonly_arg_names, kwargs)
         _fill_dynamic_shapes_for_non_tensors(non_posonly_arg_names, kwargs, dynamic_shapes)
-        if dynamic_shapes and var_keyword:
+        passed_extra_kwarg_names = [name for name in extra_kwarg_names if name in ordered_kwargs]
+        if dynamic_shapes and passed_extra_kwarg_names:
             # torch.export keys the shapes of **kwargs entries under the name of that parameter.
-            dynamic_shapes[var_keyword] = {
-                name: dynamic_shapes.pop(name, None) for name in extra_kwarg_names if name in ordered_kwargs
-            }
+            dynamic_shapes[var_keyword] = {name: dynamic_shapes.pop(name, None) for name in passed_extra_kwarg_names}
 
         exported: torch.export.ExportedProgram = torch.export.export(
             module,
