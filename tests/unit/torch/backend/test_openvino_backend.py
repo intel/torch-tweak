@@ -591,3 +591,14 @@ def test_openvino_device_for_xpu_is_the_device_pytorch_uses():
     ov_device = openvino_device_for_xpu(core, device)
 
     assert core.get_property(ov_device, "FULL_DEVICE_NAME").startswith(torch.xpu.get_device_name(device))
+
+
+@requires_xpu
+def test_module_stays_on_xpu_when_offload_module_is_false(model, tmp_path):
+    device = torch.device("xpu")
+    data = [((model.sample().to(device).unsqueeze(0),), {})]
+    backend = OpenVINOBackend(OpenVINOBackendConfig(use_dynamo=False, offload_module=False))
+
+    backend_build(backend, model, data, tmp_path, device)
+
+    assert next(model.parameters()).device.type == "xpu"

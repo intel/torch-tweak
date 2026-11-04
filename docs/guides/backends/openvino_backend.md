@@ -40,6 +40,9 @@ config = OpenVINOBackendConfig(
 
 Use `use_dynamo=False` when `torch.export` cannot capture the module.
 
+The backend moves the module to CPU after conversion, since the compiled model holds its own copy of the weights.
+`offload_module=False` leaves the module on its device, for a framework that keeps calling it.
+
 ## Next Steps
 
 - Compare with the [Torch Inductor backend](torch_inductor_backend.md)
