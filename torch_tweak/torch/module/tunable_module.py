@@ -297,6 +297,8 @@ class TunableModule(wrapt.CallableObjectProxy):
                 # Tuning this graph can move the weights an earlier backend was built on.
                 # `OpenVINOBackend._build` offloads the module to CPU.
                 # Earlier backends are rebuilt after the loop.
+                # That rebuild has no fallback to the next profiled backend:
+                # https://github.com/intel/torch-tweak/issues/82
                 for selected in backends.values():
                     selected.deactivate()
                 try:

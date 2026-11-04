@@ -9,9 +9,10 @@ from typing import cast
 from unittest.mock import MagicMock
 
 import pytest
+import torch
 
 from tests.toy_backends import BuildFailsBackend, SleepBackend
-from tests.toy_models.torch_models import ToyTorchModel
+from tests.toy_models.torch_models import INPUT_SIZE, ToyTorchModel
 from tests.utilities.helpers import requires_xpu
 from torch_tweak.torch import TunableModule
 from torch_tweak.torch.backend import Backend
@@ -209,6 +210,50 @@ class ActivateFailsBackend(SleepBackend):
 
     def _activate(self):
         raise RuntimeError("Activate failed")
+
+
+class ReactivateFailsBackend(SleepBackend):
+    """Builds without activating and fails every activate after the build."""
+
+    def _build(self, module, graph_spec, data, cache_dir):
+        self._module = module
+        return self
+
+    def _activate(self):
+        raise RuntimeError("Reactivate failed")
+
+
+def test_next_fastest_backend_is_selected_when_the_fastest_fails_to_reactivate(torch_device, tmp_path):
+    strategy = HighestThroughputStrategy(
+        backends=[
+            ReactivateFailsBackend(sleep_time=1e-5),
+            SleepBackend(sleep_time=1e-2),
+            SleepBackend(sleep_time=1e-3),
+        ]
+    )
+    strategy.enable_find_max_batch_size(False)
+    strategy.enable_correctness_check(False)
+    model = ToyTorchModel()
+    sample = torch.zeros(1, INPUT_SIZE)
+
+    selected = strategy.tune(
+        model, "test", model.graph_spec(batch_sizes=[1]), [((sample,), {})], torch_device, tmp_path
+    )
+
+    assert selected.name == "SleepBackend with sleep time 0.001"
+
+
+def test_tune_fails_with_the_last_error_when_no_backend_reactivates(torch_device, tmp_path):
+    strategy = HighestThroughputStrategy(backends=[ReactivateFailsBackend(sleep_time=1e-5)])
+    strategy.enable_find_max_batch_size(False)
+    strategy.enable_correctness_check(False)
+    model = ToyTorchModel()
+    sample = torch.zeros(1, INPUT_SIZE)
+
+    with pytest.raises(RuntimeError, match="No profiled backend could be activated") as raised:
+        strategy.tune(model, "test", model.graph_spec(batch_sizes=[1]), [((sample,), {})], torch_device, tmp_path)
+
+    assert str(raised.value.__cause__) == "Reactivate failed"
 
 
 def test_highest_throughput_strategy_fails_backend_if_all_of_backends_fails(torch_device):
