@@ -227,12 +227,16 @@ def _apply_graph_spec_io(
     ov_model.validate_nodes_and_infer_types()
 
 
-def staticize_extra_openvino_inputs(inputs: Sequence[ov.Output], tensor_input_names: set[str]) -> None:
+def staticize_extra_openvino_inputs(inputs: Sequence[ov.Output], tensor_input_names: set[str]) -> list[str]:
     """Give non-tensor trace/export inputs (e.g. ``return_dict=False``) static scalar shapes.
 
     ``torch.export`` + OVC can expose bool/scalar kwargs as extra parameters with fully dynamic
     rank (``[...]``). Intel GPU compile rejects those; GraphSpec only tracks tensor inputs.
+
+    Returns:
+        Names of the inputs that now have a static scalar shape.
     """
+    staticized: list[str] = []
     port: ov.Output
     for port in inputs:
         name: str = port.get_any_name()
@@ -244,6 +248,8 @@ def staticize_extra_openvino_inputs(inputs: Sequence[ov.Output], tensor_input_na
             )
             node: ov.Node = port.get_node()
             node.set_partial_shape(PartialShape([]))
+            staticized.append(name)
+    return staticized
 
 
 def _create_dynamic_shapes(

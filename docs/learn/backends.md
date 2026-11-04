@@ -67,6 +67,8 @@ from torch_tweak.torch.backend import OpenVINOBackend, OpenVINOBackendConfig
 backend = OpenVINOBackend(OpenVINOBackendConfig(use_dynamo=False, performance_hint="THROUGHPUT"))
 ```
 
+On XPU, OpenVINO reads and writes PyTorch device memory in place. Start the process with `EnableLEO=1`.
+
 Guide: [OpenVINO Backend](../guides/backends/openvino_backend.md).
 
 ## Torch Eager Backend
