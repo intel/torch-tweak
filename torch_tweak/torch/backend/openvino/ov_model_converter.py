@@ -4,8 +4,9 @@
 
 from __future__ import annotations
 
+import contextlib
 import logging
-from collections.abc import Sequence
+from collections.abc import Generator, Sequence
 from pathlib import Path
 from typing import Any
 
@@ -13,6 +14,8 @@ import openvino as ov
 import torch
 import torch.nn as nn
 from openvino import PartialShape, serialize
+from openvino.frontend.pytorch import fx_decoder
+from openvino.frontend.pytorch import utils as pytorch_frontend_utils
 from openvino.tools.ovc import convert_model
 
 from torch_tweak.torch.module.graph_spec import GraphSpec
@@ -46,12 +49,13 @@ class OpenVINOModelConverter:
         logger.info("Converting PyTorch module to OpenVINO IR: %s", xml_path)
         try:
             args, kwargs = _prepare_sample(sample, graph_spec.input_spec)
-            if self.use_dynamo:
-                ov_model, ordered_kwarg_names = self._convert_dynamo(module, args, kwargs, graph_spec)
-                ordered_input_names = _ordered_input_names_for_dynamo(graph_spec.input_spec, ordered_kwarg_names)
-            else:
-                ov_model = self._convert_trace(module, args, kwargs, graph_spec)
-                ordered_input_names = None
+            with _constants_copy_device_tensors():
+                if self.use_dynamo:
+                    ov_model, ordered_kwarg_names = self._convert_dynamo(module, args, kwargs, graph_spec)
+                    ordered_input_names = _ordered_input_names_for_dynamo(graph_spec.input_spec, ordered_kwarg_names)
+                else:
+                    ov_model = self._convert_trace(module, args, kwargs, graph_spec)
+                    ordered_input_names = None
 
             _apply_graph_spec_io(ov_model, graph_spec, ordered_input_names)
             serialize(ov_model, xml_path.as_posix(), bin_path.as_posix())
@@ -93,6 +97,25 @@ class OpenVINOModelConverter:
             example_input=example_input,
             dynamo=False,
         )
+
+
+@contextlib.contextmanager
+def _constants_copy_device_tensors() -> Generator[None]:
+    """Makes the PyTorch frontend copy the data of every constant taken from a non-CPU tensor.
+
+    For bf16 and f8 the frontend shares the memory of a temporary CPU copy of the tensor, and that copy
+    is freed as soon as the constant is made.
+    """
+    original = pytorch_frontend_utils.torch_tensor_to_ov_const
+
+    def to_constant(tensor: torch.Tensor, shared_memory: bool = True) -> Any:
+        return original(tensor, shared_memory=shared_memory and tensor.device.type == "cpu")
+
+    fx_decoder.torch_tensor_to_ov_const = pytorch_frontend_utils.torch_tensor_to_ov_const = to_constant
+    try:
+        yield
+    finally:
+        fx_decoder.torch_tensor_to_ov_const = pytorch_frontend_utils.torch_tensor_to_ov_const = original
 
 
 def _prepare_sample(sample: Sample, input_spec: SampleMetadata) -> tuple[tuple, dict]:
