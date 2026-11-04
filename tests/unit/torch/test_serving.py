@@ -14,7 +14,7 @@ def linear(weight):
 
 
 def eager_config(workdir):
-    return ServingConfig(workdir=workdir, backends=("eager",))
+    return ServingConfig(workdir=workdir, backends=("eager",), fallback="eager")
 
 
 def call_once(workdir, x):
@@ -77,6 +77,22 @@ def test_unrecorded_shape_returns_the_module_output(tmp_path):
     actual = module(torch.tensor([[1.0, 0.0], [5.0, 0.0]]))
 
     torch.testing.assert_close(actual, torch.tensor([[2.0], [10.0]]))
+
+
+def test_inductor_fallback_compiles_one_graph_for_two_unrecorded_shapes(tmp_path):
+    call_once(tmp_path, torch.tensor([[3.0, 4.0]]))
+    call_once(tmp_path, torch.tensor([[3.0, 4.0]]))
+    module = linear(torch.tensor([[2.0, 0.0]]))
+    ServedModule(module, "toy", ServingConfig(workdir=tmp_path, backends=("eager",)))
+    torch._dynamo.reset()
+    torch._dynamo.utils.counters.clear()
+
+    first = module(torch.tensor([[1.0, 0.0], [5.0, 0.0], [7.0, 0.0]]))
+    second = module(torch.tensor([[1.0, 0.0], [5.0, 0.0], [7.0, 0.0], [9.0, 0.0]]))
+
+    torch.testing.assert_close(first, torch.tensor([[2.0], [10.0], [14.0]]))
+    torch.testing.assert_close(second, torch.tensor([[2.0], [10.0], [14.0], [18.0]]))
+    assert torch._dynamo.utils.counters["stats"]["unique_graphs"] == 1
 
 
 def test_serve_without_tuned_choice_is_rejected(tmp_path):

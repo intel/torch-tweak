@@ -11,9 +11,9 @@ It loads the model and runs requests itself. ServedModule fits that order:
 * auto: serve when a choice exists, tune when only a recording exists, and record otherwise.
 
 Tuning and loading run inside the first forward call, so they see the same device, streams,
-and framework context as inference. Every tensor shape is its own graph, and a graph that was
-not recorded runs the original module. Weights are not written: the framework loads them
-before Torch Tweak sees the module.
+and framework context as inference. Every tensor shape is its own graph. A graph that was not
+recorded runs the fallback. Weights are not written: the framework loads them before Torch Tweak
+sees the module.
 """
 
 import copy
@@ -64,6 +64,13 @@ BACKEND_FACTORIES: dict[str, Callable[[], Backend]] = {
 }
 
 
+class ServingFallback(str, Enum):
+    """What runs a graph that was not recorded."""
+
+    INDUCTOR = "inductor"
+    EAGER = "eager"
+
+
 class ServingMode(str, Enum):
     """What ServedModule does with the calls it sees."""
 
@@ -81,16 +88,20 @@ class ServingConfig:
         workdir: Holds one directory per module name with the recording and the tuned choice.
         mode: See ServingMode.
         backends: Names from BACKEND_FACTORIES. HighestThroughputStrategy measures each and keeps the fastest.
+        fallback: Runs graphs that were not recorded. INDUCTOR compiles the module with dynamic shapes
+            on the first such call. EAGER runs the original module.
     """
 
     workdir: Path
     mode: ServingMode = ServingMode.AUTO
     backends: Sequence[str] = tuple(BACKEND_FACTORIES)
+    fallback: ServingFallback = ServingFallback.INDUCTOR
 
     def __post_init__(self) -> None:
         """Normalizes workdir and mode, and rejects unknown or missing backends."""
         self.workdir = Path(self.workdir)
         self.mode = ServingMode(self.mode)
+        self.fallback = ServingFallback(self.fallback)
         self.backends = tuple(self.backends)
         if not self.backends:
             raise ValueError("backends is empty")
@@ -124,6 +135,7 @@ class ServedModule(TunableModule):
         self._self_tuned_path = self._self_tuned_dir / STATE_DICT_FILE
         self._self_module_config = copy.copy(global_config)
         self._self_module_config.exact_shapes = True
+        self._self_fallback = config.fallback
         self._self_mode = self._resolve_mode(config.mode)
         self._self_pending = self._self_mode != ServingMode.RECORD
         if self._self_mode == ServingMode.RECORD:
@@ -194,7 +206,10 @@ class ServedModule(TunableModule):
     def _tuned_with_fallback(self) -> TunedModule:
         tuned = self._self_wrapper
         assert isinstance(tuned, TunedModule)
-        tuned.fallback = self.__wrapped__
+        if self._self_fallback == ServingFallback.INDUCTOR:
+            tuned.fallback = torch.compile(self.__wrapped__, dynamic=True)
+        else:
+            tuned.fallback = self.__wrapped__
         return tuned
 
     def _describe_choice(self, tuned: TunedModule) -> None:

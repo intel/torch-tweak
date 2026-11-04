@@ -101,7 +101,7 @@ class TunedModule:
                 raise RuntimeError(self.ERROR_NO_BACKEND_FOUND.format(sample_metadata))
             if sample_metadata not in self._unknown_graphs:
                 self._unknown_graphs.add(sample_metadata)
-                logger.warning("No tuned backend for a graph, running the original module: %s", sample_metadata)
+                logger.warning("No tuned backend for a graph, running the fallback: %s", sample_metadata)
             return self.fallback(*args, **kwargs)
 
         backend = self._backends[sample_metadata]

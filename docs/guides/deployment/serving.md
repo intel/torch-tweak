@@ -40,7 +40,9 @@ Pass `mode="record"`, `"tune"`, or `"serve"` to force a step.
 ## What is saved
 
 Each tensor shape is its own graph.
-A shape that was not recorded runs the original module and logs one warning.
+A shape that was not recorded runs the fallback and logs one warning.
+The default fallback, `inductor`, compiles the module with dynamic shapes on the first such call.
+`fallback="eager"` runs the original module instead.
 
 The tuned choice does not hold the module weights.
 On `serve`, the backends use the weights the framework already loaded.

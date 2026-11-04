@@ -11,7 +11,7 @@ from torch_tweak.torch.checkpoint.local_torch_storage import LocalTorchStorage
 from torch_tweak.torch.dataloader import DataLoaderFactory
 from torch_tweak.torch.inspecting import inspect, wrap
 from torch_tweak.torch.module import TunableModule
-from torch_tweak.torch.serving import ServedModule, ServingConfig, ServingMode
+from torch_tweak.torch.serving import ServedModule, ServingConfig, ServingFallback, ServingMode
 from torch_tweak.torch.tune_strategy import (
     FirstWinsStrategy,
     HighestThroughputStrategy,
@@ -30,6 +30,7 @@ __all__ = [
     "load",
     "save",
     "ServingConfig",
+    "ServingFallback",
     "ServingMode",
     "ServedModule",
     "TunableModule",
