@@ -58,6 +58,7 @@ class OnlineTunedModule:
 
     The selection is saved under the cache directory, keyed by the weights and the shapes.
     A later process with the same weights builds the saved backend for those shapes and skips tuning.
+    A selection measured while another process used the device is not saved.
 
     The module stays where it is and keeps its `forward`. Its owner can keep calling and patching it.
     Call `reset` after the owner moves or replaces the weights, since some backends hold their addresses.
@@ -156,6 +157,9 @@ class OnlineTunedModule:
 
     def _tune(self, graph_spec: GraphSpec, sample: tuple[tuple, dict], cache_dir: Path) -> Backend:
         backend = self._strategy.tune(self._module, self._name, graph_spec, [sample], self._device, cache_dir)
+        if not self._strategy.tuned_on_quiet_device:
+            logger.warning("Another process used the device while %s was tuned. Its selection is not saved", cache_dir)
+            return backend
         selected = cache_dir / SELECTED_BACKEND_FILE
         selected.write_text(backend.key())
         secure_file(selected)
