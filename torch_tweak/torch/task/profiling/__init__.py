@@ -12,7 +12,7 @@ from torch_tweak.torch.task.profiling.measuring_stop_strategy import (
 )
 from torch_tweak.torch.task.profiling.measuring_strategy import MeasuringStrategy, ModelExecutionTimeMeasuringStrategy
 from torch_tweak.torch.task.profiling.metrics import get_throughput, is_throughput_saturated
-from torch_tweak.torch.task.profiling.profiling import ProfilingResults, ProfilingStatus, profile
+from torch_tweak.torch.task.profiling.profiling import ProfilingResult, profile
 from torch_tweak.torch.task.profiling.profiling_stop_strategy import (
     AllSamplesProfilingStopStrategy,
     ProfilingStopStrategy,
@@ -30,8 +30,7 @@ __all__ = [
     "StableWindowMeasuringStopStrategy",
     "ProfilingConfig",
     "ProfilingResultEvent",
-    "ProfilingResults",
-    "ProfilingStatus",
+    "ProfilingResult",
     "profile",
     "get_throughput",
     "is_throughput_saturated",
