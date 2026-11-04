@@ -130,7 +130,7 @@ class HighestThroughputStrategy(TuneStrategyFindMaxBatchSizeExtension):
 
         profiled: list[_ProfiledBackend] = []
 
-        backends = list(self._backends or default_backends(device))
+        backends = self.candidate_backends(device)
 
         # Run all backends with given max batch size.
         for backend in backends:
@@ -239,6 +239,10 @@ class HighestThroughputStrategy(TuneStrategyFindMaxBatchSizeExtension):
             measurement_stop_strategy=self._measurement_stop_strategy,
             profiling_stop_strategy=self._profiling_stop_strategy,
         )
+
+    def candidate_backends(self, device: torch.device) -> list[Backend]:
+        """The backends this strategy measures on `device`."""
+        return list(self._backends or default_backends(device))
 
     def _describe_parts(self) -> list[str]:
         """Returns the parts of the description."""
