@@ -66,6 +66,9 @@ The weights then exist twice on the device: in the module and in the compiled mo
 The flag controls only the backend build.
 `TunableModule` replaces the module's forward, so after tuning it still moves the module to `config.device_after_tuning`.
 
+`reuse_ir=True` compiles the IR already in the build directory instead of converting the module.
+The IR holds the weights, so the caller keys that directory by the weights and the shapes, as `OnlineTunedModule` does.
+
 ## Next Steps
 
 - Compare with the [Torch Inductor backend](torch_inductor_backend.md)

@@ -11,6 +11,11 @@ from torch_tweak.torch import HighestThroughputStrategy, OneBackendStrategy, Onl
 from torch_tweak.torch.module import online_tuned_module
 
 
+@pytest.fixture(autouse=True)
+def cache_dir(tmp_path, monkeypatch):
+    monkeypatch.setenv("TORCH_TWEAK_CACHE_DIR", str(tmp_path))
+
+
 class CountingStrategy(HighestThroughputStrategy):
     """Counts how many times it tunes."""
 
@@ -34,6 +39,13 @@ def doubling() -> torch.nn.Linear:
     layer = torch.nn.Linear(2, 2, bias=False)
     with torch.no_grad():
         layer.weight.copy_(torch.tensor([[2.0, 0.0], [0.0, 2.0]]))
+    return layer
+
+
+def tripling() -> torch.nn.Linear:
+    layer = torch.nn.Linear(2, 2, bias=False)
+    with torch.no_grad():
+        layer.weight.copy_(torch.tensor([[3.0, 0.0], [0.0, 3.0]]))
     return layer
 
 
@@ -100,6 +112,35 @@ def test_reactivated_backend_returns_the_module_output():
     torch.testing.assert_close(actual, torch.tensor([[8.0, 10.0]]))
 
 
+def test_a_later_module_with_the_same_weights_restores_the_selection_without_tuning():
+    OnlineTunedModule(doubling(), "doubling", strategy=sleep_strategy())(torch.tensor([[1.0, 3.0]]))
+    strategy = sleep_strategy()
+    later = OnlineTunedModule(doubling(), "doubling", strategy=strategy)
+
+    later(torch.tensor([[1.0, 3.0]]))
+
+    assert (strategy.results, [type(backend) for backend in later.backends.values()]) == ([], [SleepBackend])
+
+
+def test_restored_backend_returns_the_module_output():
+    OnlineTunedModule(doubling(), "doubling", strategy=sleep_strategy())(torch.tensor([[1.0, 3.0]]))
+    later = OnlineTunedModule(doubling(), "doubling", strategy=sleep_strategy())
+    later(torch.tensor([[1.0, 3.0]]))
+
+    actual = later(torch.tensor([[4.0, 5.0]]))
+
+    torch.testing.assert_close(actual, torch.tensor([[8.0, 10.0]]))
+
+
+def test_a_later_module_with_other_weights_tunes_again():
+    OnlineTunedModule(doubling(), "linear", strategy=sleep_strategy())(torch.tensor([[1.0, 3.0]]))
+    strategy = sleep_strategy()
+
+    OnlineTunedModule(tripling(), "linear", strategy=strategy)(torch.tensor([[1.0, 3.0]]))
+
+    assert len(strategy.results) == 1
+
+
 def test_reset_drops_the_tuned_shapes():
     online = OnlineTunedModule(doubling(), "doubling", strategy=sleep_strategy())
     online(torch.tensor([[1.0, 3.0]]))
@@ -120,10 +161,24 @@ def test_tuned_shapes_are_not_tuned_again():
     assert strategy.tune_calls == 1
 
 
-def test_call_after_reset_tunes_again():
+def test_call_after_reset_with_the_same_weights_restores_without_tuning():
     strategy = sleep_strategy()
     online = OnlineTunedModule(doubling(), "doubling", strategy=strategy)
     online(torch.tensor([[1.0, 3.0]]))
+    online.reset()
+
+    online(torch.tensor([[1.0, 3.0]]))
+
+    assert strategy.tune_calls == 1
+
+
+def test_call_after_reset_with_patched_weights_tunes_again():
+    module = doubling()
+    strategy = sleep_strategy()
+    online = OnlineTunedModule(module, "doubling", strategy=strategy)
+    online(torch.tensor([[1.0, 3.0]]))
+    with torch.no_grad():
+        module.weight.mul_(3.0)
     online.reset()
 
     online(torch.tensor([[1.0, 3.0]]))
@@ -206,13 +261,3 @@ def test_module_with_a_weight_on_another_device_is_rejected():
 
     with pytest.raises(ValueError, match="weight"):
         OnlineTunedModule(module, "linear", strategy=sleep_strategy(), device=torch.device("cpu"))
-
-
-def test_instances_with_one_name_use_separate_graph_directories(torch_tweak_cache_dir):
-    first = OnlineTunedModule(doubling(), "doubling", strategy=sleep_strategy())
-    second = OnlineTunedModule(doubling(), "doubling", strategy=sleep_strategy())
-
-    first(torch.tensor([[1.0, 3.0]]))
-    second(torch.tensor([[1.0, 3.0]]))
-
-    assert len(list((torch_tweak_cache_dir / "doubling").iterdir())) == 2
