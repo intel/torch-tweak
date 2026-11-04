@@ -139,6 +139,23 @@ def test_openvino_backend_build_and_infer(model, sample_data, tmp_path, torch_de
     backend.deactivate()
 
 
+class _VarKeywordModel(nn.Module):
+    def forward(self, x: torch.Tensor, **kwargs: torch.Tensor) -> torch.Tensor:
+        return x + kwargs["y"]
+
+
+def test_openvino_backend_passes_var_keyword_inputs(tmp_path, torch_device):
+    sample = (
+        (torch.tensor([[1.0, 2.0]], device=torch_device),),
+        {"y": torch.tensor([[10.0, 20.0]], device=torch_device)},
+    )
+    backend = backend_build(OpenVINOBackend(), _VarKeywordModel(), [sample], tmp_path, torch_device)
+
+    actual = backend.infer(*sample[0], **sample[1])
+
+    torch.testing.assert_close(actual.cpu(), torch.tensor([[11.0, 22.0]]))
+
+
 def test_openvino_backend_serialization(model, sample_data, tmp_path, torch_device):
     backend = backend_build(
         OpenVINOBackend(OpenVINOBackendConfig(use_dynamo=False)), model, sample_data, tmp_path, torch_device
