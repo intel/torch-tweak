@@ -22,13 +22,7 @@ from typing import Any
 import torch
 import torch.nn as nn
 
-from torch_tweak.torch.backend import (
-    Backend,
-    BatchSizeRouterBackend,
-    TorchEagerBackend,
-    TorchInductorBackend,
-    XPUGraphBackend,
-)
+from torch_tweak.torch.backend import Backend, BatchSizeRouterBackend
 from torch_tweak.torch.backend.batch_size_router_backend import routes_by_throughput
 from torch_tweak.torch.config import (
     DEFAULT_STABILITY_PERCENTAGE,
@@ -52,6 +46,7 @@ from torch_tweak.torch.task.profiling import (
     ThroughputSaturatedProfilingStopStrategy,
 )
 from torch_tweak.torch.task.profiling.events import get_inference_events
+from torch_tweak.torch.tune_strategy.default_backends import default_backends
 from torch_tweak.torch.tune_strategy.extension import TuneStrategyFindMaxBatchSizeExtension
 from torch_tweak.utils.logging import control_output, log
 from torch_tweak.utils.timer import Timer
@@ -88,13 +83,13 @@ class HighestThroughputStrategy(TuneStrategyFindMaxBatchSizeExtension):
         """Initializes strategy.
 
         Args:
-            backends: List of backends to tune.
+            backends: List of backends to tune. Without it, `default_backends(device)` for the tuning device.
             measurement_stop_strategy: Measurement stop strategy.
             profiling_stop_strategy: Profiling stop strategy.
             kwargs: Additional arguments for the parent class
         """
         super().__init__(**kwargs)
-        self._backends = backends or self._default_backends()
+        self._backends = backends
         self._measurement_stop_strategy = measurement_stop_strategy or StableWindowMeasuringStopStrategy(
             window_size=DEFAULT_WINDOW_SIZE,
             stability_percentage=DEFAULT_STABILITY_PERCENTAGE,
@@ -137,8 +132,10 @@ class HighestThroughputStrategy(TuneStrategyFindMaxBatchSizeExtension):
         best_batch_size = 1
         throughputs: list[tuple[Backend, dict[int, float]]] = []
 
+        backends = list(self._backends or default_backends(device))
+
         # Run all backends with given max batch size.
-        for backend in self._backends:
+        for backend in backends:
             backend_cache_dir = cache_dir / backend.key()
             log_file = self._log_file(backend_cache_dir, "build.log")
 
@@ -185,6 +182,7 @@ class HighestThroughputStrategy(TuneStrategyFindMaxBatchSizeExtension):
                         best_backend = backend
                         best_throughput = throughput
                         best_batch_size = batch_size
+                    backend.deactivate()
 
                 except Exception:
                     if backend.is_active:
@@ -196,7 +194,7 @@ class HighestThroughputStrategy(TuneStrategyFindMaxBatchSizeExtension):
             log(
                 "ℹ️ No correct backend found with throughput %f > 0. Backends considered: %s",
                 best_throughput,
-                ", ".join([backend.describe() for backend in self._backends]),
+                ", ".join([backend.describe() for backend in backends]),
                 sink=self._sink,
             )
             raise RuntimeError("No correct backend found with throughput > 0")
@@ -211,6 +209,10 @@ class HighestThroughputStrategy(TuneStrategyFindMaxBatchSizeExtension):
         routes = routes_by_throughput(throughputs, best_backend)
         if len(routes) > 1:
             best_backend = BatchSizeRouterBackend(routes, graph_spec.input_spec)
+        # A later build can move `module`.
+        # `OpenVINOBackend._build` offloads it to CPU.
+        # `activate` rebuilds the winner on the weights `module` holds now.
+        module.to(device)
         best_backend.activate()
         log("🎯 Strategy %s execution finished:", self.__class__.__name__, sink=self._sink)
         log(
@@ -234,19 +236,14 @@ class HighestThroughputStrategy(TuneStrategyFindMaxBatchSizeExtension):
             profiling_stop_strategy=self._profiling_stop_strategy,
         )
 
-    def _default_backends(self) -> list[Backend]:
-        """Returns default backends."""
-        return [
-            TorchInductorBackend(),
-            XPUGraphBackend(),
-            TorchEagerBackend(),
-        ]
-
     def _describe_parts(self) -> list[str]:
         """Returns the parts of the description."""
+        backends = (
+            [backend.describe() for backend in self._backends] if self._backends else ["default_backends(device)"]
+        )
         return [
             "name: Highest Throughput Strategy",
             "description: evaluate all backends, return backend with highest throughput",
             "backends:",
-            *[f"  {backend.describe()}" for backend in self._backends],
+            *[f"  {backend}" for backend in backends],
         ]

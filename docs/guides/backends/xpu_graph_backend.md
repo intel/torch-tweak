@@ -77,8 +77,10 @@ from torch_tweak.torch.tune_strategy import HighestThroughputStrategy
 strategy = HighestThroughputStrategy(backends=[XPUGraphBackend()])
 ```
 
-The backend is first in the default `FirstWinsStrategy` list, before Torch Inductor.
-It is also in the default `HighestThroughputStrategy` list.
+You do not have to add this backend yourself.
+On XPU, `tt.default_strategy(device)`, `FirstWinsStrategy()`, and `HighestThroughputStrategy()` include it when you pass no backends.
+`FirstWinsStrategy()` tries it first.
+On CPU none of them use it.
 An XPU graph often wins at small batch sizes and loses at large ones.
 `HighestThroughputStrategy` then sends small batches to it and large batches to the faster backend.
 
