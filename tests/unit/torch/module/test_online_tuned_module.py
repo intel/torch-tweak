@@ -57,6 +57,35 @@ def test_tuned_backend_returns_the_module_output():
     torch.testing.assert_close(actual, torch.tensor([[8.0, 10.0]]))
 
 
+def test_tuning_new_shapes_deactivates_the_backend_of_the_last_call():
+    online = OnlineTunedModule(doubling(), "doubling", strategy=sleep_strategy())
+    online(torch.tensor([[1.0, 3.0]]))
+
+    online(torch.tensor([[1.0, 3.0], [5.0, 7.0]]))
+
+    assert [backend.is_active for backend in online.backends.values()] == [False, True]
+
+
+def test_calling_tuned_shapes_again_activates_their_backend():
+    online = OnlineTunedModule(doubling(), "doubling", strategy=sleep_strategy())
+    online(torch.tensor([[1.0, 3.0]]))
+    online(torch.tensor([[1.0, 3.0], [5.0, 7.0]]))
+
+    online(torch.tensor([[4.0, 5.0]]))
+
+    assert [backend.is_active for backend in online.backends.values()] == [True, False]
+
+
+def test_reactivated_backend_returns_the_module_output():
+    online = OnlineTunedModule(doubling(), "doubling", strategy=sleep_strategy())
+    online(torch.tensor([[1.0, 3.0]]))
+    online(torch.tensor([[1.0, 3.0], [5.0, 7.0]]))
+
+    actual = online(torch.tensor([[4.0, 5.0]]))
+
+    torch.testing.assert_close(actual, torch.tensor([[8.0, 10.0]]))
+
+
 def test_reset_drops_the_tuned_shapes():
     online = OnlineTunedModule(doubling(), "doubling", strategy=sleep_strategy())
     online(torch.tensor([[1.0, 3.0]]))

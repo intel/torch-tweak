@@ -17,7 +17,8 @@ SPDX-License-Identifier: Apache-2.0
 - feat: `OpenVINOBackendConfig(offload_module=False)` leaves the module on its device after conversion,
   for a module that a framework keeps calling. The weights then exist twice on the device (#117)
 - feat: `OnlineTunedModule` tunes every new input shape on its first call,
-  for a module that a framework owns and keeps calling (#87)
+  for a module that a framework owns and keeps calling.
+  Only the backend of the last call stays active, so tuned shapes do not each keep a copy of the weights (#87)
 
 ## 0.4.1
 

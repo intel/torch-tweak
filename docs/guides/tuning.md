@@ -238,6 +238,8 @@ with torch.no_grad():
     module(torch.randn(4, 32, device="xpu"))  # runs the selected backend
 ```
 
+Only the backend of the last call stays active.
+Returning to other shapes activates their backend again, which can recompile it.
 The module stays on its device and keeps its `forward`.
 Call `reset()` after moving or replacing its weights.
 
