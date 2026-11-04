@@ -129,6 +129,10 @@ jobs:
           uv run coverage run examples/Minimal/demo.py
           echo "::endgroup::"
 
+          echo "::group::tweak"
+          uv run python examples/Tweak/demo.py
+          echo "::endgroup::"
+
           echo "::group::llm"
           cd examples/LLM
           uv sync --group coverage

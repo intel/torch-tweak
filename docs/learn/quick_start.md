@@ -9,7 +9,7 @@ NOTE: This file has been modified by Intel Corporation.
 
 This quick start provides examples of tuning and deployment path available in Torch Tweak.
 
-Torch Tweak tunes models for deployment (for example, converting them to OpenVINO) with a small amount of integration in your Python pipeline. You provide a model or a pipeline, and a dataset or dataloader. You can rely on `inspect` to detect promising modules to tune, or select them manually.
+Torch Tweak tunes models for deployment (for example, converting them to OpenVINO) with a small amount of integration in your Python pipeline. You provide a model or a pipeline, and a dataset or dataloader. `tweak` picks the modules and the backends for you. With `inspect`, `wrap`, and `tune` you pick the modules yourself.
 
 ## Enabling logging
 
@@ -24,7 +24,27 @@ logging.basicConfig(level=logging.INFO, force=True)
 
 Learn about more options in [observability](observability.md).
 
-## Tuning
+## Tweak
+
+`tweak` cuts the model at every depth, tunes each cut, and keeps the fastest one:
+
+```python
+import torch_tweak.torch as tt
+
+result = tt.tweak(model, input_data)
+print(result)
+
+model = result.obj
+tt.save(model, "tuned_model.tt")
+```
+
+`print(result)` shows the latency of every depth against the untuned model.
+The [Tweak guide](../guides/tweak.md) explains the parameters and the cost of the search.
+
+## Tuning modules you choose
+
+`tune` tunes one cut, so it is faster than `tweak`.
+Use it when you know which modules to tune.
 
 The code below demonstrates Stable Diffusion pipeline tuning.
 

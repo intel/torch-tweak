@@ -79,6 +79,7 @@ nav:
             -   Backends: learn/backends.md
             -   Observability: learn/observability.md
     -   Guides:
+            - Tweak: guides/tweak.md
             - Tuning: guides/tuning.md
             - Inspect: guides/inspect.md
             - Backends:
@@ -95,6 +96,7 @@ nav:
 
     -   Examples:
             - Overview: examples/README.md
+            - Tweak: examples/Tweak/README.md
             - E5Large: examples/E5Large/README.md
             - ESM2: examples/ESM2/README.md
             - FLUX: examples/FLUX/README.md
