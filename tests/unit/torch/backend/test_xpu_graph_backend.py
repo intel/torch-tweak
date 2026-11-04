@@ -538,6 +538,30 @@ def test_dynamic_axis_is_rejected(model, torch_device, tmp_path):
 
 
 @requires_xpu
+def test_compile_with_inductor_matches_eager(model, torch_device, tmp_path):
+    x = rows(3, 16, device=torch_device)
+    expected = eager(model, x)
+    config = XPUGraphBackendConfig(compile_with_inductor=True)
+    backend = batched_build(model, torch_device, tmp_path, largest=16, config=config)
+
+    actual = backend.infer(x)
+
+    torch.testing.assert_close(actual, expected, rtol=1e-4, atol=1e-4)
+
+
+@requires_xpu
+def test_compile_with_inductor_compiles_three_times_for_every_size(model, torch_device, tmp_path):
+    # The largest size, a dynamic batch axis for the other sizes, and batch size 1.
+    torch._dynamo.reset()
+    torch._dynamo.utils.counters.clear()
+    config = XPUGraphBackendConfig(compile_with_inductor=True)
+
+    batched_build(model, torch_device, tmp_path, largest=16, config=config)
+
+    assert torch._dynamo.utils.counters["stats"]["unique_graphs"] == 3
+
+
+@requires_xpu
 def test_batch_axis_checkpoint_round_trip(model, torch_device, tmp_path):
     x = rows(6, 16, device=torch_device)
     expected = eager(model, x)

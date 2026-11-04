@@ -196,6 +196,23 @@ tt.tune(model, input_data)
 3. Selects backend with highest throughput
 4. Returns best performing backend
 
+### Different Winners per Batch Size
+
+With a batch axis, every backend is profiled on every power of two from 1 up to the max batch size.
+The best backend is the one with the highest throughput at any batch size, usually the largest one.
+Another backend takes a range of batch sizes when it is at least 10% faster there.
+The strategy then returns a `BatchSizeRouterBackend` that sends each call to the backend tuned for its batch size.
+A batch size between two profiled ones goes to the backend of the larger one.
+
+For example, an XPU graph launches a small batch faster and Torch Inductor computes a large batch faster:
+
+```
+BatchSizeRouterBackend(1-16: XPUGraphBackend(), 17+: TorchInductorBackend())
+```
+
+Every routed backend stays in memory.
+A checkpoint stores each of them.
+
 ### When to Use
 
 ✅ **Good for**:

@@ -52,6 +52,22 @@ from torch_tweak.torch.backend import XPUGraphBackend, XPUGraphBackendConfig
 backend = XPUGraphBackend(XPUGraphBackendConfig(max_recorded_batch_size=64))
 ```
 
+## Inductor Kernels
+
+`compile_with_inductor=True` records the kernels Torch Inductor generates instead of the eager kernels.
+Replay then runs the fused Inductor kernels without launching each one from Python.
+On CUDA, `torch.compile(mode="reduce-overhead")` does the same with CUDA graphs. That mode has no effect on XPU.
+
+Compilation runs during the warmup before each recording.
+Inductor compiles about three times for all recorded sizes: once for the largest size, once with a dynamic batch axis, and once for batch size 1.
+Replay is still checked against the eager module.
+
+```python
+from torch_tweak.torch.backend import XPUGraphBackend, XPUGraphBackendConfig
+
+backend = XPUGraphBackend(XPUGraphBackendConfig(compile_with_inductor=True))
+```
+
 ## Quick Start
 
 ```python
@@ -65,6 +81,8 @@ You do not have to add this backend yourself.
 On XPU, `tt.default_strategy(device)`, `FirstWinsStrategy()`, and `HighestThroughputStrategy()` include it when you pass no backends.
 `FirstWinsStrategy()` tries it first.
 On CPU none of them use it.
+An XPU graph often wins at small batch sizes and loses at large ones.
+`HighestThroughputStrategy` then sends small batches to it and large batches to the faster backend.
 
 PyTorch records a native SYCL graph when it was built with a SYCL compiler of 2026.1 or newer, except on Intel Data Center GPU Max Series.
 An older build records the legacy SYCL command graph.

@@ -117,6 +117,7 @@ nav:
                     -   Torch Inductor Backend: api/backends/torch_inductor_backend.md
                     -   XPU Graph Backend: api/backends/xpu_graph_backend.md
                     -   Torch Eager Backend: api/backends/torch_eager_backend.md
+                    -   Batch Size Router Backend: api/backends/batch_size_router_backend.md
             -   Tuning Strategies API:
                     -   FirstWinsStrategy: api/tune_strategies/first_wins_strategy.md
                     -   OneBackendStrategy: api/tune_strategies/one_backend_strategy.md
