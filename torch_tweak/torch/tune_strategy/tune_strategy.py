@@ -27,7 +27,11 @@ from torch_tweak.utils.timer import Timer
 
 
 class TuneStrategy(ABC):
-    """Base class for tune strategy."""
+    """Base class for tune strategy.
+
+    Attributes:
+        tuned_on_quiet_device: False when the last tune measured a backend while another process used the device.
+    """
 
     def __init__(self, sink: Callable | None = None):
         """Initializes strategy.
@@ -39,6 +43,7 @@ class TuneStrategy(ABC):
         self._sink = sink or self._logger.info
         self._enable_correctness_check = True
         self._system_monitor = SystemMonitor()
+        self.tuned_on_quiet_device = True
 
     def tune_dry_run(
         self,

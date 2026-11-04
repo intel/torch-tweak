@@ -6,8 +6,10 @@ import pytest
 import torch
 
 from tests.toy_backends import SleepBackend
+from tests.utilities.device_probes import ScriptedProbe
 from tests.utilities.helpers import requires_xpu
 from torch_tweak.torch import HighestThroughputStrategy, OnlineTunedModule
+from torch_tweak.torch.utils.device_load import DeviceLoadProbe
 
 
 @pytest.fixture(autouse=True)
@@ -15,8 +17,8 @@ def cache_dir(tmp_path, monkeypatch):
     monkeypatch.setenv("TORCH_TWEAK_CACHE_DIR", str(tmp_path))
 
 
-def sleep_strategy() -> HighestThroughputStrategy:
-    strategy = HighestThroughputStrategy(backends=[SleepBackend()])
+def sleep_strategy(device_probe: DeviceLoadProbe | None = None) -> HighestThroughputStrategy:
+    strategy = HighestThroughputStrategy(backends=[SleepBackend()], device_probe=device_probe)
     strategy.enable_find_max_batch_size(False)
     strategy.enable_correctness_check(False)
     return strategy
@@ -124,6 +126,16 @@ def test_a_later_module_with_other_weights_tunes_again():
     strategy = sleep_strategy()
 
     OnlineTunedModule(tripling(), "linear", strategy=strategy)(torch.tensor([[1.0, 3.0]]))
+
+    assert len(strategy.results) == 1
+
+
+def test_a_selection_tuned_on_a_shared_device_is_tuned_again_later():
+    shared = sleep_strategy(ScriptedProbe([1.0, 20.0, 1.0, 20.0, 1.0, 20.0]))
+    OnlineTunedModule(doubling(), "doubling", strategy=shared)(torch.tensor([[1.0, 3.0]]))
+    strategy = sleep_strategy()
+
+    OnlineTunedModule(doubling(), "doubling", strategy=strategy)(torch.tensor([[1.0, 3.0]]))
 
     assert len(strategy.results) == 1
 
