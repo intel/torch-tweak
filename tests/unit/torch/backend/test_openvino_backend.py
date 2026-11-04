@@ -374,6 +374,24 @@ def test_openvino_backend_keeps_batch_dynamic_for_forward_with_only_var_keyword(
     torch.testing.assert_close(actual.cpu(), torch.tensor([[4.0, 4.0], [4.0, 4.0]]))
 
 
+def _scaling(factor: float) -> nn.Linear:
+    layer = nn.Linear(2, 2, bias=False)
+    with torch.no_grad():
+        layer.weight.copy_(factor * torch.eye(2))
+    return layer
+
+
+def test_openvino_backend_with_reuse_ir_compiles_the_ir_already_in_its_directory(tmp_path, torch_device):
+    sample = ((torch.tensor([[1.0, 2.0]], device=torch_device),), {})
+    config = OpenVINOBackendConfig(reuse_ir=True)
+    backend_build(OpenVINOBackend(config), _scaling(2.0), [sample], tmp_path, torch_device)
+    backend = backend_build(OpenVINOBackend(config), _scaling(3.0), [sample], tmp_path, torch_device)
+
+    actual = backend.infer(*sample[0])
+
+    torch.testing.assert_close(actual.cpu(), torch.tensor([[2.0, 4.0]]))
+
+
 def test_openvino_backend_serialization(model, sample_data, tmp_path, torch_device):
     backend = backend_build(
         OpenVINOBackend(OpenVINOBackendConfig(use_dynamo=False)), model, sample_data, tmp_path, torch_device
@@ -1058,3 +1076,12 @@ def test_offload_module_survives_a_checkpoint(model, sample_data, tmp_path, torc
     loaded = _save_and_load(model, backend.to_dict(), tmp_path)
 
     assert loaded.describe() == "OpenVINOBackend(use_dynamo=False,offload_module=False)"
+
+
+def test_reuse_ir_survives_a_checkpoint(model, sample_data, tmp_path, torch_device):
+    config = OpenVINOBackendConfig(use_dynamo=False, reuse_ir=True)
+    backend = backend_build(OpenVINOBackend(config), model, sample_data, tmp_path, torch_device)
+
+    loaded = _save_and_load(model, backend.to_dict(), tmp_path)
+
+    assert loaded.describe() == "OpenVINOBackend(use_dynamo=False,reuse_ir=True)"
