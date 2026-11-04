@@ -2,7 +2,7 @@
 # SPDX-License-Identifier: Apache-2.0
 """Tests for the default backends and strategy."""
 
-import subprocess
+import importlib
 import sys
 
 import pytest
@@ -27,10 +27,16 @@ def test_default_backends_are_every_backend_that_runs_on_the_device(device, expe
     assert [type(backend) for backend in default_backends(device)] == expected
 
 
-def test_torch_tweak_imports_without_torchao():
-    blocked = "import sys; sys.modules['torchao'] = None; import torch_tweak.torch"
+def test_torch_tweak_imports_without_torchao(monkeypatch):
+    hidden = [name for name in list(sys.modules) if name.split(".", 1)[0] in {"torch_tweak", "torchao"}]
+    for name in hidden:
+        monkeypatch.delitem(sys.modules, name)
+    monkeypatch.setitem(sys.modules, "torchao", None)
 
-    subprocess.run([sys.executable, "-c", blocked], check=True)
+    module = importlib.import_module("torch_tweak.torch")
+
+    assert module.__name__ == "torch_tweak.torch"
+    assert "torch_tweak.torch.backend.torchao_backend" not in sys.modules
 
 
 def test_default_backends_reject_an_unknown_device():
