@@ -2,11 +2,17 @@
 # SPDX-License-Identifier: Apache-2.0
 """Tests for OnlineTunedModule."""
 
+import pytest
 import torch
 
 from tests.toy_backends import SleepBackend
 from tests.utilities.helpers import requires_xpu
 from torch_tweak.torch import HighestThroughputStrategy, OnlineTunedModule
+
+
+@pytest.fixture(autouse=True)
+def cache_dir(tmp_path, monkeypatch):
+    monkeypatch.setenv("TORCH_TWEAK_CACHE_DIR", str(tmp_path))
 
 
 def sleep_strategy() -> HighestThroughputStrategy:
@@ -20,6 +26,13 @@ def doubling() -> torch.nn.Linear:
     layer = torch.nn.Linear(2, 2, bias=False)
     with torch.no_grad():
         layer.weight.copy_(torch.tensor([[2.0, 0.0], [0.0, 2.0]]))
+    return layer
+
+
+def tripling() -> torch.nn.Linear:
+    layer = torch.nn.Linear(2, 2, bias=False)
+    with torch.no_grad():
+        layer.weight.copy_(torch.tensor([[3.0, 0.0], [0.0, 3.0]]))
     return layer
 
 
@@ -84,6 +97,35 @@ def test_reactivated_backend_returns_the_module_output():
     actual = online(torch.tensor([[4.0, 5.0]]))
 
     torch.testing.assert_close(actual, torch.tensor([[8.0, 10.0]]))
+
+
+def test_a_later_module_with_the_same_weights_restores_the_selection_without_tuning():
+    OnlineTunedModule(doubling(), "doubling", strategy=sleep_strategy())(torch.tensor([[1.0, 3.0]]))
+    strategy = sleep_strategy()
+    later = OnlineTunedModule(doubling(), "doubling", strategy=strategy)
+
+    later(torch.tensor([[1.0, 3.0]]))
+
+    assert (strategy.results, [type(backend) for backend in later.backends.values()]) == ([], [SleepBackend])
+
+
+def test_restored_backend_returns_the_module_output():
+    OnlineTunedModule(doubling(), "doubling", strategy=sleep_strategy())(torch.tensor([[1.0, 3.0]]))
+    later = OnlineTunedModule(doubling(), "doubling", strategy=sleep_strategy())
+    later(torch.tensor([[1.0, 3.0]]))
+
+    actual = later(torch.tensor([[4.0, 5.0]]))
+
+    torch.testing.assert_close(actual, torch.tensor([[8.0, 10.0]]))
+
+
+def test_a_later_module_with_other_weights_tunes_again():
+    OnlineTunedModule(doubling(), "linear", strategy=sleep_strategy())(torch.tensor([[1.0, 3.0]]))
+    strategy = sleep_strategy()
+
+    OnlineTunedModule(tripling(), "linear", strategy=strategy)(torch.tensor([[1.0, 3.0]]))
+
+    assert len(strategy.results) == 1
 
 
 def test_reset_drops_the_tuned_shapes():
