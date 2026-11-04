@@ -12,6 +12,7 @@ Keep the test simple enough that a wrong example is obvious.
 A test that builds the expected value with the same formula as the code stays green when both are wrong.
 A reader names the behavior in under a minute. If they cannot, the test is wrong.
 Apply this when you add or edit a test. Leave the rest of the file alone.
+Before you stop, apply Simpler.
 
 ## Dumb
 
@@ -110,6 +111,16 @@ A docstring that repeats the name adds nothing. Delete it.
 Write one sentence when the assert only stands in for the intent. Two hashes can differ because the object is hashed by identity, and the test name cannot carry that reason.
 
 A value used once stays inline. A variable earns its place when it separates `expected_*` from `actual_*`, or when the same literal is the cause in both arrange and assert.
+
+## Simpler
+
+Before you stop, name what the assertion checks.
+Ask whether a smaller form still checks that.
+A smaller form is fewer lines, fewer arguments, a shorter condition, or a shorter collection.
+Take the smaller form when the assertion still reaches the same behavior.
+Keep the longer form when the shorter one reaches a different behavior.
+Read the test again.
+Stop when that pass finds nothing smaller.
 
 ## Show what matters
 
