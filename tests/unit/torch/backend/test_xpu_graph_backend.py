@@ -19,7 +19,7 @@ from torch_tweak.torch.module.recording_module import Sample
 from torch_tweak.torch.module.sample_metadata import SampleMetadata
 from torch_tweak.torch.module.tunable_module import TunableModule
 from torch_tweak.torch.module_registry import MODULE_REGISTRY
-from torch_tweak.torch.tune_strategy import OneBackendStrategy
+from torch_tweak.torch.tune_strategy import HighestThroughputStrategy, OneBackendStrategy
 from torch_tweak.torch.tuning import tune
 
 
