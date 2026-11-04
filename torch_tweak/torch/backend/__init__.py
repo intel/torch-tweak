@@ -5,24 +5,22 @@
 # NOTE: This file has been modified by Intel Corporation.
 """Torch backend module.
 
-OpenVINO and TorchAO backends import on first use, so the openvino and torchao packages are optional.
+The TorchAO backend imports on first use, so the torchao package is optional.
 """
 
 import importlib
 from typing import TYPE_CHECKING, Any
 
 from torch_tweak.torch.backend.backend import Backend
+from torch_tweak.torch.backend.openvino import OpenVINOBackend, OpenVINOBackendConfig
 from torch_tweak.torch.backend.torch_eager import TorchEagerBackend, TorchEagerBackendConfig
 from torch_tweak.torch.backend.torch_inductor_backend import TorchInductorBackend, TorchInductorBackendConfig
 from torch_tweak.torch.backend.xpu_graph_backend import XPUGraphBackend, XPUGraphBackendConfig
 
 if TYPE_CHECKING:
-    from torch_tweak.torch.backend.openvino import OpenVINOBackend, OpenVINOBackendConfig
     from torch_tweak.torch.backend.torchao_backend import TorchAOBackend, TorchAOBackendConfig
 
 _OPTIONAL_BACKENDS = {
-    "OpenVINOBackend": "torch_tweak.torch.backend.openvino",
-    "OpenVINOBackendConfig": "torch_tweak.torch.backend.openvino",
     "TorchAOBackend": "torch_tweak.torch.backend.torchao_backend",
     "TorchAOBackendConfig": "torch_tweak.torch.backend.torchao_backend",
 }

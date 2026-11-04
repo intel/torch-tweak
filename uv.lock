@@ -1770,6 +1770,7 @@ default-groups = ["xpu-stable"]
 dependencies = [
     { name = "numpy", version = "2.4.6", source = { registry = "https://download.pytorch.org/whl/xpu" }, marker = "python_full_version < '3.12'" },
     { name = "numpy", version = "2.5.4", source = { registry = "https://download.pytorch.org/whl/xpu" }, marker = "python_full_version >= '3.12'" },
+    { name = "openvino" },
     { name = "psutil" },
     { name = "tabulate" },
     { name = "wrapt" },
@@ -1813,9 +1814,6 @@ doc = [
     { name = "properdocs" },
     { name = "ruff" },
 ]
-openvino = [
-    { name = "openvino" },
-]
 test = [
     { name = "coverage" },
     { name = "datasets" },
@@ -1836,7 +1834,6 @@ torchao = [
 ]
 xpu = [
     { name = "fsspec" },
-    { name = "openvino" },
     { name = "torch", version = "2.15.0+xpu", source = { registry = "https://download.pytorch.org/whl/xpu" } },
     { name = "torchao" },
 ]
@@ -1880,8 +1877,7 @@ requires-dist = [
     { name = "multidict", marker = "extra == 'dev'", specifier = ">=6.9.1" },
     { name = "multidict", marker = "extra == 'test'", specifier = ">=6.9.1" },
     { name = "numpy", specifier = ">=2" },
-    { name = "openvino", marker = "extra == 'openvino'", specifier = ">=2026.2.1" },
-    { name = "openvino", marker = "extra == 'xpu'", specifier = ">=2026.2.1" },
+    { name = "openvino", specifier = ">=2026.2.1" },
     { name = "pillow", marker = "extra == 'dev'", specifier = ">=13.0.0" },
     { name = "pillow", marker = "extra == 'test'", specifier = ">=13.0.0" },
     { name = "pre-commit", marker = "extra == 'dev'" },
@@ -1913,7 +1909,7 @@ requires-dist = [
     { name = "virtualenv", marker = "extra == 'dev'", specifier = ">=21.7.13" },
     { name = "wrapt", specifier = "~=2.2" },
 ]
-provides-extras = ["dev", "doc", "openvino", "test", "torchao", "xpu"]
+provides-extras = ["dev", "doc", "test", "torchao", "xpu"]
 
 [package.metadata.requires-dev]
 coverage = [

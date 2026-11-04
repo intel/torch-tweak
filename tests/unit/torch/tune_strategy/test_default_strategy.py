@@ -27,14 +27,8 @@ def test_default_backends_are_every_backend_that_runs_on_the_device(device, expe
     assert [type(backend) for backend in default_backends(device)] == expected
 
 
-def test_default_backends_leave_out_openvino_when_it_is_not_installed(monkeypatch):
-    monkeypatch.setitem(sys.modules, "torch_tweak.torch.backend.openvino", None)
-
-    assert [type(backend) for backend in default_backends("cpu")] == [TorchInductorBackend, TorchEagerBackend]
-
-
-def test_torch_tweak_imports_without_openvino_and_torchao():
-    blocked = "import sys; sys.modules['openvino'] = None; sys.modules['torchao'] = None; import torch_tweak.torch"
+def test_torch_tweak_imports_without_torchao():
+    blocked = "import sys; sys.modules['torchao'] = None; import torch_tweak.torch"
 
     subprocess.run([sys.executable, "-c", blocked], check=True)
 

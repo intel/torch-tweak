@@ -38,6 +38,7 @@ keywords = [
 requires-python = ">=3.11"
 dependencies = [
     "numpy>=2",
+    "openvino>=2026.2.1",
     "psutil",
     "tabulate>=0.10.0",
     "wrapt~=2.2"
@@ -52,9 +53,8 @@ dependencies = [
 xpu = [
     "torch>=2.13.0",
     "fsspec>=2026.6.0", # sec
-    "torch-tweak[openvino,torchao]",
+    "torch-tweak[torchao]",
 ]
-openvino = ["openvino>=2026.2.1"]
 torchao = ["torchao>=0.17.0"]
 test = [
     "coverage>=7.17.0",
