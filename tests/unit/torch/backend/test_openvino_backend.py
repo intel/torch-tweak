@@ -630,6 +630,51 @@ def test_openvino_xpu_infer_matches_eager(tmp_path):
     torch.testing.assert_close(actual, expected, rtol=2e-3, atol=2e-3)
 
 
+class _ArgmaxModel(nn.Module):
+    def forward(self, x):
+        return x.argmax(dim=-1)
+
+
+class _GreaterThanTwoModel(nn.Module):
+    def forward(self, x):
+        return x > 2
+
+
+class _DoubleModel(nn.Module):
+    def forward(self, x):
+        return x * 2
+
+
+@requires_xpu
+def test_openvino_xpu_writes_an_int64_output(tmp_path):
+    x = torch.tensor([[1.0, 5.0, 2.0], [7.0, 0.0, 3.0]], device="xpu")
+    backend = backend_build(OpenVINOBackend(), _ArgmaxModel(), [((x,), {})], tmp_path, torch.device("xpu"))
+
+    actual = backend.infer(x)
+
+    torch.testing.assert_close(actual, torch.tensor([1, 0], device="xpu"))
+
+
+@requires_xpu
+def test_openvino_xpu_writes_a_bool_output(tmp_path):
+    x = torch.tensor([[1.0, 5.0, 2.0], [7.0, 0.0, 3.0]], device="xpu")
+    backend = backend_build(OpenVINOBackend(), _GreaterThanTwoModel(), [((x,), {})], tmp_path, torch.device("xpu"))
+
+    actual = backend.infer(x)
+
+    torch.testing.assert_close(actual, torch.tensor([[False, True, False], [True, False, True]], device="xpu"))
+
+
+@requires_xpu
+def test_openvino_xpu_reads_a_transposed_input(tmp_path):
+    sample = torch.zeros(2, 3, device="xpu")
+    backend = backend_build(OpenVINOBackend(), _DoubleModel(), [((sample,), {})], tmp_path, torch.device("xpu"))
+
+    actual = backend.infer(torch.tensor([[1.0, 2.0], [3.0, 4.0], [5.0, 6.0]], device="xpu").t())
+
+    torch.testing.assert_close(actual, torch.tensor([[2.0, 6.0, 10.0], [4.0, 8.0, 12.0]], device="xpu"))
+
+
 @requires_xpu
 def test_openvino_xpu_without_level_zero_interop_is_rejected(tmp_path):
     """The driver reads EnableLEO when OpenCL starts, so only a fresh process can run without it."""
