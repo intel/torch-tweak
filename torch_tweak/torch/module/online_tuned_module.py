@@ -48,6 +48,8 @@ class OnlineTunedModule:
 
     The first call with new shapes runs `module`, then tunes those shapes with `strategy`.
     Later calls with the same shapes run the selected backend.
+    Only the backend of the last call stays active, since an OpenVINO model holds its own copy of the weights.
+    Returning to other shapes activates their backend again, which can recompile it.
 
     The module stays where it is and keeps its `forward`. Its owner can keep calling and patching it.
     Call `reset` after the owner moves or replaces the weights, since some backends hold their addresses.
@@ -73,6 +75,7 @@ class OnlineTunedModule:
         self._device = device or get_module_device(module)
         self._strategy = strategy or borrowed_module_strategy(self._device)
         self._backends: dict[Hashable, Backend] = {}
+        self._active: Backend | None = None
         self._graph_counter = itertools.count()
 
     @property
@@ -86,17 +89,28 @@ class OnlineTunedModule:
         key = (metadata, tuple((tuple(spec.shape), spec.dtype) for spec in metadata.tensor_specs))
         backend = self._backends.get(key)
         if backend is not None:
+            if backend is not self._active:
+                self._deactivate_active()
+                backend.activate()
+                self._active = backend
             return backend.infer(*args, **kwargs)
         sample = deepcopy((args, kwargs))
         output = self._module(*args, **kwargs)
-        self._backends[key] = self._tune(sample, metadata, SampleMetadata.from_outputs(output, strict=True))
+        self._deactivate_active()
+        self._active = self._backends[key] = self._tune(
+            sample, metadata, SampleMetadata.from_outputs(output, strict=True)
+        )
         return output
 
     def reset(self) -> None:
         """Drops every tuned shape. The next call with any shape tunes again."""
-        for backend in self._backends.values():
-            backend.deactivate()
+        self._deactivate_active()
         self._backends.clear()
+
+    def _deactivate_active(self) -> None:
+        if self._active is not None:
+            self._active.deactivate()
+            self._active = None
 
     def _tune(self, sample: tuple[tuple, dict], inputs: SampleMetadata, outputs: SampleMetadata) -> Backend:
         graph_spec = GraphSpec(name=str(next(self._graph_counter)), input_spec=inputs, output_spec=outputs)
