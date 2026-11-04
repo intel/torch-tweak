@@ -16,6 +16,8 @@ SPDX-License-Identifier: Apache-2.0
 - feat (breaking): OpenVINO on XPU binds PyTorch tensors as GPU remote tensors without copying them through the host (#102)
 - feat: `OpenVINOBackendConfig(offload_module=False)` leaves the module on its device after conversion,
   for a module that a framework keeps calling. The weights then exist twice on the device (#117)
+- feat: `OnlineTunedModule` tunes every new input shape on its first call,
+  for a module that a framework owns and keeps calling (#87)
 
 ## 0.4.1
 
