@@ -92,3 +92,7 @@ pip install .
 ```
 
 `pip install .` or `pip install -e .` installs **torch-tweak only** (no `torch`). Use the pip or uv commands above for a full stack.
+
+The OpenVINO and TorchAO backends need the `openvino` and `torchao` extras.
+`torch_tweak[xpu]` installs both.
+Without `openvino`, the default backends leave OpenVINO out.

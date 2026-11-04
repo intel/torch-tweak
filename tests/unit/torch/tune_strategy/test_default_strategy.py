@@ -2,6 +2,9 @@
 # SPDX-License-Identifier: Apache-2.0
 """Tests for the default backends and strategy."""
 
+import subprocess
+import sys
+
 import pytest
 
 from torch_tweak.torch.backend import (
@@ -22,6 +25,18 @@ from torch_tweak.torch.tune_strategy import default_backends, default_strategy
 )
 def test_default_backends_are_every_backend_that_runs_on_the_device(device, expected):
     assert [type(backend) for backend in default_backends(device)] == expected
+
+
+def test_default_backends_leave_out_openvino_when_it_is_not_installed(monkeypatch):
+    monkeypatch.setitem(sys.modules, "torch_tweak.torch.backend.openvino", None)
+
+    assert [type(backend) for backend in default_backends("cpu")] == [TorchInductorBackend, TorchEagerBackend]
+
+
+def test_torch_tweak_imports_without_openvino_and_torchao():
+    blocked = "import sys; sys.modules['openvino'] = None; sys.modules['torchao'] = None; import torch_tweak.torch"
+
+    subprocess.run([sys.executable, "-c", blocked], check=True)
 
 
 def test_default_backends_reject_an_unknown_device():
