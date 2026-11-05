@@ -111,9 +111,10 @@ class TunedModule:
     @staticmethod
     def from_dict(module: torch.nn.Module, state_dict: dict):
         """Creates a TunedModule from a state_dict."""
-        from torch_tweak.torch.backend import import_optional_backends
+        from torch_tweak.torch.backend import import_optional_backend
 
-        import_optional_backends()
+        for _, backend_data in state_dict[TunedModule.BACKENDS_KEY]:
+            import_optional_backend(backend_data[TunedModule.TYPE_KEY])
         backend_classes = {cls.__name__: cls for cls in Backend.__subclasses__()}
         backends = OrderedDict()
 

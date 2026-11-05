@@ -32,13 +32,11 @@ def __getattr__(name: str) -> Any:
     raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
 
 
-def import_optional_backends() -> None:
-    """Imports every optional backend whose package is installed, so Backend.__subclasses__ lists it."""
-    for module in set(_OPTIONAL_BACKENDS.values()):
-        try:
-            importlib.import_module(module)
-        except ImportError:
-            pass
+def import_optional_backend(name: str) -> None:
+    """Imports the optional backend `name`. A missing package raises ImportError."""
+    if name not in _OPTIONAL_BACKENDS:
+        return
+    importlib.import_module(_OPTIONAL_BACKENDS[name])
 
 
 __all__ = [
@@ -53,5 +51,5 @@ __all__ = [
     "TorchEagerBackendConfig",
     "XPUGraphBackend",
     "XPUGraphBackendConfig",
-    "import_optional_backends",
+    "import_optional_backend",
 ]
