@@ -118,7 +118,7 @@ jobs:
   verify:
     name: Verify
     needs: publish
-    uses: ./.github/workflows/verify-release.yml
+    uses: ./.github/workflows/release_verify.yml
     with:
       version: ${{ needs.publish.outputs.version }}
       target: ${{ inputs.target }}

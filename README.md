@@ -13,6 +13,7 @@ NOTE: This file has been modified by Intel Corporation.
 [![PyTorch](https://img.shields.io/badge/PyTorch-2.13+-blue.svg)](https://pytorch.org/)
 [![CI](https://github.com/intel/torch-tweak/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/intel/torch-tweak/actions/workflows/ci.yml)
 [![Nightly Tests](https://github.com/intel/torch-tweak/actions/workflows/nightly.yml/badge.svg?event=schedule)](https://github.com/intel/torch-tweak/actions/workflows/nightly.yml)
+[![Docs Deploy](https://github.com/intel/torch-tweak/actions/workflows/deploy_docs.yml/badge.svg?branch=main)](https://github.com/intel/torch-tweak/actions/workflows/deploy_docs.yml)
 [![OpenSSF Scorecard](https://api.securityscorecards.dev/projects/github.com/intel/torch-tweak/badge)](https://securityscorecards.dev/viewer/?uri=github.com/intel/torch-tweak)
 [![Coverage](https://gist.githubusercontent.com/bb-ur/cfa745c6e219d84dec39841a981daea7/raw/tt_coverage_badge.svg)](https://github.com/intel/torch-tweak/actions/workflows/ci.yml?query=branch%3Amain)
 
