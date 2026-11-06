@@ -5,7 +5,6 @@
 # NOTE: This file has been modified by Intel Corporation.
 """Find max batch size for a model."""
 
-import logging
 from pathlib import Path
 
 import torch
@@ -20,8 +19,6 @@ from torch_tweak.torch.task.profiling.profiling import ProfilingResult, profile_
 from torch_tweak.utils.logging import control_output
 from torch_tweak.utils.permissions import secure_mkdir
 from torch_tweak.utils.trace import annotate
-
-logger = logging.getLogger(__name__)
 
 
 @annotate(domain="Torch Tweak")
@@ -91,7 +88,6 @@ def calculate_highest_throughput_for_backend(
     )
 
     if profiling_result.status != ProfilingResult.Status.SUCCESS:
-        logger.debug("Profiling failed for %s", backend.describe(), exc_info=profiling_result.error)
         raise profiling_result.error
 
     throughput_per_batch_size = profiling_result.throughput_per_batch_size
