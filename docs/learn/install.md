@@ -24,10 +24,7 @@ To get **the latest release of torch-tweak**, install it from PyPI. Please note 
 PyTorch XPU wheels are not published on PyPI, so the PyTorch XPU index has to be selected explicitly:
 
 ```bash
-pip install \
-    --index-url https://download.pytorch.org/whl/xpu \
-    --extra-index-url https://pypi.org/simple \
-    "torch_tweak[xpu]"
+pip install --extra-index-url https://download.pytorch.org/whl/xpu "torch_tweak[xpu]"
 ```
 
 You can also build and install local torch-tweak (from this repository), but
@@ -37,10 +34,7 @@ of torch-tweak we recommend uv (see uv commands below).
 ```bash
 python3 -m venv .venv
 source .venv/bin/activate
-pip install \
-    --index-url https://download.pytorch.org/whl/xpu \
-    --extra-index-url https://pypi.org/simple \
-    -e ".[xpu,dev]"
+pip install --extra-index-url https://download.pytorch.org/whl/xpu -e ".[xpu,dev]"
 ```
 
 Nightly stack of PyTorch XPU **is not supported** on the pip path. Use uv for nightly wheels.

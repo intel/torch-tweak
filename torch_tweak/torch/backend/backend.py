@@ -405,6 +405,15 @@ class Backend(ABC):
         if device.type not in self._devices:
             raise ValueError(f"Device {device.type} is not supported by the backend {self.name}")
 
+        if device.type == "xpu":
+            xpu = getattr(torch, "xpu", None)
+            if xpu is None or not xpu.is_available():
+                raise RuntimeError(
+                    "torch-tweak was NOT installed with XPU support. To enable Intel GPU acceleration, "
+                    "please install torch-tweak with the XPU index:\n"
+                    'pip install --extra-index-url https://download.pytorch.org/whl/xpu "torch_tweak[xpu]"'
+                )
+
     def _set_device(self, device: torch.device):
         """Set the device of the backend.
 
