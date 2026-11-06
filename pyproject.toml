@@ -6,7 +6,10 @@
 
 [project]
 name = "torch-tweak"
-description = "Torch Tweak is an inference toolkit designed for tuning and deploying Deep Learning models with a focus on Intel XPU (GPU) accelerators."
+description = """\
+Torch Tweak is an inference toolkit designed for tuning and deploying Deep Learning models with a focus on Intel XPU (GPU) accelerators. \
+Follow the installation guide for XPU support.\
+"""
 dynamic = ["version", "readme"]
 classifiers = [
     "Development Status :: 3 - Alpha",
@@ -45,6 +48,7 @@ dependencies = [
 
 [project.urls]
 "Documentation" = "https://github.com/intel/torch-tweak"
+"Installation" = "https://github.com/intel/torch-tweak/blob/main/docs/learn/install.md"
 "Repository" = "https://github.com/intel/torch-tweak.git"
 "Tracker" = "https://github.com/intel/torch-tweak/issues"
 
