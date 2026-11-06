@@ -29,6 +29,21 @@ tt.tune(model, input_data)
 
 `OpenVINOBackend()` with no config uses `torch.export` and the `LATENCY` hint.
 
+## XPU
+
+On `xpu` the backend binds PyTorch tensors as OpenVINO GPU tensors.
+Inputs and outputs stay in device memory and nothing is copied through the host.
+
+This needs the Intel GPU driver to run OpenCL on Level Zero.
+Start the process with `EnableLEO=1`:
+
+```bash
+EnableLEO=1 python my_pipeline.py
+```
+
+The driver reads the variable when the process first uses OpenCL, so setting it later has no effect.
+Without it, building the backend on `xpu` raises, and a tune strategy skips OpenVINO.
+
 ## Configuration
 
 ```python

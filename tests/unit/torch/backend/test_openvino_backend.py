@@ -5,11 +5,15 @@
 # NOTE: This file has been modified by Intel Corporation.
 """Unit tests for OpenVINOBackend."""
 
+import os
 import shutil
+import subprocess  # nosec B404
+import sys
 import uuid
 from types import SimpleNamespace
 
 import openvino as ov
+import openvino.opset13 as ov_ops
 import pytest
 import torch
 import torch.nn as nn
@@ -28,6 +32,7 @@ from torch_tweak.torch.backend.openvino.ov_model_converter import (
     _create_dynamic_shapes_from_tensor_spec,
     _ordered_input_names_for_dynamo,
 )
+from torch_tweak.torch.backend.openvino.xpu_remote import LEVEL_ZERO_INTEROP_MISSING, ov_element_type
 from torch_tweak.torch.checkpoint.storage_tasks import (
     STATE_DICT_FILE,
     CopyBackendArtifactsTask,
@@ -591,3 +596,108 @@ def test_openvino_device_for_xpu_is_the_device_pytorch_uses():
     ov_device = openvino_device_for_xpu(core, device)
 
     assert core.get_property(ov_device, "FULL_DEVICE_NAME").startswith(torch.xpu.get_device_name(device))
+
+
+def _host_copy(*args, **kwargs):
+    raise AssertionError("OpenVINO inference on XPU went through host memory")
+
+
+@requires_xpu
+def test_openvino_xpu_infer_does_not_copy_through_the_host(tmp_path, monkeypatch):
+    x = torch.ones(2, _KWARG_DIM, device="xpu")
+    model = nn.Linear(_KWARG_DIM, _KWARG_OUT).to("xpu").eval()
+    backend = backend_build(OpenVINOBackend(), model, [((x,), {})], tmp_path, torch.device("xpu"))
+    monkeypatch.setattr(torch.Tensor, "cpu", _host_copy)
+    monkeypatch.setattr(torch.Tensor, "numpy", _host_copy)
+    monkeypatch.setattr(ov.CompiledModel, "__call__", _host_copy)
+
+    output = backend.infer(x)
+
+    assert output.device == x.device
+
+
+@requires_xpu
+def test_openvino_xpu_infer_matches_eager(tmp_path):
+    torch.manual_seed(0)
+    x = torch.arange(2 * _KWARG_DIM, dtype=torch.float32, device="xpu").reshape(2, _KWARG_DIM)
+    model = nn.Linear(_KWARG_DIM, _KWARG_OUT).to("xpu").eval()
+    with torch.no_grad():
+        expected = model(x)
+    backend = backend_build(OpenVINOBackend(), model, [((x,), {})], tmp_path, torch.device("xpu"))
+
+    actual = backend.infer(x)
+
+    torch.testing.assert_close(actual, expected, rtol=2e-3, atol=2e-3)
+
+
+class _ArgmaxModel(nn.Module):
+    def forward(self, x):
+        return x.argmax(dim=-1)
+
+
+class _GreaterThanTwoModel(nn.Module):
+    def forward(self, x):
+        return x > 2
+
+
+class _DoubleModel(nn.Module):
+    def forward(self, x):
+        return x * 2
+
+
+@requires_xpu
+def test_openvino_xpu_writes_an_int64_output(tmp_path):
+    x = torch.tensor([[1.0, 5.0, 2.0], [7.0, 0.0, 3.0]], device="xpu")
+    backend = backend_build(OpenVINOBackend(), _ArgmaxModel(), [((x,), {})], tmp_path, torch.device("xpu"))
+
+    actual = backend.infer(x)
+
+    torch.testing.assert_close(actual, torch.tensor([1, 0], device="xpu"))
+
+
+@requires_xpu
+def test_openvino_xpu_writes_a_bool_output(tmp_path):
+    x = torch.tensor([[1.0, 5.0, 2.0], [7.0, 0.0, 3.0]], device="xpu")
+    backend = backend_build(OpenVINOBackend(), _GreaterThanTwoModel(), [((x,), {})], tmp_path, torch.device("xpu"))
+
+    actual = backend.infer(x)
+
+    torch.testing.assert_close(actual, torch.tensor([[False, True, False], [True, False, True]], device="xpu"))
+
+
+@requires_xpu
+def test_openvino_xpu_reads_a_transposed_input(tmp_path):
+    sample = torch.zeros(2, 3, device="xpu")
+    backend = backend_build(OpenVINOBackend(), _DoubleModel(), [((sample,), {})], tmp_path, torch.device("xpu"))
+
+    actual = backend.infer(torch.tensor([[1.0, 2.0], [3.0, 4.0], [5.0, 6.0]], device="xpu").t())
+
+    torch.testing.assert_close(actual, torch.tensor([[2.0, 6.0, 10.0], [4.0, 8.0, 12.0]], device="xpu"))
+
+
+@requires_xpu
+def test_openvino_xpu_without_level_zero_interop_is_rejected(tmp_path):
+    """The driver reads EnableLEO when OpenCL starts, so only a fresh process can run without it."""
+    x = ov_ops.parameter([2, _KWARG_DIM], ov.Type.f32, name="x")
+    model_xml = tmp_path / "model.xml"
+    ov.save_model(ov.Model([ov_ops.relu(x)], [x]), model_xml)
+    script = (
+        "import sys, torch\n"
+        "from torch_tweak.torch.backend.openvino.xpu_remote import XpuInferRequest\n"
+        "XpuInferRequest(sys.argv[1], torch.device('xpu'), ov_device='GPU', config={}, scalar_inputs=[])\n"
+    )
+
+    result = subprocess.run(  # nosec B603
+        [sys.executable, "-c", script, str(model_xml)],
+        env={**os.environ, "EnableLEO": "0"},
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+
+    assert LEVEL_ZERO_INTEROP_MISSING in result.stderr
+
+
+def test_ov_element_type_rejects_a_dtype_openvino_cannot_bind():
+    with pytest.raises(ValueError, match="complex64"):
+        ov_element_type(torch.complex64)
