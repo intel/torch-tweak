@@ -7,6 +7,7 @@
 # configuring some variables before importing other modules
 from torch_tweak.torch.config import torch_tweak_cache_dir, config  # noqa: I001
 
+from torch_tweak.torch.checkpoint.checkpoint_header import IncompatibleCheckpointError
 from torch_tweak.torch.checkpoint.local_torch_storage import LocalTorchStorage
 from torch_tweak.torch.dataloader import DataLoaderFactory
 from torch_tweak.torch.inspecting import inspect, wrap
@@ -35,6 +36,7 @@ __all__ = [
     "HighestThroughputStrategy",
     "default_strategy",
     "LocalTorchStorage",
+    "IncompatibleCheckpointError",
     "DataLoaderFactory",
 ]
 
