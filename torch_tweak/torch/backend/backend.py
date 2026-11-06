@@ -5,9 +5,9 @@
 # NOTE: This file has been modified by Intel Corporation.
 """Backend interface."""
 
-import gc
 import json
 import logging
+import traceback
 from abc import ABC, abstractmethod
 from dataclasses import asdict, dataclass, fields, is_dataclass
 from enum import Enum
@@ -20,6 +20,7 @@ import torch.nn as nn
 from torch_tweak.torch.checkpoint.storage_tasks import is_weights_only_safe
 from torch_tweak.torch.module.graph_spec import GraphSpec
 from torch_tweak.torch.module.recording_module import Sample
+from torch_tweak.torch.utils.memory import free_device_memory
 from torch_tweak.utils.hashing import hash_string
 from torch_tweak.utils.permissions import secure_file
 from torch_tweak.utils.trace import annotate
@@ -231,7 +232,8 @@ class Backend(ABC):
                 self.state = BackendState.ACTIVE
                 return ready_backend
             except Exception as e:
-                self._logger.error("Failed to build backend(%s): %s", self.__class__.__name__, e, exc_info=True)
+                # A handler that keeps log records would keep exc_info frames and the device memory they reference.
+                self._logger.error("Failed to build backend(%s):\n%s", self.__class__.__name__, traceback.format_exc())
                 raise e
         else:
             raise RuntimeError(f"Backend {self.name} build should be called only once")
@@ -265,7 +267,7 @@ class Backend(ABC):
 
         if self.state == BackendState.ACTIVE:
             self._deactivate()
-            self._clean_memory()
+            free_device_memory(self._device)
             self.state = BackendState.INACTIVE
 
     def deploy(self, device: torch.device | None):
@@ -419,15 +421,6 @@ class Backend(ABC):
     def _logger(self) -> logging.Logger:
         """A logger specific to this backend implementation."""
         return logging.getLogger(f"{self.__class__.__module__}")
-
-    def _clean_memory(self):
-        """Clean up memory."""
-        torch._dynamo.reset()
-        torch.compiler.reset()
-        xpu = getattr(torch, "xpu", None)
-        if xpu is not None and hasattr(xpu, "empty_cache") and xpu.is_available():
-            xpu.empty_cache()
-        gc.collect()
 
 
 class DummyBackend(Backend):

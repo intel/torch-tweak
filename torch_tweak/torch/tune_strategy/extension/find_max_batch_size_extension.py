@@ -32,6 +32,7 @@ from torch_tweak.torch.task.profiling.measuring_stop_strategy import StableWindo
 from torch_tweak.torch.task.profiling.measuring_strategy import ModelExecutionTimeMeasuringStrategy
 from torch_tweak.torch.task.profiling.profiling_stop_strategy import ThroughputSaturatedProfilingStopStrategy
 from torch_tweak.torch.tune_strategy.tune_strategy import TuneStrategy
+from torch_tweak.torch.utils.memory import release_device_memory
 from torch_tweak.utils.logging import control_output
 from torch_tweak.utils.permissions import secure_file
 
@@ -122,6 +123,8 @@ class TuneStrategyFindMaxBatchSizeExtension(TuneStrategy):
                 secure_file(error_log_file)
                 self._logger.info("⚠️ Finding max batch size for `%s` failed (log file: %s)", name, error_log_file)
                 raise
+            del backend
+            release_device_memory(device, self._sink)
 
     def _pre_tune(
         self,

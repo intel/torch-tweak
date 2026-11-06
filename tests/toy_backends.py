@@ -5,8 +5,11 @@
 """Toy backends for unit tests."""
 
 import time
+from collections.abc import Callable
 from pathlib import Path
 from typing import Any
+
+import torch
 
 from torch_tweak.torch.backend.backend import Backend
 
@@ -70,3 +73,39 @@ class BuildFailsBackend(SleepBackend):
 
     def _build(self, module: Any, graph_spec: Any, data: list[Any], cache_dir: Path) -> Backend:
         raise self.exception_class("Build failed")
+
+
+class AllocatingBackend(SleepBackend):
+    """Allocates `nbytes` of device memory and keeps it while it is alive."""
+
+    def __init__(self, nbytes: int):
+        super().__init__()
+        self.nbytes = nbytes
+
+    def _build(self, module: Any, graph_spec: Any, data: list[Any], cache_dir: Path) -> Backend:
+        self._scratch = torch.empty(self.nbytes, dtype=torch.uint8, device=self._device)
+        return super()._build(module, graph_spec, data, cache_dir)
+
+
+class AllocateThenFailBackend(AllocatingBackend):
+    """Allocates `nbytes` of device memory and fails its build, like an XPU graph capture that the driver rejects."""
+
+    def _build(self, module: Any, graph_spec: Any, data: list[Any], cache_dir: Path) -> Backend:
+        super()._build(module, graph_spec, data, cache_dir)
+        raise RuntimeError("Capture failed")
+
+
+class MemoryProbeBackend(SleepBackend):
+    """Passes the device memory reserved when it builds to `on_build`.
+
+    `copy.deepcopy` keeps a bound `list.append` as the same object, so the copy a strategy builds appends to the
+    caller's list.
+    """
+
+    def __init__(self, on_build: Callable[[int], None]):
+        super().__init__()
+        self.on_build = on_build
+
+    def _build(self, module: Any, graph_spec: Any, data: list[Any], cache_dir: Path) -> Backend:
+        self.on_build(torch.xpu.memory_reserved(self._device))
+        return super()._build(module, graph_spec, data, cache_dir)

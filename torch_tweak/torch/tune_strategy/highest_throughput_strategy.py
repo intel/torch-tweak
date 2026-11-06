@@ -41,6 +41,7 @@ from torch_tweak.torch.task.profiling import (
 )
 from torch_tweak.torch.tune_strategy.default_backends import default_backends
 from torch_tweak.torch.tune_strategy.extension import TuneStrategyFindMaxBatchSizeExtension
+from torch_tweak.torch.utils.memory import release_device_memory
 from torch_tweak.utils.logging import control_output, log
 from torch_tweak.utils.timer import Timer
 
@@ -183,6 +184,9 @@ class HighestThroughputStrategy(TuneStrategyFindMaxBatchSizeExtension):
                         backend.deactivate()
                     self._log_failure(exc, log_file)
                     module.to(device)  # move module back to device as failed backend could move it to cpu
+            # `profiled` keeps each deactivated copy. A failed copy must be unreachable before the cache is emptied.
+            del backend
+            release_device_memory(device, self._sink)
 
         if not profiled:
             log(
