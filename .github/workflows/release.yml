@@ -59,12 +59,12 @@ jobs:
             exit 1
           fi
 
-  # Note: packaging.yml also builds the example wheels, which are never
+  # Note: reusable_packaging.yml also builds the example wheels, which are never
   # published, so a broken example blocks the release.
   build:
     name: Build
     needs: validate-tag
-    uses: ./.github/workflows/packaging.yml
+    uses: ./.github/workflows/reusable_packaging.yml
 
   publish:
     name: Publish to ${{ inputs.target }}

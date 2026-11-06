@@ -1,6 +1,6 @@
 name: Deploy docs
 
-# The strict docs build is checked in ci.yml; this workflow only deploys.
+# The strict docs build is checked in reusable_checks.yml; this workflow only deploys.
 
 on:
   workflow_dispatch:
