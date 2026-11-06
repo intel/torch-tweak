@@ -4,6 +4,7 @@
 
 from __future__ import annotations
 
+import inspect
 import logging
 from collections.abc import Sequence
 from pathlib import Path
@@ -72,11 +73,19 @@ class OpenVINOModelConverter:
     def _convert_dynamo(
         self, module: nn.Module, args: tuple, kwargs: dict, graph_spec: GraphSpec
     ) -> tuple[ov.Model, list[str]]:
-        arg_names: tuple[list[str], list[str]] = get_arguments_names(module.forward)
-        dynamic_shapes: dict[str, Any] = _create_dynamic_shapes(graph_spec.input_spec, arg_names)
-        non_posonly_arg_names: list[str] = arg_names[1]
+        posonly_arg_names, named_kwarg_names = get_arguments_names(module.forward)
+        var_keyword = _var_keyword_name(module.forward)
+        extra_kwarg_names = [name for name in kwargs if name not in named_kwarg_names] if var_keyword else []
+        non_posonly_arg_names = named_kwarg_names + extra_kwarg_names
+        dynamic_shapes: dict[str, Any] = _create_dynamic_shapes(
+            graph_spec.input_spec, (posonly_arg_names, non_posonly_arg_names)
+        )
         ordered_kwargs: dict[str, Any] = _ordered_kwargs_for_export(non_posonly_arg_names, kwargs)
         _fill_dynamic_shapes_for_non_tensors(non_posonly_arg_names, kwargs, dynamic_shapes)
+        passed_extra_kwarg_names = [name for name in extra_kwarg_names if name in ordered_kwargs]
+        if dynamic_shapes and passed_extra_kwarg_names:
+            # torch.export keys the shapes of **kwargs entries under the name of that parameter.
+            dynamic_shapes[var_keyword] = {name: dynamic_shapes.pop(name, None) for name in passed_extra_kwarg_names}
 
         exported: torch.export.ExportedProgram = torch.export.export(
             module,
@@ -93,6 +102,13 @@ class OpenVINOModelConverter:
             example_input=example_input,
             dynamo=False,
         )
+
+
+def _var_keyword_name(func: Any) -> str | None:
+    for parameter in inspect.signature(func).parameters.values():
+        if parameter.kind == inspect.Parameter.VAR_KEYWORD:
+            return parameter.name
+    return None
 
 
 def _prepare_sample(sample: Sample, input_spec: SampleMetadata) -> tuple[tuple, dict]:
