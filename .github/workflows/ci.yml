@@ -1,0 +1,53 @@
+name: CI
+
+# Run all checks and tests for Torch Tweak.
+# Tests (on BMG card) are only run if relevant changes are detected
+# and all checks have passed.
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+  pull_request:
+
+concurrency:
+  group: >-
+    ${{ github.workflow }}-${{ github.event_name }}-
+      ${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  checks:
+    name: Checks
+    uses: ./.github/workflows/reusable_checks.yml
+    permissions:
+      contents: read
+      # CodeQL results upload.
+      security-events: write
+      actions: read
+
+  packaging:
+    name: Packaging
+    needs: checks
+    uses: ./.github/workflows/reusable_packaging.yml
+
+  tests:
+    name: Tests
+    needs: checks
+    # run only on upstream; forks won't have the HW
+    if: github.repository == 'intel/torch-tweak' && needs.checks.outputs.run_tests == 'true'
+    uses: ./.github/workflows/reusable_tests.yml
+
+  coverage:
+    name: Coverage
+    needs: tests
+    uses: ./.github/workflows/reusable_coverage.yml
+    permissions:
+      contents: read
+      # Needed to find and download the baseline report from the latest successful run on main.
+      actions: read
+    secrets:
+      BB_GIST_TOKEN: ${{ secrets.BB_GIST_TOKEN }}
