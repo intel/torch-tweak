@@ -16,6 +16,8 @@ from torch_tweak.torch.module_registry import MODULE_REGISTRY
 from torch_tweak.torch.utils.xpu import is_available as is_xpu_available
 from torch_tweak.utils.logging import setup_logging
 
+pytest_plugins = ["pytester"]
+
 
 def pytest_sessionfinish(session: pytest.Session, exitstatus: int) -> None:
     """Schedule a hard exit after pytest finishes reporting.

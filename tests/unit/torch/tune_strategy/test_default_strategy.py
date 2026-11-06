@@ -2,9 +2,6 @@
 # SPDX-License-Identifier: Apache-2.0
 """Tests for the default backends and strategy."""
 
-import importlib
-import sys
-
 import pytest
 
 from torch_tweak.torch.backend import (
@@ -27,16 +24,23 @@ def test_default_backends_are_every_backend_that_runs_on_the_device(device, expe
     assert [type(backend) for backend in default_backends(device)] == expected
 
 
-def test_torch_tweak_imports_without_torchao(monkeypatch):
-    hidden = [name for name in list(sys.modules) if name.split(".", 1)[0] in {"torch_tweak", "torchao"}]
-    for name in hidden:
-        monkeypatch.delitem(sys.modules, name)
-    monkeypatch.setitem(sys.modules, "torchao", None)
+def test_torch_tweak_imports_without_torchao(pytester):
+    script = pytester.makepyfile(
+        """
+        import sys
 
-    module = importlib.import_module("torch_tweak.torch")
+        sys.modules["torchao"] = None
 
-    assert module.__name__ == "torch_tweak.torch"
-    assert "torch_tweak.torch.backend.torchao_backend" not in sys.modules
+        import torch_tweak.torch
+
+        print("torchao backend imported:", "torch_tweak.torch.backend.torchao_backend" in sys.modules)
+        """
+    )
+
+    result = pytester.runpython(script)
+
+    assert result.ret == 0
+    result.stdout.fnmatch_lines(["torchao backend imported: False"])
 
 
 def test_default_backends_reject_an_unknown_device():
