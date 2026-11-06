@@ -92,3 +92,6 @@ pip install .
 ```
 
 `pip install .` or `pip install -e .` installs **torch-tweak only** (no `torch`). Use the pip or uv commands above for a full stack.
+
+The TorchAO backend needs the `torchao` extra.
+`torch_tweak[xpu]` installs it.

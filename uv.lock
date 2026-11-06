@@ -1773,7 +1773,6 @@ dependencies = [
     { name = "openvino" },
     { name = "psutil" },
     { name = "tabulate" },
-    { name = "torchao" },
     { name = "wrapt" },
 ]
 
@@ -1830,9 +1829,13 @@ test = [
     { name = "transformers" },
     { name = "urllib3" },
 ]
+torchao = [
+    { name = "torchao" },
+]
 xpu = [
     { name = "fsspec" },
     { name = "torch", version = "2.15.0+xpu", source = { registry = "https://download.pytorch.org/whl/xpu" } },
+    { name = "torchao" },
 ]
 
 [package.dev-dependencies]
@@ -1896,7 +1899,8 @@ requires-dist = [
     { name = "timm", marker = "extra == 'dev'" },
     { name = "timm", marker = "extra == 'test'" },
     { name = "torch", marker = "extra == 'xpu'", specifier = ">=2.13.0", index = "https://download.pytorch.org/whl/xpu", conflict = { package = "torch-tweak", extra = "xpu" } },
-    { name = "torchao", specifier = ">=0.17.0", index = "https://download.pytorch.org/whl/cpu" },
+    { name = "torchao", marker = "extra == 'torchao'", specifier = ">=0.17.0", index = "https://download.pytorch.org/whl/cpu" },
+    { name = "torchao", marker = "extra == 'xpu'", specifier = ">=0.17.0", index = "https://download.pytorch.org/whl/cpu" },
     { name = "transformers", marker = "extra == 'dev'", specifier = ">=5.13.0,<6" },
     { name = "transformers", marker = "extra == 'test'", specifier = ">=5.13.0,<6" },
     { name = "urllib3", marker = "extra == 'dev'", specifier = ">=2.7.0" },
@@ -1905,7 +1909,7 @@ requires-dist = [
     { name = "virtualenv", marker = "extra == 'dev'", specifier = ">=21.7.13" },
     { name = "wrapt", specifier = "~=2.2" },
 ]
-provides-extras = ["dev", "doc", "test", "xpu"]
+provides-extras = ["dev", "doc", "test", "torchao", "xpu"]
 
 [package.metadata.requires-dev]
 coverage = [

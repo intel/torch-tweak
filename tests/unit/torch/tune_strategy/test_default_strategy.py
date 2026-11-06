@@ -24,6 +24,25 @@ def test_default_backends_are_every_backend_that_runs_on_the_device(device, expe
     assert [type(backend) for backend in default_backends(device)] == expected
 
 
+def test_torch_tweak_imports_without_torchao(pytester):
+    script = pytester.makepyfile(
+        """
+        import sys
+
+        sys.modules["torchao"] = None
+
+        import torch_tweak.torch
+
+        print("torchao backend imported:", "torch_tweak.torch.backend.torchao_backend" in sys.modules)
+        """
+    )
+
+    result = pytester.runpython(script)
+
+    assert result.ret == 0
+    result.stdout.fnmatch_lines(["torchao backend imported: False"])
+
+
 def test_default_backends_reject_an_unknown_device():
     with pytest.raises(ValueError, match="No default backends"):
         default_backends("meta")
