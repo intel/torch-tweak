@@ -178,10 +178,10 @@ class HighestThroughputStrategy(TuneStrategyFindMaxBatchSizeExtension):
                     profiled.append(_ProfiledBackend(backend, throughput, batch_size))
                     backend.deactivate()
 
-                except Exception:
+                except Exception as exc:
                     if backend.is_active:
                         backend.deactivate()
-                    log("❌ backend failed (log file: %s)", log_file, depth=2, sink=self._sink)
+                    self._log_failure(exc, log_file)
                     module.to(device)  # move module back to device as failed backend could move it to cpu
 
         if not profiled:
