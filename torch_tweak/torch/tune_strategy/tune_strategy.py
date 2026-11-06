@@ -160,6 +160,10 @@ class TuneStrategy(ABC):
         """Returns the parts of the description."""
         ...
 
+    def candidate_backends(self, device: torch.device) -> list[Backend]:
+        """The unbuilt backends this strategy chooses from on `device`. Empty when it does not choose among backends."""
+        return []
+
     @staticmethod
     def _count_layers(module: nn.Module) -> int:
         return len(list(module.named_children()))
