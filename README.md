@@ -17,6 +17,7 @@ NOTE: This file has been modified by Intel Corporation.
 [![Coverage](https://gist.githubusercontent.com/bb-ur/cfa745c6e219d84dec39841a981daea7/raw/tt_coverage_badge.svg)](https://github.com/intel/torch-tweak/actions/workflows/tests.yml?query=branch%3Amain)
 
 **Torch Tweak** is an inference toolkit designed for tuning and deploying Deep Learning models with a focus on Intel XPU (GPU) accelerators.
+**Note: To enable XPU capabilities, please follow the [Install](#install) instructions below.**
 It provides model tuning capabilities through compilation and conversion paths that can significantly improve inference speed and efficiency
 across various AI workloads including Computer Vision, Natural Language Processing, Speech Recognition, and Generative AI.
 
@@ -85,10 +86,7 @@ Tune strategies are in [core functionalities](docs/learn/core_functionalities.md
 PyTorch XPU wheels are not published on PyPI, so the PyTorch XPU index has to be selected explicitly:
 
 ```bash
-pip install \
-    --index-url https://download.pytorch.org/whl/xpu \
-    --extra-index-url https://pypi.org/simple \
-    "torch_tweak[xpu]"
+pip install --extra-index-url https://download.pytorch.org/whl/xpu "torch_tweak[xpu]"
 ```
 
 To build and install torch-tweak from the local repository we recommend using uv
