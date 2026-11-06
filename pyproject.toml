@@ -164,7 +164,7 @@ triton-xpu = [
 [tool.pytest.ini_options]
 log_cli = true
 log_cli_level = "WARNING"
-addopts = ["--import-mode=importlib", "--doctest-modules"]
+addopts = ["--import-mode=importlib", "--doctest-modules", "-p", "pytester"]
 pythonpath = ["."]
 testpaths = ["torch_tweak", "tests/unit", "tests/functional"]
 markers = [
