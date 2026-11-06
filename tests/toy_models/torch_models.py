@@ -78,6 +78,13 @@ class ToyTorchModel(torch.nn.Module):
         return input_tensor
 
 
+def toy_on_xpu() -> tuple[ToyTorchModel, list[Sample], GraphSpec]:
+    """A `ToyTorchModel` on XPU, one sample with batch size 1, and the graph spec of that batch size."""
+    model = ToyTorchModel().to("xpu")
+    data = [((torch.zeros(1, INPUT_SIZE, device="xpu"),), {})]
+    return model, data, model.graph_spec(batch_sizes=[1], device="xpu")
+
+
 class ToyTorchConditionalModel(torch.nn.Module):
     """Simple toy conditional model.
 

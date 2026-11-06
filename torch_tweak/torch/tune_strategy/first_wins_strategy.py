@@ -17,6 +17,7 @@ from torch_tweak.torch.module.graph_spec import GraphSpec
 from torch_tweak.torch.module.recording_module import Sample
 from torch_tweak.torch.tune_strategy.default_backends import default_backends
 from torch_tweak.torch.tune_strategy.extension import TuneStrategyFindMaxBatchSizeExtension
+from torch_tweak.torch.utils.memory import release_device_memory
 from torch_tweak.utils.logging import control_output, log
 from torch_tweak.utils.timer import Timer
 
@@ -73,6 +74,9 @@ class FirstWinsStrategy(TuneStrategyFindMaxBatchSizeExtension):
                         backend.deactivate()
                     self._log_failure(exc, log_file)
                     module.to(device)  # move module back to device as failed backend could move it to cpu
+            # Reached only after a failure. `torch._dynamo.reset` drops the compiled graphs of `selected_backend`.
+            del backend
+            release_device_memory(device, self._sink)
 
         if selected_backend:
             log("🎯 Strategy %s execution finished:", self.__class__.__name__, sink=self._sink)

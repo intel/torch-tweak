@@ -11,8 +11,8 @@ from unittest.mock import MagicMock
 import pytest
 import torch
 
-from tests.toy_backends import BuildFailsBackend, SleepBackend
-from tests.toy_models.torch_models import INPUT_SIZE, ToyTorchModel
+from tests.toy_backends import AllocateThenFailBackend, BuildFailsBackend, MemoryProbeBackend, SleepBackend
+from tests.toy_models.torch_models import INPUT_SIZE, ToyTorchModel, toy_on_xpu
 from tests.utilities.helpers import requires_xpu
 from torch_tweak.torch import TunableModule
 from torch_tweak.torch.backend import Backend
@@ -251,6 +251,23 @@ def test_failure_after_the_build_is_written_to_the_backend_log(torch_device, tmp
     strategy.tune(model, "test", graph_spec, [((sample,), {})], torch_device, tmp_path)
 
     assert "RuntimeError: Infer failed" in (tmp_path / backend.key() / "build.log").read_text()
+
+
+@requires_xpu
+def test_next_backend_builds_without_the_memory_a_failed_backend_held(tmp_path):
+    model, data, graph_spec = toy_on_xpu()
+    failed_bytes = 2**30
+    reserved_at_build = []
+    strategy = HighestThroughputStrategy(
+        backends=[AllocateThenFailBackend(failed_bytes), MemoryProbeBackend(on_build=reserved_at_build.append)]
+    )
+    strategy.enable_find_max_batch_size(False)
+    torch.xpu.empty_cache()
+    reserved_before = torch.xpu.memory_reserved()
+
+    strategy.tune(model, "test", graph_spec, data, torch.device("xpu"), tmp_path)
+
+    assert reserved_at_build[0] < reserved_before + failed_bytes
 
 
 def test_highest_throughput_strategy_fails_backend_if_all_of_backends_fails(torch_device):

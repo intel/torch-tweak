@@ -7,6 +7,7 @@
 
 import json
 import logging
+import traceback
 from abc import ABC, abstractmethod
 from dataclasses import asdict, dataclass, fields, is_dataclass
 from enum import Enum
@@ -231,7 +232,8 @@ class Backend(ABC):
                 self.state = BackendState.ACTIVE
                 return ready_backend
             except Exception as e:
-                self._logger.error("Failed to build backend(%s): %s", self.__class__.__name__, e, exc_info=True)
+                # A handler that keeps log records would keep exc_info frames and the device memory they reference.
+                self._logger.error("Failed to build backend(%s):\n%s", self.__class__.__name__, traceback.format_exc())
                 raise e
         else:
             raise RuntimeError(f"Backend {self.name} build should be called only once")

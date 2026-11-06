@@ -6,10 +6,13 @@
 """Test for BackendConfig._get_changed_fields method."""
 
 import json
+import logging
 from dataclasses import dataclass, field
 
+import pytest
 import torch
 
+from tests.toy_backends import BuildFailsBackend
 from torch_tweak.torch.backend.backend import BackendConfig, samples_for_checkpoint
 from torch_tweak.utils.hashing import hash_string
 
@@ -362,3 +365,15 @@ def test_samples_for_checkpoint_leaves_out_samples_a_checkpoint_cannot_hold():
 
     assert samples_for_checkpoint([safe, unsafe, safe]) == [safe, safe]
     assert samples_for_checkpoint(None) is None
+
+
+def test_failed_build_logs_the_traceback_as_text_without_frames(caplog, tmp_path):
+    """A record holding `exc_info` keeps the failed frames and the tensors they reference."""
+    backend = BuildFailsBackend(RuntimeError)
+
+    with caplog.at_level(logging.ERROR), pytest.raises(RuntimeError, match="Build failed"):
+        backend.build(torch.nn.Identity(), None, [((torch.ones(1),), {})], torch.device("cpu"), tmp_path)
+
+    (record,) = caplog.records
+    assert record.exc_info is None
+    assert "RuntimeError: Build failed" in record.getMessage()
