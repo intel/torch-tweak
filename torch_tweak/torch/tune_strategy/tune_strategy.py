@@ -20,6 +20,7 @@ from torch_tweak.torch.module.graph_spec import GraphSpec
 from torch_tweak.torch.module.recording_module import Sample
 from torch_tweak.torch.module.sample_metadata import SampleMetadata
 from torch_tweak.torch.task.correctness import check_output_correctness, check_output_tensor_shapes
+from torch_tweak.torch.utils.memory import release_device_memory
 from torch_tweak.torch.utils.module import count_parameters
 from torch_tweak.utils.logging import log
 from torch_tweak.utils.permissions import secure_mkdir
@@ -69,6 +70,9 @@ class TuneStrategy(ABC):
         """Tunes given torch module with provided graph_spec and data."""
         self._describe(module, name, graph_spec, data, device, cache_dir)
         with Timer(name=f"Tune `{self.__class__.__name__}`", sink=self._sink):
+            # The exception of a failed earlier tune holds its memory until the caller has handled it.
+            # `TunableModule.tune` deactivates the backends it already selected before calling `tune`.
+            release_device_memory(device, self._sink)
             self._pre_tune(module, name, graph_spec, data, device, cache_dir)
             backend = self._tune(module, name, graph_spec, data, device, cache_dir)
             self._post_tune(backend, name, graph_spec, data)

@@ -5,14 +5,20 @@
 # NOTE: This file has been modified by Intel Corporation.
 """Unit tests for OneBackendStrategy."""
 
+from functools import partial
 from unittest.mock import MagicMock
 
 import pytest
+import torch
 import torch.nn as nn
 
+from tests.toy_backends import AllocateThenFailBackend, AllocatingBackend, MemoryProbeBackend
+from tests.toy_models.torch_models import toy_on_xpu
+from tests.utilities.helpers import requires_xpu
 from torch_tweak.torch.backend.backend import Backend
 from torch_tweak.torch.module.graph_spec import GraphSpec
 from torch_tweak.torch.module.recording_module import Sample
+from torch_tweak.torch.tune_strategy.extension import TuneStrategyFindMaxBatchSizeExtension
 from torch_tweak.torch.tune_strategy.one_backend_strategy import OneBackendStrategy
 
 
@@ -87,3 +93,40 @@ def test_tune_backend_fails(mock_backend, mock_module, mock_graph_spec, torch_de
 
     assert str(exc_info.value) == "Backend failed"
     mock_backend.build.assert_called_once()
+
+
+@requires_xpu
+def test_backend_builds_without_the_memory_find_max_batch_size_held(tmp_path):
+    model, data, graph_spec = toy_on_xpu()
+    find_bytes = 2**30
+    reserved_at_build = []
+    strategy = OneBackendStrategy(MemoryProbeBackend(on_build=reserved_at_build.append))
+    strategy.set_find_max_batch_size_default_backend_class(partial(AllocatingBackend, find_bytes))
+    strategy.set_find_max_batch_size_profiling_config(
+        TuneStrategyFindMaxBatchSizeExtension.default_profiling_config(max_batch_size=2)
+    )
+    torch.xpu.empty_cache()
+    reserved_before = torch.xpu.memory_reserved()
+
+    strategy.tune(model, "test", graph_spec, data, torch.device("xpu"), tmp_path)
+
+    assert reserved_at_build[0] < reserved_before + find_bytes
+
+
+@requires_xpu
+def test_tune_starts_without_the_memory_a_failed_tune_held(tmp_path):
+    model, data, graph_spec = toy_on_xpu()
+    failed_bytes = 2**30
+    reserved_at_build = []
+    failing = OneBackendStrategy(AllocateThenFailBackend(failed_bytes))
+    failing.enable_find_max_batch_size(False)
+    probing = OneBackendStrategy(MemoryProbeBackend(on_build=reserved_at_build.append))
+    probing.enable_find_max_batch_size(False)
+    torch.xpu.empty_cache()
+    reserved_before = torch.xpu.memory_reserved()
+    with pytest.raises(RuntimeError, match="Capture failed"):
+        failing.tune(model, "test", graph_spec, data, torch.device("xpu"), tmp_path)
+
+    probing.tune(model, "test", graph_spec, data, torch.device("xpu"), tmp_path)
+
+    assert reserved_at_build[0] < reserved_before + failed_bytes
