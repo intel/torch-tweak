@@ -160,6 +160,45 @@ def test_torchao_config_survives_weights_only_load(quantization, tmp_path):
     assert TorchAOBackendConfig.from_dict(loaded).quantization_config == config.quantization_config
 
 
+def test_torchao_config_to_from_dict_keeps_offload_module():
+    config = TorchAOBackendConfig(quantization="int8wo", offload_module=False)
+
+    restored = TorchAOBackendConfig.from_dict(config.to_dict())
+
+    assert restored.offload_module is False
+
+
+def test_torchao_config_describe_names_offload_module_false():
+    config = TorchAOBackendConfig(quantization="int8wo", offload_module=False)
+
+    assert config.describe() == "quantization_config=Int8WeightOnlyConfig(),offload_module=False"
+
+
+@requires_xpu
+def test_build_moves_the_module_to_cpu_by_default(model, sample_data, torch_device, tmp_path):
+    backend = TorchAOBackend(TorchAOBackendConfig(quantization="int8wo"))
+
+    build_backend(backend, torch.float32, model, sample_data, torch_device, tmp_path)
+
+    try:
+        assert model.linear1.weight.device.type == "cpu"
+    finally:
+        backend.deactivate()
+
+
+@requires_xpu
+def test_build_with_offload_module_false_keeps_the_weights_in_place(model, sample_data, torch_device, tmp_path):
+    weight_address = model.linear1.weight.data_ptr()
+    backend = TorchAOBackend(TorchAOBackendConfig(quantization="int8wo", offload_module=False))
+
+    build_backend(backend, torch.float32, model, sample_data, torch_device, tmp_path)
+
+    try:
+        assert model.linear1.weight.data_ptr() == weight_address
+    finally:
+        backend.deactivate()
+
+
 def test_torchao_config_to_from_dict_keeps_user_config():
     config = TorchAOBackendConfig(quantization_config=Int8WeightOnlyConfig(granularity=PerGroup(16)))
 

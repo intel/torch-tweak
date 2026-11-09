@@ -90,7 +90,8 @@ class OnlineTunedModule:
             name: Names the cache directory of the tuned graphs.
             strategy: Tunes each new shape. Defaults to `borrowed_module_strategy(device)`.
                 Its backends must leave `module` and its weights on `device`.
-                `OpenVINOBackendConfig(offload_module=False)` does that, and `TorchAOBackend` does not.
+                `OpenVINOBackendConfig(offload_module=False)` and `TorchAOBackendConfig(offload_module=False)`
+                do that.
                 A call that tunes and finds a parameter moved off `device` raises `ValueError`.
             device: Device to tune and run on. Defaults to the device of the module parameters.
         """

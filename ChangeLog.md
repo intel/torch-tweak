@@ -27,6 +27,8 @@ SPDX-License-Identifier: Apache-2.0
 - fix(openvino): bf16 inputs and outputs on CPU keep their values.
   A bf16 input raised a TypeError.
   A bf16 output, or a float16 input of a bf16 graph, came back as other numbers (#100)
+- feat: `TorchAOBackendConfig(offload_module=False)` leaves the module on its device after quantization,
+  for a module that a framework keeps calling. The weights then exist twice on the device (#101)
 
 ## 0.4.1
 
