@@ -66,9 +66,7 @@ def read_header(fp: BinaryIO, environment: dict[str, str]) -> None:
     """
     format_version = _read_uint32(fp)
     if format_version != TT_FORMAT_VERSION:
-        raise IncompatibleCheckpointError(
-            f"Checkpoint format version {format_version} is not {TT_FORMAT_VERSION}. Tune the model again."
-        )
+        raise IncompatibleCheckpointError(f"Checkpoint format version {format_version} is not {TT_FORMAT_VERSION}.")
     record_length = _read_uint32(fp)
     recorded = json.loads(fp.read(record_length).decode("utf-8"))
     differences = [
@@ -77,9 +75,7 @@ def read_header(fp: BinaryIO, environment: dict[str, str]) -> None:
         if recorded.get(key) != environment.get(key)
     ]
     if differences:
-        raise IncompatibleCheckpointError(
-            "Checkpoint was tuned in another environment. Tune the model again.\n" + "\n".join(differences)
-        )
+        raise IncompatibleCheckpointError(f"Checkpoint was tuned in another environment: {'; '.join(differences)}.")
 
 
 def _read_uint32(fp: BinaryIO) -> int | None:

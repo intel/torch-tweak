@@ -9,6 +9,7 @@ from tests.toy_backends import SleepBackend
 from tests.utilities.device_probes import ScriptedProbe
 from tests.utilities.helpers import requires_xpu
 from torch_tweak.torch import HighestThroughputStrategy, OnlineTunedModule
+from torch_tweak.torch.module.online_tuned_module import SELECTED_BACKEND_FILE
 from torch_tweak.torch.utils.device_load import DeviceLoadProbe
 
 
@@ -133,6 +134,68 @@ def test_a_later_module_with_other_weights_tunes_again():
 def test_a_selection_tuned_on_a_shared_device_is_tuned_again_later():
     shared = sleep_strategy(ScriptedProbe([1.0, 20.0, 1.0, 20.0, 1.0, 20.0]))
     OnlineTunedModule(doubling(), "doubling", strategy=shared)(torch.tensor([[1.0, 3.0]]))
+    strategy = sleep_strategy()
+
+    OnlineTunedModule(doubling(), "doubling", strategy=strategy)(torch.tensor([[1.0, 3.0]]))
+
+    assert len(strategy.results) == 1
+
+
+def test_a_later_module_in_the_same_environment_restores_the_selection_without_tuning():
+    OnlineTunedModule(doubling(), "doubling", strategy=sleep_strategy(), environment={"torch": "2.15.0"})(
+        torch.tensor([[1.0, 3.0]])
+    )
+    strategy = sleep_strategy()
+
+    OnlineTunedModule(doubling(), "doubling", strategy=strategy, environment={"torch": "2.15.0"})(
+        torch.tensor([[1.0, 3.0]])
+    )
+
+    assert strategy.results == []
+
+
+def test_a_later_module_in_another_environment_tunes_again():
+    OnlineTunedModule(doubling(), "doubling", strategy=sleep_strategy(), environment={"torch": "2.15.0"})(
+        torch.tensor([[1.0, 3.0]])
+    )
+    strategy = sleep_strategy()
+
+    OnlineTunedModule(doubling(), "doubling", strategy=strategy, environment={"torch": "2.16.0"})(
+        torch.tensor([[1.0, 3.0]])
+    )
+
+    assert len(strategy.results) == 1
+
+
+def test_tuning_again_in_another_environment_logs_the_entries_that_differ(caplog):
+    OnlineTunedModule(doubling(), "doubling", strategy=sleep_strategy(), environment={"torch": "2.15.0"})(
+        torch.tensor([[1.0, 3.0]])
+    )
+
+    OnlineTunedModule(doubling(), "doubling", strategy=sleep_strategy(), environment={"torch": "2.16.0"})(
+        torch.tensor([[1.0, 3.0]])
+    )
+
+    assert "torch: tuned with '2.15.0', running '2.16.0'" in caplog.text
+
+
+def test_tuning_again_in_another_environment_removes_the_artifacts_of_the_earlier_one(tmp_path):
+    OnlineTunedModule(doubling(), "doubling", strategy=sleep_strategy(), environment={"torch": "2.15.0"})(
+        torch.tensor([[1.0, 3.0]])
+    )
+    earlier_ir = next(tmp_path.rglob(SELECTED_BACKEND_FILE)).parent / "model.xml"
+    earlier_ir.write_text("converted by the earlier environment")
+
+    OnlineTunedModule(doubling(), "doubling", strategy=sleep_strategy(), environment={"torch": "2.16.0"})(
+        torch.tensor([[1.0, 3.0]])
+    )
+
+    assert not earlier_ir.exists()
+
+
+def test_a_selection_saved_without_a_format_version_tunes_again(tmp_path):
+    OnlineTunedModule(doubling(), "doubling", strategy=sleep_strategy())(torch.tensor([[1.0, 3.0]]))
+    next(tmp_path.rglob(SELECTED_BACKEND_FILE)).write_text("SleepBackend")
     strategy = sleep_strategy()
 
     OnlineTunedModule(doubling(), "doubling", strategy=strategy)(torch.tensor([[1.0, 3.0]]))

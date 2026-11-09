@@ -4,6 +4,7 @@
 
 import hashlib
 import json
+import shutil
 from collections.abc import Hashable
 from copy import deepcopy
 from logging import getLogger
@@ -15,6 +16,12 @@ import torch.nn as nn
 
 from torch_tweak.torch.backend.backend import Backend
 from torch_tweak.torch.backend.openvino import OpenVINOBackend, OpenVINOBackendConfig
+from torch_tweak.torch.checkpoint.checkpoint_header import (
+    IncompatibleCheckpointError,
+    read_header,
+    tuning_environment,
+    write_header,
+)
 from torch_tweak.torch.config import torch_tweak_cache_dir
 from torch_tweak.torch.module.graph_spec import GraphSpec
 from torch_tweak.torch.module.sample_metadata import SampleMetadata
@@ -27,7 +34,7 @@ from torch_tweak.utils.permissions import secure_file, secure_mkdir
 
 logger = getLogger(__name__)
 
-SELECTED_BACKEND_FILE = "selected_backend.txt"
+SELECTED_BACKEND_FILE = "selected_backend.bin"
 
 
 def borrowed_module_strategy(device: torch.device) -> HighestThroughputStrategy:
@@ -57,7 +64,9 @@ class OnlineTunedModule:
     Returning to other shapes activates their backend again, which can recompile it.
 
     The selection is saved under the cache directory, keyed by the weights and the shapes.
-    A later process with the same weights builds the saved backend for those shapes and skips tuning.
+    The saved file starts with the header of a `.tt` checkpoint: format version, then tuning environment.
+    A later process with the same weights in the same environment builds the saved backend and skips tuning.
+    Any other environment tunes again and replaces the saved backend artifacts, such as the OpenVINO IR.
     A selection measured while another process used the device is not saved.
 
     The module stays where it is and keeps its `forward`. Its owner can keep calling and patching it.
@@ -70,6 +79,7 @@ class OnlineTunedModule:
         name: str,
         strategy: TuneStrategy | None = None,
         device: torch.device | None = None,
+        environment: dict[str, str] | None = None,
     ):
         """Initializes module.
 
@@ -78,6 +88,7 @@ class OnlineTunedModule:
             name: Names the cache directory of the tuned graphs.
             strategy: Tunes each new shape. Defaults to `borrowed_module_strategy(device)`.
             device: Device to tune and run on. Defaults to the device of the module parameters.
+            environment: Environment a saved selection has to match. Defaults to `tuning_environment()`.
         """
         self._module = module
         self._name = sanitize_model_name(name)
@@ -86,6 +97,7 @@ class OnlineTunedModule:
         self._backends: dict[Hashable, Backend] = {}
         self._active: Backend | None = None
         self._weights_fingerprint: str | None = None
+        self._environment = tuning_environment() if environment is None else environment
 
     @property
     def backends(self) -> dict[Hashable, Backend]:
@@ -139,7 +151,13 @@ class OnlineTunedModule:
         selected = cache_dir / SELECTED_BACKEND_FILE
         if not selected.exists():
             return None
-        backend_key = selected.read_text().strip()
+        try:
+            with selected.open("rb") as fp:
+                read_header(fp, self._environment)
+                backend_key = fp.read().decode()
+        except IncompatibleCheckpointError as error:
+            logger.warning("Tuning %s again. %s", cache_dir, error)
+            return None
         for candidate in self._strategy.candidate_backends(self._device):
             if candidate.key() != backend_key:
                 continue
@@ -156,12 +174,17 @@ class OnlineTunedModule:
         return None
 
     def _tune(self, graph_spec: GraphSpec, sample: tuple[tuple, dict], cache_dir: Path) -> Backend:
+        # OpenVINO with reuse_ir compiles any IR left in cache_dir, including one converted in another environment.
+        shutil.rmtree(cache_dir)
+        secure_mkdir(cache_dir)
         backend = self._strategy.tune(self._module, self._name, graph_spec, [sample], self._device, cache_dir)
         if not self._strategy.tuned_on_quiet_device:
             logger.warning("Another process used the device while %s was tuned. Its selection is not saved", cache_dir)
             return backend
         selected = cache_dir / SELECTED_BACKEND_FILE
-        selected.write_text(backend.key())
+        with selected.open("wb") as fp:
+            write_header(fp, self._environment)
+            fp.write(backend.key().encode())
         secure_file(selected)
         return backend
 
