@@ -70,9 +70,9 @@ _UPSTREAM_COPYRIGHT_RE = re.compile(
     r"SPDX-FileCopyrightText:\s*Copyright\s*\(c\)\s*\d+\s*NVIDIA",
 )
 
-# Matched verbatim (no year range here) to avoid catching this string anywhere
-# other than an actual header.
-_APACHE_COPYRIGHT_RE = re.compile(r"SPDX-License-Identifier:\s*Apache-2\.0\b")
+# Matched verbatim (no year range here) and anchored to line start (optionally after ``#`` or ``<!--``)
+# to avoid catching this string anywhere other than an actual header, e.g. in docstrings or code.
+_APACHE_COPYRIGHT_RE = re.compile(r"^\s*(?:#|<!--)?\s*SPDX-License-Identifier:\s*Apache-2\.0\b")
 
 _INTEL_COPYRIGHT_RE = re.compile(
     r"Copyright\s*\(c\)\s*\d+\s*Intel Corporation",
@@ -160,7 +160,7 @@ def _upstream_copyright_lines(text: str) -> list[str]:
 
 
 def _apache_license_lines(text: str) -> list[str]:
-    return [ln.rstrip("\n") for ln in text.splitlines() if _APACHE_COPYRIGHT_RE.search(ln)]
+    return [ln.rstrip("\n") for ln in _cpy_head_text(text).splitlines() if _APACHE_COPYRIGHT_RE.search(ln)]
 
 
 # ---------------------------------------------------------------------------
@@ -367,16 +367,16 @@ def _insert_intel_modification_notice(lines: list[str]) -> list[str]:
     return _insert_lines(lines, _prologue_end(lines), [_INTEL_MODIFICATION_LINE_PY, ""])
 
 
-def _normalize_python_headers(filepath: str, content: str) -> str:
+def _normalize_python_headers(filepath: str, content: str, base_ref: str) -> str:
     """Return *content* after applying all automatic Python header fixes (Rules 2-3 / CPY001)."""
     lines = content.splitlines(keepends=True)
-    baseline_text = _file_at_baseline(filepath) or ""
-    retained_from_baseline = _upstream_copyright_lines(baseline_text) + _apache_license_lines(baseline_text)
+    original_text = _original_content_before_pr(filepath, base_ref, None) or ""
+    retained_from_original = _upstream_copyright_lines(original_text) + _apache_license_lines(original_text)
     derived = _file_is_upstream_derived(filepath, content)
 
     head_stripped = {ln.strip() for ln in _cpy_head_lines(lines)}
-    missing_retained = [ln for ln in retained_from_baseline if ln.strip() not in head_stripped]
-    # Restore retained baseline lines (upstream copyright, Apache SPDX tag) when lost (Rule 1).
+    missing_retained = [ln for ln in retained_from_original if ln.strip() not in head_stripped]
+    # Restore lines from before this PR (upstream copyright, Apache SPDX tag) when lost (Rule 1).
     if missing_retained:
         lines = _insert_lines(lines, _prologue_end(lines), missing_retained)
 
@@ -541,10 +541,11 @@ def _normalize_hash_headers(filepath: str, content: str) -> str:
 # Header dispatch (shared by check and --fix)
 # ---------------------------------------------------------------------------
 
-_NORMALIZERS: dict[str, Callable[[str, str], str]] = {
+# Only the Python normalizer restores lines from before the PR, so only it uses base_ref.
+_NORMALIZERS: dict[str, Callable[[str, str, str], str]] = {
     ".py": _normalize_python_headers,
-    **dict.fromkeys(_HTML_COMMENT_SUFFIXES, _normalize_html_headers),
-    **dict.fromkeys(_HASH_COMMENT_SUFFIXES, _normalize_hash_headers),
+    **dict.fromkeys(_HTML_COMMENT_SUFFIXES, lambda path, content, _base_ref: _normalize_html_headers(path, content)),
+    **dict.fromkeys(_HASH_COMMENT_SUFFIXES, lambda path, content, _base_ref: _normalize_hash_headers(path, content)),
 }
 
 _HEADER_FIX_MSG = (
@@ -554,34 +555,34 @@ _HEADER_FIX_MSG = (
 )
 
 
-def _normalizer_for(filepath: str) -> Callable[[str, str], str] | None:
+def _normalizer_for(filepath: str) -> Callable[[str, str, str], str] | None:
     """Header normalizer for *filepath*, or ``None`` when the file is exempt or unsupported."""
     if _is_skipped(filepath):
         return None
     return _NORMALIZERS.get(_suffix(filepath))
 
 
-def normalize_header(filepath: str, content: str) -> str:
+def normalize_header(filepath: str, content: str, base_ref: str) -> str:
     """Return *content* with the canonical SPDX header for *filepath*'s file type."""
     normalizer = _normalizer_for(filepath)
-    return normalizer(filepath, content) if normalizer else content
+    return normalizer(filepath, content, base_ref) if normalizer else content
 
 
-def check_header(filepath: str) -> list[str]:
+def check_header(filepath: str, base_ref: str) -> list[str]:
     """Report a violation when ``--fix`` would change the header of *filepath*."""
     content = _read_worktree_text(filepath)
-    if content is None or normalize_header(filepath, content) == content:
+    if content is None or normalize_header(filepath, content, base_ref) == content:
         return []
     return [_HEADER_FIX_MSG]
 
 
-def fix_header(filepath: str) -> bool:
+def fix_header(filepath: str, base_ref: str) -> bool:
     """Rewrite the header of *filepath* in place (UTF-8, LF); return True when the file changed."""
     path = Path(filepath)
     if _normalizer_for(filepath) is None or not path.is_file():
         return False
     content = path.read_text(encoding="utf-8", errors="replace")
-    new_content = normalize_header(filepath, content)
+    new_content = normalize_header(filepath, content, base_ref)
     if new_content == content:
         return False
     path.write_text(new_content, encoding="utf-8", newline="\n")
@@ -671,15 +672,12 @@ def _check_notebook(
     if original is None:
         return []
 
-    baseline_lines = _upstream_copyright_lines(_notebook_preamble(original))
-    preamble_lines = {line.strip() for line in preamble.splitlines()}
-    errors: list[str] = []
-    for orig_line in baseline_lines:
-        if orig_line.strip() not in preamble_lines:
-            errors.append(
-                "  Original upstream copyright line missing from the first Markdown cell.\n"
-                f"  Expected verbatim: {orig_line.strip()!r}"
-            )
+    original_preamble = _notebook_preamble(original)
+    baseline_lines = _upstream_copyright_lines(original_preamble)
+    errors: list[str] = _check_retention(
+        _apache_license_lines(original_preamble), preamble, label="SPDX-License-Identifier"
+    )
+    errors.extend(_check_retention(baseline_lines, preamble, label="upstream copyright"))
     if baseline_lines or _UPSTREAM_COPYRIGHT_RE.search(preamble):
         errors.extend(_notebook_intel_errors(preamble, modification=True))
     return errors
@@ -714,18 +712,18 @@ def _check_modified(
 
     # No upstream copyright in original - not an upstream file, nothing to enforce.
     if not upstream_in_original:
-        return errors + (check_header(filepath) if _is_python(filepath) else [])
+        return errors + (check_header(filepath, base_ref) if _is_python(filepath) else [])
 
     errors.extend(_check_retention(upstream_in_original, head, label="upstream copyright"))
 
     if _is_python(filepath):
-        errors.extend(check_header(filepath))
+        errors.extend(check_header(filepath, base_ref))
         return errors
 
     return errors + _check_non_python_upstream_attribution(filepath, head)
 
 
-def _check_added(filepath: str) -> list[str]:
+def _check_added(filepath: str, base_ref: str) -> list[str]:
     """Check a newly added file for correct copyright headers.
 
     Enforces the Intel-only header (Rule 3), unless the file already
@@ -734,7 +732,7 @@ def _check_added(filepath: str) -> list[str]:
     """
     if _is_notebook(filepath):
         return _check_notebook(filepath, added=True)
-    return check_header(filepath)
+    return check_header(filepath, base_ref)
 
 
 def _check_license_file(changed_files: list[ChangedFile]) -> list[str]:
@@ -770,7 +768,7 @@ def _collect_violations(
         if item.status == "M":
             errs = _check_modified(item.path, base_ref)
         elif item.status == "A":
-            errs = _check_added(item.path)
+            errs = _check_added(item.path, base_ref)
         elif item.status in ("R", "C"):
             errs = _check_modified(item.path, base_ref, original_filepath=item.source)
         else:
@@ -825,9 +823,10 @@ def run_fix(filenames: list[str]) -> int:
     """Fix copyright headers for pre-commit. Exit 1 when any file was modified."""
     if not filenames:
         return 0
+    base_ref = os.environ.get("TORCH_TWEAK_LICENSE_CHECKER_BASE_REF", "main")
     changed = False
     for filepath in filenames:
-        if fix_header(filepath):
+        if fix_header(filepath, base_ref):
             sys.stderr.write(f"Fixed copyright header: {filepath}\n")
             changed = True
     return 1 if changed else 0
