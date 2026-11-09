@@ -108,6 +108,7 @@ Prefer that edit over a new abstraction.
 
 - A `for`/`else` search that returns the match from the loop. The `else` is the miss.
 - A result that already has one shape, including a stand-in string for a miss. Do not invent an exception for it.
+- A broken idiom where following it would make that code clearly worse.
 - Anything in the Ruff list below.
 
 ## Leave these to Ruff

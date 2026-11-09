@@ -36,6 +36,10 @@ Tests follow `.cursor/rules/unit-tests.mdc`.
 
 Match the file you are editing. A pattern already used in that module wins.
 
+These rules are defaults, not laws.
+Break one only when following it would make the code clearly worse.
+Tell the user which rule you broke and why.
+
 ## Names refer to objects
 
 Assignment binds a name to an object. It does not copy that object.
