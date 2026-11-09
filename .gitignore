@@ -342,9 +342,6 @@ cache/
 .cursor/rules/*
 !.cursor/rules/*.mdc
 !.cursor/skills/
-.cursor/skills/**
-!.cursor/skills/**/
-!.cursor/skills/**/*.md
 demo/
 tmp/
 *.mk
