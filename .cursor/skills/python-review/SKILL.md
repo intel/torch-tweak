@@ -19,12 +19,19 @@ Judge the diff. Idiom details live in [python-idioms](../python-idioms/SKILL.md)
 Test style lives in `.cursor/rules/unit-tests.mdc`.
 Do not repeat either one in the review.
 
+A large change alters what the code does: a result, an error, saved data, file or device access, or how modules call each other.
+A bug fix is large.
+Judge the behavior, not the line count.
+When unsure, ask what could break outside the lines you edited.
+A rename, formatting, a comment, a docstring, a test-only change, or a refactor that keeps behavior is not large.
+For a large change, also follow `.cursor/skills/upstream-compare/SKILL.md`.
+
 ## Self-review
 
 Run this before you treat your own change as done.
 
 1. Read the diff you just wrote.
-2. Take each change through the five questions below.
+2. Take each change through the five questions below. When the change is large, also follow `.cursor/skills/upstream-compare/SKILL.md`.
 3. Edit the code. A review note left in a comment is not a fix.
 4. When the change alters behavior, read the CI diff-cover report and cover the lines it names.
 5. Read the diff again.
@@ -36,8 +43,8 @@ narrow `except`, or the `*` that forces a keyword argument.
 
 ## Review for someone else
 
-Same five questions. Report. Edit only if the user asked you to change
-the code.
+Same five questions. When the change is large, also follow `.cursor/skills/upstream-compare/SKILL.md`.
+Report. Edit only if the user asked you to change the code.
 
 Start with the bug that would reach users.
 One bullet per finding: the file, what goes wrong, and what to change.
