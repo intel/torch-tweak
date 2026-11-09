@@ -20,6 +20,7 @@ from torch_tweak.torch.module.graph_spec import GraphSpec
 from torch_tweak.torch.module.recording_module import Sample
 from torch_tweak.torch.tune_strategy.extension import TuneStrategyFindMaxBatchSizeExtension
 from torch_tweak.torch.tune_strategy.one_backend_strategy import OneBackendStrategy
+from torch_tweak.torch.tune_strategy.tune_strategy import NoCorrectBackendError
 
 
 @pytest.fixture
@@ -88,10 +89,10 @@ def test_tune_backend_fails(mock_backend, mock_module, mock_graph_spec, torch_de
     mock_backend.build.side_effect = Exception("Backend failed")
 
     # Execute and verify
-    with pytest.raises(Exception) as exc_info:
+    with pytest.raises(NoCorrectBackendError) as exc_info:
         strategy.tune(mock_module, "test_module", mock_graph_spec, [mock_sample], torch_device, tmp_path)
 
-    assert str(exc_info.value) == "Backend failed"
+    assert str(exc_info.value.__cause__) == "Backend failed"
     mock_backend.build.assert_called_once()
 
 

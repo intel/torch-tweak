@@ -17,6 +17,7 @@ from torch_tweak.torch.module.graph_spec import GraphSpec
 from torch_tweak.torch.module.recording_module import Sample
 from torch_tweak.torch.tune_strategy.default_backends import default_backends
 from torch_tweak.torch.tune_strategy.extension import TuneStrategyFindMaxBatchSizeExtension
+from torch_tweak.torch.tune_strategy.tune_strategy import NoCorrectBackendError
 from torch_tweak.torch.utils.memory import release_device_memory
 from torch_tweak.utils.logging import control_output, log
 from torch_tweak.utils.timer import Timer
@@ -83,7 +84,7 @@ class FirstWinsStrategy(TuneStrategyFindMaxBatchSizeExtension):
             log("✅ Selected backend: %s", selected_backend.describe(), sink=self._sink)
             return selected_backend
 
-        raise RuntimeError(f"There is no valid backend for a module: {name}, graph_spec: {graph_spec}")
+        raise NoCorrectBackendError(f"There is no valid backend for a module: {name}, graph_spec: {graph_spec}")
 
     def _describe_parts(self) -> list[str]:
         """Returns the parts of the description."""

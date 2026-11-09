@@ -14,6 +14,7 @@ from torch_tweak.torch.backend.backend import Backend
 from torch_tweak.torch.module.graph_spec import GraphSpec
 from torch_tweak.torch.module.recording_module import Sample
 from torch_tweak.torch.tune_strategy.extension import TuneStrategyFindMaxBatchSizeExtension
+from torch_tweak.torch.tune_strategy.tune_strategy import NoCorrectBackendError
 from torch_tweak.utils.logging import control_output, log
 from torch_tweak.utils.timer import Timer
 
@@ -62,7 +63,7 @@ class OneBackendStrategy(TuneStrategyFindMaxBatchSizeExtension):
                 return backend
             except Exception as exception:
                 log("❌ backend failed (log file: %s)", log_file, depth=2, sink=self._sink)
-                raise exception
+                raise NoCorrectBackendError(f"{self._backend.describe()} failed: {exception}") from exception
 
     def _describe_parts(self):
         """Describes the tuning."""
