@@ -24,6 +24,9 @@ SPDX-License-Identifier: Apache-2.0
   `OneBackendStrategy` no longer raises the error of its backend. Catch `NoCorrectBackendError` instead.
   `__cause__` is a `RuntimeError` with the type and message of the last backend failure.
   `OnlineTunedModule` runs a shape without a backend only on this error. Any other tuning error reaches the caller.
+- fix(openvino): bf16 inputs and outputs on CPU keep their values.
+  A bf16 input raised a TypeError.
+  A bf16 output, or a float16 input of a bf16 graph, came back as other numbers (#100)
 
 ## 0.4.1
 

@@ -218,6 +218,35 @@ def test_openvino_backend_keeps_the_bf16_weights_of_a_non_contiguous_cpu_paramet
     torch.testing.assert_close(actual, torch.full((1, 1024), 2.0))
 
 
+class _Double(nn.Module):
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        return x + x
+
+
+def test_openvino_backend_on_cpu_keeps_the_values_of_bf16_inputs_and_outputs(tmp_path):
+    model = _Double().eval()
+    sample = ((torch.tensor([[1.5, -3.0, 100.0]], dtype=torch.bfloat16),), {})
+    backend = OpenVINOBackend().build(
+        model, graph_spec=_graph_spec(model, sample), data=[sample], device=torch.device("cpu"), cache_dir=tmp_path
+    )
+
+    actual = backend.infer(*sample[0])
+
+    torch.testing.assert_close(actual, torch.tensor([[3.0, -6.0, 200.0]], dtype=torch.bfloat16), rtol=0, atol=0)
+
+
+def test_openvino_backend_on_cpu_converts_a_float16_input_of_a_bf16_graph(tmp_path):
+    model = _Double().eval()
+    sample = ((torch.tensor([[1.5, -3.0, 100.0]], dtype=torch.bfloat16),), {})
+    backend = OpenVINOBackend().build(
+        model, graph_spec=_graph_spec(model, sample), data=[sample], device=torch.device("cpu"), cache_dir=tmp_path
+    )
+
+    actual = backend.infer(torch.tensor([[1.5, -3.0, 100.0]], dtype=torch.float16))
+
+    torch.testing.assert_close(actual, torch.tensor([[3.0, -6.0, 200.0]], dtype=torch.bfloat16), rtol=0, atol=0)
+
+
 class _VarKeywordModel(nn.Module):
     def forward(self, x: torch.Tensor, **kwargs: torch.Tensor) -> torch.Tensor:
         return x - kwargs["y"] + 3 * kwargs["z"]
