@@ -248,6 +248,8 @@ The selected backend is saved under `<cache dir>/<name>/<weights fingerprint>/<s
 A later process with the same weights builds that backend without tuning.
 OpenVINO compiles the IR saved there instead of converting the module again.
 A selection tuned while another process used the device is not saved, so the next process tunes those shapes again.
+The saved selection starts with the `.tt` header described in the [Deployment Guide](deployment/deployment.md).
+Another format version or tuning environment tunes the shapes again.
 
 ## Dry Run Mode
 

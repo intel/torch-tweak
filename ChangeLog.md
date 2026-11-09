@@ -28,6 +28,8 @@ SPDX-License-Identifier: Apache-2.0
   `OpenVINOBackendConfig(reuse_ir=True)` compiles the saved IR instead of converting the module again (#88)
 - feat: `HighestThroughputStrategy` measures a backend again when another process computed on the device during the measurement.
   `OnlineTunedModule` does not save a selection tuned on a shared device (#89)
+- feat: `OnlineTunedModule` writes the `.tt` header before the saved selection.
+  Another format version or tuning environment tunes the shapes again and replaces the saved OpenVINO IR (#94)
 
 ## 0.4.1
 
