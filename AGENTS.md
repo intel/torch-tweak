@@ -15,14 +15,18 @@ Skip the lookup for a rename, a comment, a docstring, or a change that
 does not alter behavior.
 
 See whether that feature or fix exists there, and how it is written.
-Compare it with the approach you would take.
-Keep the one that is right for this repository.
+Treat that implementation and your own analysis as two inputs.
+Weigh the approach, the corner cases, and the holes in each.
+Build the strongest solution for this repository from those parts.
+Their approach can supply one case that improves yours.
+Yours can close a hole in theirs.
+Name things the way this repository names them.
+Put the code where this repository puts that kind of code.
+Call it the way callers here already call this kind of function.
 
 Do not paste AITune source into this repository.
 This repository does not merge with AITune.
 It does not keep AITune's API.
-When an upstream idea fits, rewrite it so the names, the structure, and
-the call shapes match this code.
 
 Use a local clone. Do not download a second one.
 Look in this order:
