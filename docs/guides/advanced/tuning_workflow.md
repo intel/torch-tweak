@@ -245,8 +245,17 @@ Torch Tweak validates correctness by running the tuned backend on sample data. T
 2. Tensors values must be finite.
 3. All nested structures are checked against points 1 and 2.
 4. Tensor shapes must match against original data i.e. static, dynamic and batch axes must match.
+5. Tensors must match the outputs of the original module on the same samples.
+   A floating point tensor may differ by the square root of its dtype epsilon, times its largest magnitude in the
+   module output. A backend that changes the results on purpose allows more: TorchAO allows 0.25, and OpenVINO allows
+   the tolerance of the precision it computes in, float16 for float32 models on a GPU.
+   A Python `float` in the output may differ by the same tolerance computed for the default dtype, float32 unless
+   changed, times its magnitude. A `bool`, `int`, `str`, or `bytes` value must be equal. Every Python scalar must keep
+   its type.
 
 This ensures tuning does not break the module.
+A module whose outputs change between calls with the same inputs fails point 5 and needs
+`strategy.enable_correctness_check(False)`.
 
 ### 6. Backend Activation
 
@@ -314,6 +323,10 @@ To write a custom backend, extend the `Backend` base class and `BackendConfig` d
 - `_infer()` - Executes inference with the backend for the provided inputs.
 
 Set the class attribute `requires_original_module` to `True` when the backend keeps the original module and runs or compiles it. The default is `False`. Torch Tweak then offloads that module to the meta device after tuning.
+
+Set `output_tolerance` when the backend changes the results on purpose, for example by quantizing or by computing in a
+lower precision. The correctness check then allows that difference from the module outputs, relative to their largest
+magnitude. The default is `0.0`, which keeps the tolerance of the output dtype.
 
 For serialization with `tt.load` and `tt.save`, the `to_dict` and `from_dict` methods are used. Anything placed in the dictionary will be saved and restored as a checkpoint. Path objects will be copied to the checkpoints folder and can be used by a backend in the `_deploy` method.
 

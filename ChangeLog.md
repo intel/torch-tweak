@@ -32,6 +32,12 @@ SPDX-License-Identifier: Apache-2.0
 - feat: `OnlineTunedModule` saves the selected backend per model, shapes, device type and strategy, and a later process restores it without tuning.
   The model covers every weight value, `repr(module)`, and the library and hardware versions.
   `OpenVINOBackendConfig(reuse_ir=True)` compiles the saved IR instead of converting the module again (#88)
+- feat (breaking): the correctness check rejects backends whose outputs differ from the module outputs (#99).
+  A floating point output may differ by the square root of its dtype epsilon, relative to its largest magnitude in the module output.
+  A Python `float` in the output may differ by the tolerance of the default dtype. Other Python scalars must be equal.
+  `Backend.output_tolerance` allows more. TorchAO allows 0.25.
+  OpenVINO allows the tolerance of the precision it computes in, float16 for float32 models on a GPU.
+  A module whose outputs change between calls with the same inputs needs `enable_correctness_check(False)`.
 
 ## 0.4.1
 

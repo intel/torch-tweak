@@ -74,6 +74,17 @@ class OffloadingBackend(SleepBackend):
         self._orig_module.to("meta")
 
 
+class OffsetBackend(SleepBackend):
+    """Fastest backend that adds `offset` to every output of the module."""
+
+    def __init__(self, offset: float):
+        super().__init__(sleep_time=0.0)
+        self.offset = offset
+
+    def _infer(self, *args, **kwargs):
+        return self._module(*args, **kwargs) + self.offset
+
+
 class BuildFailsBackend(SleepBackend):
     """Backend that fails on build with a given exception.
 
