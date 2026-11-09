@@ -26,8 +26,9 @@ Run this before you treat your own change as done.
 1. Read the diff you just wrote.
 2. Take each change through the five questions below.
 3. Edit the code. A review note left in a comment is not a fix.
-4. Read the diff again.
-5. Stop when the new pass finds nothing the previous pass missed.
+4. When the change alters behavior, read the CI diff-cover report and cover the lines it names.
+5. Read the diff again.
+6. Stop when the new pass finds nothing the previous pass missed.
 
 A simpler form keeps the same results and the same cost on the hot path,
 and it reads more clearly. It is not simpler if it removes a check, a
@@ -41,6 +42,7 @@ the code.
 Start with the bug that would reach users.
 One bullet per finding: the file, what goes wrong, and what to change.
 Skip a remark that would not change behavior or a decision.
+When the change alters behavior, name the changed lines the CI diff-cover report leaves uncovered.
 If the author is about to open a pull request, end with the behavior
 questions a reviewer will ask. Those belong in the pull request description.
 

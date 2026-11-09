@@ -12,6 +12,16 @@ description: >-
 
 # Python idioms for Torch Tweak
 
+- [Names refer to objects](#names-refer-to-objects)
+- [Tensors](#tensors)
+- [Signatures](#signatures)
+- [Return one shape](#return-one-shape)
+- [Classes stay small](#classes-stay-small)
+- [Control flow](#control-flow)
+- [Cleanup and import time](#cleanup-and-import-time)
+- [Comments](#comments)
+- [Cost](#cost)
+
 Ruff already checks layout, imports, naming, docstrings, `print`, logging
 f-strings, builtin shadowing, mutable defaults, and comprehension rewrites.
 The enforced set is `tool.ruff.lint.select` in `pyproject.toml`.

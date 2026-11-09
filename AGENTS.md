@@ -7,12 +7,18 @@ SPDX-License-Identifier: Apache-2.0
 
 ## Upstream AITune
 
-Before you implement, fix, or improve a behavior, read the current
-[AITune](https://github.com/ai-dynamo/aitune) checkout.
+Read the current [AITune](https://github.com/ai-dynamo/aitune) checkout
+before a large change.
+A large change adds behavior, fixes a bug that may already be fixed
+there, or edits a module ported from AITune.
+Skip the lookup for a rename, a comment, a docstring, or a change that
+does not alter behavior.
+
 See whether that feature or fix exists there, and how it is written.
 Compare it with the approach you would take.
 Keep the one that is right for this repository.
 
+Do not paste AITune source into this repository.
 This repository does not merge with AITune.
 It does not keep AITune's API.
 When an upstream idea fits, rewrite it so the names, the structure, and
@@ -39,18 +45,6 @@ Before you treat the work as done, review the diff you just wrote.
 Apply the fixes. Then read the diff again.
 Stop when a second pass finds nothing new.
 
-For each change, answer five questions:
-
-1. **Correct.** The behavior matches the task, including aliases, errors, and edge values.
-2. **Necessary.** Every new name, branch, and helper earns its place. Delete the rest.
-3. **Duplicated.** Search this repository for the same job.
-   Call the function that already does it.
-   If two places you wrote carry the same logic, and one helper would be shorter and easier to read, make that helper.
-   Leave a single use where it is.
-4. **Idiomatic.** For Python, follow `.cursor/skills/python-idioms/SKILL.md`.
-5. **Simpler.** If a smaller form keeps the same results, keeps the same cost on the hot path, and reads more clearly, use it.
-
-The checklist and what to skip because Ruff already checks it are in
-`.cursor/skills/python-review/SKILL.md`.
+For each change, answer the five questions in `.cursor/skills/python-review/SKILL.md` and apply the checklist in that same file.
 
 Editing tests also follows `.cursor/rules/unit-tests.mdc`.
