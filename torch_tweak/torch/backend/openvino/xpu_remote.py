@@ -18,8 +18,13 @@ import torch
 
 LEVEL_ZERO_INTEROP_MISSING = (
     "OpenVINO on XPU needs the Intel GPU driver to run OpenCL on Level Zero (cl_intel_level_zero_interop). "
-    "Start the process with EnableLEO=1."
+    "On Battlemage, start the process with EnableLEO=1. On newer GPUs, update the GPU driver."
 )
+
+
+class LevelZeroInteropError(RuntimeError):
+    """The Intel GPU driver cannot share PyTorch XPU memory with OpenVINO."""
+
 
 _P = ctypes.c_void_p
 
@@ -110,7 +115,10 @@ def _openvino_c() -> ctypes.CDLL:
 
 @functools.cache
 def _level_zero() -> ctypes.CDLL:
-    lib = ctypes.CDLL("libze_loader.so.1")
+    try:
+        lib = ctypes.CDLL("libze_loader.so.1")
+    except OSError as error:
+        raise LevelZeroInteropError(f"The Level Zero loader cannot be loaded: {error}") from error
     lib.zeDriverGet.argtypes = [ctypes.POINTER(ctypes.c_uint32), _OUT]
     lib.zeDriverGetDefaultContext.argtypes = [_P]
     lib.zeDriverGetDefaultContext.restype = _P
@@ -120,7 +128,10 @@ def _level_zero() -> ctypes.CDLL:
 
 @functools.cache
 def _opencl() -> ctypes.CDLL:
-    lib = ctypes.CDLL("libOpenCL.so.1")
+    try:
+        lib = ctypes.CDLL("libOpenCL.so.1")
+    except OSError as error:
+        raise LevelZeroInteropError(f"The OpenCL loader cannot be loaded: {error}") from error
     lib.clGetPlatformIDs.argtypes = [ctypes.c_uint32, _OUT, ctypes.POINTER(ctypes.c_uint32)]
     lib.clGetDeviceIDs.argtypes = [_P, ctypes.c_uint64, ctypes.c_uint32, _OUT, ctypes.POINTER(ctypes.c_uint32)]
     lib.clGetDeviceInfo.argtypes = [_P, ctypes.c_uint32, ctypes.c_size_t, _P, ctypes.POINTER(ctypes.c_size_t)]
@@ -183,7 +194,7 @@ def _level_zero_handles(device: torch.device) -> tuple[int, int]:
         )
         if status == _ZE_RESULT_SUCCESS and properties.type == _ZE_MEMORY_TYPE_DEVICE:
             return context, ze_device.value
-    raise RuntimeError(f"No Level Zero driver holds the memory of {device}")
+    raise LevelZeroInteropError(f"No Level Zero driver holds the memory of {device}")
 
 
 def _opencl_gpus() -> list[int]:
@@ -214,13 +225,23 @@ def _opencl_context(ze_context: int, ze_device: int) -> int:
         if status == _CL_SUCCESS and handle.value == ze_device:
             break
     else:
-        raise RuntimeError(LEVEL_ZERO_INTEROP_MISSING)
+        raise LevelZeroInteropError(LEVEL_ZERO_INTEROP_MISSING)
     properties = (ctypes.c_ssize_t * 3)(_CL_CONTEXT_L0_HANDLE_INTEL, ze_context, 0)
     error = ctypes.c_int32()
     context = cl.clCreateContext(properties, 1, (_P * 1)(cl_device), None, None, ctypes.byref(error))
     if error.value != _CL_SUCCESS:
-        raise RuntimeError(f"clCreateContext on the Level Zero context failed with OpenCL error {error.value}")
+        raise LevelZeroInteropError(f"clCreateContext on the Level Zero context failed with OpenCL error {error.value}")
     return context
+
+
+def has_level_zero_interop(device: torch.device) -> bool:
+    """Returns whether OpenVINO can read and write the memory of the XPU ``device`` in place."""
+    try:
+        context = _opencl_context(*_level_zero_handles(device))
+    except LevelZeroInteropError:
+        return False
+    _opencl().clReleaseContext(context)
+    return True
 
 
 class XpuInferRequest:
