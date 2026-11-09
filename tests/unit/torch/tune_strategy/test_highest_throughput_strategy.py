@@ -27,6 +27,7 @@ from torch_tweak.torch.task.profiling.profiling_stop_strategy import (
 )
 from torch_tweak.torch.tune_strategy.extension import TuneStrategyFindMaxBatchSizeExtension
 from torch_tweak.torch.tune_strategy.highest_throughput_strategy import HighestThroughputStrategy
+from torch_tweak.torch.tune_strategy.tune_strategy import NoCorrectBackendError
 from torch_tweak.torch.tuning import tune
 
 
@@ -228,7 +229,7 @@ def test_tune_fails_with_the_last_error_when_no_backend_reactivates(torch_device
     model = ToyTorchModel()
     sample = torch.zeros(1, INPUT_SIZE)
 
-    with pytest.raises(RuntimeError, match="No profiled backend could be activated") as raised:
+    with pytest.raises(NoCorrectBackendError, match="No profiled backend could be activated") as raised:
         strategy.tune(model, "test", model.graph_spec(batch_sizes=[1]), [((sample,), {})], torch_device, tmp_path)
 
     assert str(raised.value.__cause__) == "Reactivate failed"
@@ -290,6 +291,17 @@ def test_highest_throughput_strategy_fails_backend_if_all_of_backends_fails(torc
     tune(model, sample, batch_sizes=batch_sizes, device=torch_device, disable_external_logging=False)
 
     assert model.state == ModuleState.PASSTHROUGH
+
+
+def test_tune_raises_no_correct_backend_error_when_every_backend_fails_to_build(torch_device, tmp_path):
+    strategy = HighestThroughputStrategy(backends=[BuildFailsBackend(RuntimeError), BuildFailsBackend(MemoryError)])
+    strategy.enable_find_max_batch_size(False)
+    strategy.enable_correctness_check(False)
+    model = ToyTorchModel()
+    sample = torch.zeros(1, INPUT_SIZE)
+
+    with pytest.raises(NoCorrectBackendError, match="No correct backend found"):
+        strategy.tune(model, "test", model.graph_spec(batch_sizes=[1]), [((sample,), {})], torch_device, tmp_path)
 
 
 def test_highest_throughput_strategy_select_backend_if_one_of_backends_succeeds(torch_device):

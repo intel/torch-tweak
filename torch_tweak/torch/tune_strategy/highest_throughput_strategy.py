@@ -41,6 +41,7 @@ from torch_tweak.torch.task.profiling import (
 )
 from torch_tweak.torch.tune_strategy.default_backends import default_backends
 from torch_tweak.torch.tune_strategy.extension import TuneStrategyFindMaxBatchSizeExtension
+from torch_tweak.torch.tune_strategy.tune_strategy import NoCorrectBackendError
 from torch_tweak.torch.utils.memory import release_device_memory
 from torch_tweak.utils.logging import control_output, log
 from torch_tweak.utils.timer import Timer
@@ -194,7 +195,7 @@ class HighestThroughputStrategy(TuneStrategyFindMaxBatchSizeExtension):
                 ", ".join([backend.describe() for backend in backends]),
                 sink=self._sink,
             )
-            raise RuntimeError("No correct backend found")
+            raise NoCorrectBackendError("No correct backend found")
 
         self.results.append(
             HighestThroughputStrategyResult(
@@ -232,7 +233,7 @@ class HighestThroughputStrategy(TuneStrategyFindMaxBatchSizeExtension):
                 error = exc
             else:
                 return candidate
-        raise RuntimeError("No profiled backend could be activated") from error
+        raise NoCorrectBackendError("No profiled backend could be activated") from error
 
     def _get_profiling_config(self, batching: bool, max_batch_size: int) -> ProfilingConfig:
         """Gets profiling configuration."""

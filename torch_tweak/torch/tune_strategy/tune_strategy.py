@@ -28,6 +28,10 @@ from torch_tweak.utils.system_monitor import SystemMonitor
 from torch_tweak.utils.timer import Timer
 
 
+class NoCorrectBackendError(RuntimeError):
+    """None of the backends of a strategy builds, validates, and activates for the graph."""
+
+
 class TuneStrategy(ABC):
     """Base class for tune strategy."""
 

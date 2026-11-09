@@ -9,9 +9,10 @@ from torch_tweak.torch.tune_strategy.default_strategy import default_strategy
 from torch_tweak.torch.tune_strategy.first_wins_strategy import FirstWinsStrategy
 from torch_tweak.torch.tune_strategy.highest_throughput_strategy import HighestThroughputStrategy
 from torch_tweak.torch.tune_strategy.one_backend_strategy import OneBackendStrategy
-from torch_tweak.torch.tune_strategy.tune_strategy import TuneStrategy
+from torch_tweak.torch.tune_strategy.tune_strategy import NoCorrectBackendError, TuneStrategy
 
 __all__ = [
+    "NoCorrectBackendError",
     "FirstWinsStrategy",
     "OneBackendStrategy",
     "HighestThroughputStrategy",

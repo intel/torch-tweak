@@ -14,6 +14,7 @@ from torch_tweak.torch.module import TunableModule
 from torch_tweak.torch.tune_strategy import (
     FirstWinsStrategy,
     HighestThroughputStrategy,
+    NoCorrectBackendError,
     OneBackendStrategy,
     TuneStrategy,
     default_strategy,
@@ -30,6 +31,7 @@ __all__ = [
     "save",
     "TunableModule",
     "TuneStrategy",
+    "NoCorrectBackendError",
     "OneBackendStrategy",
     "FirstWinsStrategy",
     "HighestThroughputStrategy",

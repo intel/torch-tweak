@@ -10,6 +10,8 @@ SPDX-License-Identifier: Apache-2.0
 - feat (breaking): a module without a strategy is tuned with `tt.default_strategy(device)`.
   It measures every backend that runs on the device and keeps the fastest (#55)
 - fix (breaking): `profile` returns `ProfilingResult` with measured throughput per batch size (#64)
+- feat (breaking): every strategy raises `NoCorrectBackendError` when none of its backends works for a graph.
+  `OneBackendStrategy` raises it with the backend error as its cause.
 
 ## 0.4.1
 
