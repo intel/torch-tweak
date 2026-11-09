@@ -46,9 +46,9 @@ Leave its branch as it is when the update is not a fast-forward.
 ## After you change code
 
 Before you treat the work as done, review the diff you just wrote.
+Base that review on the five questions in `.cursor/skills/python-review/SKILL.md`.
+For each change, answer those questions and apply the checklist in that same file.
 Apply the fixes. Then read the diff again.
 Stop when a second pass finds nothing new.
-
-For each change, answer the five questions in `.cursor/skills/python-review/SKILL.md` and apply the checklist in that same file.
 
 Editing tests also follows `.cursor/rules/unit-tests.mdc`.
