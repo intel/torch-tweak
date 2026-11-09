@@ -200,6 +200,9 @@ class Backend(ABC):
     _devices: ClassVar[list[str]] = ["cpu", "xpu"]
     # Keep the original module after tuning. False offloads it to the meta device.
     requires_original_module: ClassVar[bool] = False
+    # Difference from the module outputs, relative to their largest magnitude, that the correctness check allows
+    # beyond the tolerance of the output dtype.
+    output_tolerance: ClassVar[float] = 0.0
 
     def __init__(self):
         """Initialize the backend."""

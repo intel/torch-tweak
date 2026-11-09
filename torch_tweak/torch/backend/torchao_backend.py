@@ -226,6 +226,9 @@ class TorchAOBackend(Backend):
     """
 
     requires_original_module = True
+    # int8dq on DistilBERT in bfloat16 differs from eager by 0.18, the most of the four quantizations on
+    # ResNet50, ViT, DistilBERT, and the SD1.5 UNet.
+    output_tolerance = 0.25
 
     # State dictionary keys
     STATE_TYPE = "type"

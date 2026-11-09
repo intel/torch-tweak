@@ -10,6 +10,11 @@ SPDX-License-Identifier: Apache-2.0
 - feat (breaking): a module without a strategy is tuned with `tt.default_strategy(device)`.
   It measures every backend that runs on the device and keeps the fastest (#55)
 - fix (breaking): `profile` returns `ProfilingResult` with measured throughput per batch size (#64)
+- feat (breaking): the correctness check rejects backends whose outputs differ from the module outputs.
+  A floating point output may differ by the square root of its dtype epsilon, relative to its largest module value.
+  `Backend.output_tolerance` allows more. TorchAO allows 0.25.
+  OpenVINO allows the tolerance of the precision it computes in, float16 for float32 models on a GPU.
+  A module whose outputs change between calls with the same inputs needs `enable_correctness_check(False)`.
 
 ## 0.4.1
 
