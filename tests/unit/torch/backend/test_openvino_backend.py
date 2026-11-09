@@ -348,6 +348,29 @@ def test_dynamo_kwargs_order_does_not_swap_inputs(tmp_path, torch_device):
     )
 
 
+class _ExpandedStepModel(nn.Module):
+    """Expands `step` to the batch of `x` the way diffusers UNets expand their timestep."""
+
+    def forward(self, x: torch.Tensor, step: torch.Tensor) -> torch.Tensor:
+        return x * step.expand(x.shape[0])[:, None].to(x.dtype)
+
+
+def test_input_renamed_by_compilation_is_still_fed(tmp_path, torch_device):
+    model = _ExpandedStepModel()
+    args = (torch.ones(2, 3, device=torch_device), torch.tensor([5, 5], device=torch_device))
+    with torch.no_grad():
+        output_ref = model(*args)
+    graph_spec = GraphSpec(
+        name="expanded_step",
+        input_spec=SampleMetadata.from_inputs(args, {}),
+        output_spec=SampleMetadata.from_outputs(output_ref),
+    )
+
+    backend = OpenVINOBackend().build(model, graph_spec, [(args, {})], torch_device, tmp_path)
+
+    torch.testing.assert_close(backend.infer(*args), output_ref, rtol=0, atol=0)
+
+
 # ---------------------------------------------------------------------------
 # Correlated batch-dimension tests
 # ---------------------------------------------------------------------------

@@ -6,6 +6,7 @@ from __future__ import annotations
 
 import copy
 import logging
+from collections.abc import Sequence
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, ClassVar
@@ -49,6 +50,12 @@ def _ov_tensor_to_torch(ov_value: Any, device: torch.device, dtype: torch.dtype 
     elif device.type == "cpu":
         tensor = tensor.to(device)
     return tensor
+
+
+def _port_names(ports: Sequence[ov.ConstOutput]) -> set[str]:
+    # Compilation can merge a removed node's names into a port.
+    # get_any_name may return one of them instead of the original name.
+    return {name for port in ports for name in port.get_names()}
 
 
 def openvino_device_for_xpu(core: ov.Core, device: torch.device) -> str:
@@ -138,12 +145,11 @@ class OpenVINOBackend(Backend):
             raise RuntimeError("OpenVINO model path is not set")
         core = ov.Core()
         ov_model = core.read_model(self._ov_model_xml)
-        if self._graph_spec is not None:
-            # GraphSpec shapes are already baked into the IR; only the extra-input workaround has to be
-            # re-applied here, because the IR may come from a checkpoint written without it.
-            tensor_input_names = {ts.name for ts in self._graph_spec.input_spec.tensor_specs}
-            staticize_extra_openvino_inputs(ov_model.inputs, tensor_input_names)
-            ov_model.validate_nodes_and_infer_types()
+        # GraphSpec shapes are already baked into the IR; only the extra-input workaround has to be
+        # re-applied here, because the IR may come from a checkpoint written without it.
+        tensor_input_names = {ts.name for ts in self._graph_spec.input_spec.tensor_specs}
+        staticize_extra_openvino_inputs(ov_model.inputs, tensor_input_names)
+        ov_model.validate_nodes_and_infer_types()
         compile_config = {}
         if self._config.performance_hint:
             compile_config["PERFORMANCE_HINT"] = self._config.performance_hint
@@ -175,33 +181,19 @@ class OpenVINOBackend(Backend):
 
             ov_inputs = {name: _tensor_to_numpy(tensor) for name, tensor in inputs.items()}
             ov_outputs = self._compiled_model(ov_inputs)
-            if hasattr(ov_outputs, "to_dict"):
-                ov_outputs = {(getattr(k, "any_name", None) or str(k)): v for k, v in ov_outputs.to_dict().items()}
-            elif not isinstance(ov_outputs, dict):
-                out_tensor = self._compiled_model.output(0)
-                ov_outputs = {(getattr(out_tensor, "any_name", None) or str(out_tensor)): ov_outputs}
+            output_names = _port_names(self._compiled_model.outputs)
 
             torch_outputs: dict[str, torch.Tensor] = {}
             for _locator, tensor_spec in self._graph_spec.output_spec.tensor_data:
-                if tensor_spec.name not in ov_outputs:
+                if tensor_spec.name not in output_names:
                     continue
                 ov_out = ov_outputs[tensor_spec.name]
                 torch_outputs[tensor_spec.name] = _ov_tensor_to_torch(ov_out, self._device, tensor_spec.dtype)
 
             return self._prepare_outputs_for_return(torch_outputs)
 
-    @staticmethod
-    def _openvino_input_name(port: Any) -> str:
-        name = getattr(port, "any_name", None)
-        if name:
-            return name
-        get_any_name = getattr(port, "get_any_name", None)
-        if callable(get_any_name):
-            return get_any_name()
-        return str(port)
-
     def _prepare_inputs(self, args: tuple, kwargs: dict) -> dict[str, torch.Tensor]:
-        model_input_names = {self._openvino_input_name(inp) for inp in self._compiled_model.inputs}
+        model_input_names = _port_names(self._compiled_model.inputs)
         inputs: dict[str, torch.Tensor] = {}
         for locator, tensor_spec in self._graph_spec.input_spec.tensor_data:
             if tensor_spec.name not in model_input_names:
