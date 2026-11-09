@@ -78,6 +78,15 @@ config = TorchAOBackendConfig(
 )
 ```
 
+### Keeping the Module on Its Device
+
+The backend moves the module to CPU after quantization, since the quantized copy holds its own weights.
+`offload_module=False` leaves the module on its device, for a framework that keeps calling it.
+
+```python
+config = TorchAOBackendConfig(quantization="int8wo", offload_module=False)
+```
+
 ## Quantization Comparison
 
 | Type    | Weights | Activations | Memory Reduction | Speed     | Accuracy  |
