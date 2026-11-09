@@ -150,6 +150,26 @@ def test_openvino_backend_serialization(model, sample_data, tmp_path, torch_devi
     assert output.shape[0] == 1
 
 
+class _Double(nn.Module):
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        return x + x
+
+
+def test_openvino_backend_runs_bfloat16_inputs_and_outputs(tmp_path, torch_device):
+    model = _Double().eval()
+    x = torch.tensor([[1.5, -3.0, 100.0]], dtype=torch.bfloat16, device=torch_device)
+    sample = ((x,), {})
+    backend = OpenVINOBackend().build(
+        model, graph_spec=_graph_spec(model, sample), data=[sample], device=torch_device, cache_dir=tmp_path
+    )
+
+    actual = backend.infer(x)
+
+    torch.testing.assert_close(
+        actual, torch.tensor([[3.0, -6.0, 200.0]], dtype=torch.bfloat16, device=torch_device), rtol=0, atol=0
+    )
+
+
 class _UnregisteredDictOutput(dict):
     """A dict subclass unknown to the pytree registry.
 

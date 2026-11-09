@@ -30,10 +30,14 @@ from torch_tweak.utils.permissions import secure_mkdir
 logger = logging.getLogger(__name__)
 
 
+# NumPy has no bfloat16. OpenVINO reads and returns bf16 data as float16 arrays that hold the bf16 bits.
 def _tensor_to_numpy(tensor: torch.Tensor) -> np.ndarray:
     if not tensor.is_contiguous():
         tensor = tensor.contiguous()
-    return tensor.detach().cpu().numpy()
+    tensor = tensor.detach().cpu()
+    if tensor.dtype == torch.bfloat16:
+        tensor = tensor.view(torch.float16)
+    return tensor.numpy()
 
 
 def _ov_tensor_to_torch(ov_value: Any, device: torch.device, dtype: torch.dtype | None) -> torch.Tensor:
@@ -42,6 +46,8 @@ def _ov_tensor_to_torch(ov_value: Any, device: torch.device, dtype: torch.dtype 
     else:
         arr = np.asarray(ov_value)
     tensor = torch.from_numpy(arr.copy())
+    if dtype == torch.bfloat16 and tensor.dtype == torch.float16:
+        tensor = tensor.view(torch.bfloat16)
     if dtype is not None:
         tensor = tensor.to(dtype=dtype)
     if device.type == "xpu" and hasattr(torch, "xpu"):
