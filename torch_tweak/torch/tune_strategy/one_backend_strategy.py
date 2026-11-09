@@ -61,7 +61,7 @@ class OneBackendStrategy(TuneStrategyFindMaxBatchSizeExtension):
                 log("✅ Selected backend: %s", backend.describe(), sink=self._sink)
                 return backend
             except Exception as exception:
-                log("❌ backend failed (log file: %s)", log_file, depth=2, sink=self._sink)
+                self._log_failure(exception, log_file)
                 raise exception
 
     def _describe_parts(self):
