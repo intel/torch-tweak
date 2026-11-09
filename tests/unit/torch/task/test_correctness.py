@@ -10,9 +10,11 @@ import torch
 
 from torch_tweak.torch.module.tensor_spec import TensorSpec
 from torch_tweak.torch.task.correctness import (
+    CorrectnessMismatchError,
     CorrectnessTensorShapeError,
     check_output_correctness,
     check_output_tensor_shapes,
+    check_outputs_match,
 )
 
 
@@ -149,3 +151,44 @@ def test_check_output_tensor_shapes_mismatched_shapes():
     assert "Expected tensor output__1 to have shape [2, 10] but got [2, 8]" in error_message
     assert "Expected tensor output__2 to have shape [2, 10, 20] but got [2, 10]" in error_message
     assert "3 error(s) related to output tensor shapes" in error_message
+
+
+def test_check_outputs_match_accepts_differences_within_the_dtype_tolerance():
+    check_outputs_match(
+        {"logits": torch.tensor([4.0, -2.0], dtype=torch.float16)},
+        {"logits": torch.tensor([4.1, -2.0], dtype=torch.float16)},
+    )
+
+
+def test_check_outputs_match_rejects_differences_beyond_the_dtype_tolerance():
+    with pytest.raises(CorrectnessMismatchError, match="Mismatched elements: 1 / 2"):
+        check_outputs_match(torch.tensor([4.0, -2.0]), torch.tensor([4.1, -2.0]))
+
+
+def test_check_outputs_match_accepts_differences_within_the_tolerance_floor():
+    check_outputs_match(torch.tensor([4.0, -2.0]), torch.tensor([4.4, -2.0]), tolerance_floor=0.25)
+
+
+def test_check_outputs_match_rejects_nan():
+    with pytest.raises(CorrectnessMismatchError, match="Greatest absolute difference: nan"):
+        check_outputs_match(torch.tensor([1.0]), torch.tensor([float("nan")]))
+
+
+def test_check_outputs_match_requires_equal_integer_tensors():
+    with pytest.raises(CorrectnessMismatchError, match="Mismatched elements: 1 / 2"):
+        check_outputs_match(torch.tensor([1, 2]), torch.tensor([1, 3]))
+
+
+def test_check_outputs_match_requires_equal_shapes():
+    with pytest.raises(CorrectnessMismatchError, match="'shape' do not match"):
+        check_outputs_match(torch.zeros(2), torch.zeros(1, 2))
+
+
+def test_check_outputs_match_requires_equal_dtypes():
+    with pytest.raises(CorrectnessMismatchError, match="'dtype' do not match"):
+        check_outputs_match(torch.zeros(2), torch.zeros(2, dtype=torch.float16))
+
+
+def test_check_outputs_match_requires_the_same_structure():
+    with pytest.raises(CorrectnessMismatchError, match="has structure"):
+        check_outputs_match((torch.zeros(2),), (torch.zeros(2), torch.zeros(2)))

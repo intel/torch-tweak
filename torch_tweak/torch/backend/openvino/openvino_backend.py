@@ -24,6 +24,7 @@ from torch_tweak.torch.backend.openvino.ov_model_converter import (
 )
 from torch_tweak.torch.module.graph_spec import GraphSpec
 from torch_tweak.torch.module.recording_module import Sample
+from torch_tweak.torch.task.correctness import tolerance
 from torch_tweak.torch.utils.module import offload
 from torch_tweak.utils.permissions import secure_mkdir
 
@@ -49,6 +50,9 @@ def _ov_tensor_to_torch(ov_value: Any, device: torch.device, dtype: torch.dtype 
     elif device.type == "cpu":
         tensor = tensor.to(device)
     return tensor
+
+
+_TORCH_DTYPES = {ov.Type.f16: torch.float16, ov.Type.bf16: torch.bfloat16, ov.Type.f32: torch.float32}
 
 
 def openvino_device_for_xpu(core: ov.Core, device: torch.device) -> str:
@@ -113,6 +117,13 @@ class OpenVINOBackend(Backend):
     def describe(self) -> str:
         """Returns the description of the backend."""
         return f"{self.__class__.__name__}({self._config.describe()})"
+
+    @property
+    def output_tolerance(self) -> float:
+        """The tolerance of the precision the compiled model computes in, float16 for float32 models on a GPU."""
+        if self._compiled_model is None:
+            raise RuntimeError("OpenVINO model is not compiled. Call build() or activate() first.")
+        return tolerance(_TORCH_DTYPES[self._compiled_model.get_property("INFERENCE_PRECISION_HINT")])
 
     def _build(self, module: nn.Module, graph_spec: GraphSpec, data: list[Sample], cache_dir: Path) -> Backend:
         logger.info("Starting OpenVINO backend build")

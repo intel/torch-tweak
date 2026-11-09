@@ -11,13 +11,21 @@ from unittest.mock import MagicMock
 import pytest
 import torch
 
-from tests.toy_backends import AllocateThenFailBackend, BuildFailsBackend, MemoryProbeBackend, SleepBackend
+from tests.toy_backends import (
+    AllocateThenFailBackend,
+    BuildFailsBackend,
+    MemoryProbeBackend,
+    OffsetBackend,
+    SleepBackend,
+)
 from tests.toy_models.torch_models import INPUT_SIZE, ToyTorchModel, toy_on_xpu
 from tests.utilities.helpers import requires_xpu
 from torch_tweak.torch import TunableModule
 from torch_tweak.torch.backend import Backend
 from torch_tweak.torch.backend.torch_eager import TorchEagerBackend
 from torch_tweak.torch.backend.torch_inductor_backend import TorchInductorBackend
+from torch_tweak.torch.module.graph_spec import GraphSpec
+from torch_tweak.torch.module.sample_metadata import SampleMetadata
 from torch_tweak.torch.module.tunable_module import ModuleState
 from torch_tweak.torch.task.correctness import CorrectnessValueError
 from torch_tweak.torch.task.profiling import NumStepsMeasuringStopStrategy, StableWindowMeasuringStopStrategy
@@ -232,6 +240,53 @@ def test_tune_fails_with_the_last_error_when_no_backend_reactivates(torch_device
         strategy.tune(model, "test", model.graph_spec(batch_sizes=[1]), [((sample,), {})], torch_device, tmp_path)
 
     assert str(raised.value.__cause__) == "Reactivate failed"
+
+
+def tune_identity(strategy, sample, torch_device, tmp_path):
+    strategy.enable_find_max_batch_size(False)
+    graph_spec = GraphSpec(
+        name="identity",
+        input_spec=SampleMetadata.from_inputs((sample,), {}),
+        output_spec=SampleMetadata.from_outputs(sample),
+    )
+    return strategy.tune(torch.nn.Identity(), "identity", graph_spec, [((sample,), {})], torch_device, tmp_path)
+
+
+class TolerantOffsetBackend(OffsetBackend):
+    output_tolerance = 0.5
+
+
+def test_backend_whose_output_differs_from_the_module_is_rejected(torch_device, tmp_path):
+    strategy = HighestThroughputStrategy(backends=[OffsetBackend(1.0), SleepBackend(sleep_time=1e-2)])
+
+    selected = tune_identity(strategy, torch.tensor([[1.0, 3.0]], device=torch_device), torch_device, tmp_path)
+
+    assert selected.name == "SleepBackend with sleep time 0.01"
+
+
+def test_backend_within_the_dtype_tolerance_of_the_module_is_kept(torch_device, tmp_path):
+    strategy = HighestThroughputStrategy(backends=[OffsetBackend(1e-4), SleepBackend(sleep_time=1e-2)])
+
+    selected = tune_identity(strategy, torch.tensor([[1.0, 3.0]], device=torch_device), torch_device, tmp_path)
+
+    assert selected.name == "OffsetBackend with sleep time 0.0"
+
+
+def test_backend_within_its_own_output_tolerance_is_kept(torch_device, tmp_path):
+    strategy = HighestThroughputStrategy(backends=[TolerantOffsetBackend(1.0), SleepBackend(sleep_time=1e-2)])
+
+    selected = tune_identity(strategy, torch.tensor([[1.0, 3.0]], device=torch_device), torch_device, tmp_path)
+
+    assert selected.name == "TolerantOffsetBackend with sleep time 0.0"
+
+
+def test_backend_that_differs_is_kept_when_the_correctness_check_is_disabled(torch_device, tmp_path):
+    strategy = HighestThroughputStrategy(backends=[OffsetBackend(1.0), SleepBackend(sleep_time=1e-2)])
+    strategy.enable_correctness_check(False)
+
+    selected = tune_identity(strategy, torch.tensor([[1.0, 3.0]], device=torch_device), torch_device, tmp_path)
+
+    assert selected.name == "OffsetBackend with sleep time 0.0"
 
 
 class InferFailsBackend(SleepBackend):

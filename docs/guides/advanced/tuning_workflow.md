@@ -245,6 +245,10 @@ Torch Tweak validates correctness by running the tuned backend on sample data. T
 2. Tensors values must be finite.
 3. All nested structures are checked against points 1 and 2.
 4. Tensor shapes must match against original data i.e. static, dynamic and batch axes must match.
+5. Tensors must match the outputs of the original module on the same samples.
+   A floating point tensor may differ by the square root of its dtype epsilon, times its largest value in the module
+   output. A backend that changes the results on purpose allows more: TorchAO allows 0.25, and OpenVINO allows the
+   tolerance of the precision it computes in, float16 for float32 models on a GPU.
 
 This ensures tuning does not break the module.
 

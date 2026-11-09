@@ -591,3 +591,20 @@ def test_openvino_device_for_xpu_is_the_device_pytorch_uses():
     ov_device = openvino_device_for_xpu(core, device)
 
     assert core.get_property(ov_device, "FULL_DEVICE_NAME").startswith(torch.xpu.get_device_name(device))
+
+
+@requires_xpu
+def test_float32_model_on_xpu_is_checked_with_the_float16_tolerance_it_computes_in(tmp_path):
+    model = nn.Linear(2, 2).xpu()
+    args = (torch.ones(1, 2, device="xpu"),)
+    with torch.no_grad():
+        output_ref = model(*args)
+    graph_spec = GraphSpec(
+        name="linear",
+        input_spec=SampleMetadata.from_inputs(args, {}),
+        output_spec=SampleMetadata.from_outputs(output_ref),
+    )
+
+    backend = OpenVINOBackend().build(model, graph_spec, [(args, {})], torch.device("xpu"), tmp_path)
+
+    assert backend.output_tolerance == pytest.approx(0.03125)

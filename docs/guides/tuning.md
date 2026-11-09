@@ -125,7 +125,7 @@ tt.tune(
 - **disable_external_logging**: Disable logging from external libraries
 - **clear_cache**: Clear Torch Tweak cache before tuning
 
-Tuning time depends on the tuned modules' size, used strategy, and number of backends. Modules are tuned one by one. If a strategy has many backends to pick from, it takes the one that fulfills specific strategy criteria. Each backend is validated against returning proper numeric results (check against NANs and infinity) and output shapes.
+Tuning time depends on the tuned modules' size, used strategy, and number of backends. Modules are tuned one by one. If a strategy has many backends to pick from, it takes the one that fulfills specific strategy criteria. Each backend is validated against returning proper numeric results (check against NANs and infinity), output shapes, and the outputs of the original module.
 
 Note: If you specify a batch size that is not a power of 2, it will be used to gather samples but the actual search for the highest throughput will round it up to the nearest power of 2.
 
