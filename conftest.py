@@ -16,8 +16,9 @@ from torch_tweak.torch.module_registry import MODULE_REGISTRY
 from torch_tweak.torch.utils.xpu import is_available as is_xpu_available
 from torch_tweak.utils.logging import setup_logging
 
-# OpenVINOBackend on XPU needs OpenCL on Level Zero. The Intel GPU driver reads EnableLEO once, when
-# the first OpenCL call in the process runs.
+# OpenVINOBackend on XPU needs OpenCL on Level Zero. Battlemage needs EnableLEO=1; on newer GPUs the
+# driver enables it by default. The driver reads EnableLEO once, when the first OpenCL call in the
+# process runs.
 os.environ.setdefault("EnableLEO", "1")
 
 
