@@ -17,7 +17,9 @@ NOTE: This file has been modified by Intel Corporation.
 [![Coverage](https://gist.githubusercontent.com/bb-ur/cfa745c6e219d84dec39841a981daea7/raw/tt_coverage_badge.svg)](https://github.com/intel/torch-tweak/actions/workflows/tests.yml?query=branch%3Amain)
 
 **Torch Tweak** is an inference toolkit designed for tuning and deploying Deep Learning models with a focus on Intel XPU (GPU) accelerators.
+
 **Note: To enable XPU capabilities, please follow the [Install](#install) instructions below.**
+
 It provides model tuning capabilities through compilation and conversion paths that can significantly improve inference speed and efficiency
 across various AI workloads including Computer Vision, Natural Language Processing, Speech Recognition, and Generative AI.
 

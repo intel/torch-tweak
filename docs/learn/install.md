@@ -95,3 +95,28 @@ pip install .
 
 The TorchAO backend needs the `torchao` extra.
 `torch_tweak[xpu]` installs it.
+
+## Common Issues
+
+### PyTorch is installed but XPU support is unavailable
+
+Confirm that the active Python environment contains an XPU-enabled PyTorch build. A CPU- or CUDA-only build
+cannot use an Intel GPU. Check the pip installation output or logs to see which torch wheel and package index
+were used. If the installed build does not include XPU support, reinstall torch from the XPU index in the active
+environment:
+
+```bash
+python -m pip install --force-reinstall --index-url https://download.pytorch.org/whl/xpu torch
+```
+
+### No Intel GPU is available
+
+Confirm that an Intel GPU is visible to the system and that its driver and runtime are functioning.
+Also check that your user or container has permission to access the device. On some Linux systems, for example,
+GPU access may require membership in the `render` group.
+
+### Importing PyTorch fails
+
+Make sure you are using the Python environment where PyTorch is installed. If importing PyTorch fails
+with a missing library or another dependency error, use the original traceback to troubleshoot that
+installation. Torch Tweak only reports PyTorch as missing when the `torch` module itself cannot be found.

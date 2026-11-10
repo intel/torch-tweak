@@ -67,6 +67,13 @@ def test_tune(mocker, dry_run):
     assert batch_size_counter == Counter({1: max_batches, 2: max_batches, 4: max_batches})
 
 
+def test_tune_raises_when_torch_has_no_xpu_support(mocker):
+    mocker.patch("torch.xpu._is_compiled", return_value=False)
+
+    with pytest.raises(RuntimeError, match="PyTorch was not built with XPU support"):
+        tune(Mock(), [torch.tensor([1.0])], batch_sizes=[1])
+
+
 @pytest.mark.parametrize("clear_cache", [True, False])
 def test_tune_with_cache_clear(mocker, clear_cache):
     # given

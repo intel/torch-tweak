@@ -20,9 +20,16 @@ def assert_is_available():
     Raises:
         RuntimeError: If XPU is not available.
     """
-    xpu = getattr(torch, "xpu", None)
-    if xpu is None or not xpu.is_available():
-        raise RuntimeError("XPU is not available. Please check your oneAPI / PyTorch XPU installation.")
+    if not torch.xpu._is_compiled():
+        raise RuntimeError(
+            "PyTorch was not built with XPU support. Check the Common Issues section in the installation guide: "
+            "https://github.com/intel/torch-tweak/blob/main/docs/learn/install.md#common-issues"
+        )
+    if not torch.xpu.is_available():
+        raise RuntimeError(
+            "No Intel GPU is available. Check the Common Issues section in the installation guide: "
+            "https://github.com/intel/torch-tweak/blob/main/docs/learn/install.md#common-issues"
+        )
 
 
 def is_available():

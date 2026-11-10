@@ -33,10 +33,23 @@ def test_synchronize(mocker):
         torch.xpu.synchronize.assert_called_once()
 
 
-def test_assert_is_available():
-    """Test the assert_is_available function."""
-    if is_available():
+def test_assert_is_available_when_torch_has_no_xpu_support(mocker):
+    mocker.patch("torch.xpu._is_compiled", return_value=False)
+
+    with pytest.raises(RuntimeError, match="PyTorch was not built with XPU support"):
         assert_is_available()
-    else:
-        with pytest.raises(RuntimeError):
-            assert_is_available()
+
+
+def test_assert_is_available_when_no_intel_gpu_is_visible(mocker):
+    mocker.patch("torch.xpu._is_compiled", return_value=True)
+    mocker.patch("torch.xpu.is_available", return_value=False)
+
+    with pytest.raises(RuntimeError, match="No Intel GPU is available"):
+        assert_is_available()
+
+
+def test_assert_is_available_when_intel_gpu_is_visible(mocker):
+    mocker.patch("torch.xpu._is_compiled", return_value=True)
+    mocker.patch("torch.xpu.is_available", return_value=True)
+
+    assert_is_available()

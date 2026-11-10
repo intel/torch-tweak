@@ -4,15 +4,15 @@
 # NOTE: This file has been modified by Intel Corporation.
 """Torch tuning module."""
 
-from importlib import import_module
-
 try:
-    import_module("torch")
-except ImportError as err:
+    import torch  # noqa: F401
+except ModuleNotFoundError as err:
+    if err.name != "torch":
+        raise
     raise ImportError(
         "PyTorch is not installed. Torch Tweak requires PyTorch to function. "
-        "To enable Intel GPU acceleration, please install torch-tweak with the XPU index:\n"
-        'pip install --extra-index-url https://download.pytorch.org/whl/xpu "torch_tweak[xpu]"'
+        "For installation and troubleshooting guidance, see the Common Issues section: "
+        "https://github.com/intel/torch-tweak/blob/main/docs/learn/install.md#common-issues"
     ) from err
 
 # configuring some variables before importing other modules

@@ -22,7 +22,7 @@ from torch_tweak.torch.module.tensor_spec import InfoLevel
 from torch_tweak.torch.module.tunable_module import ModuleState, TunableModule
 from torch_tweak.torch.module_registry import MODULE_REGISTRY
 from torch_tweak.torch.utils.device import get_device
-from torch_tweak.torch.utils.xpu import synchronize
+from torch_tweak.torch.utils.xpu import assert_is_available, synchronize
 from torch_tweak.utils.logging import libraries_logging, setup_logging
 from torch_tweak.utils.timer import Timer
 from torch_tweak.utils.trace import annotate
@@ -30,6 +30,16 @@ from torch_tweak.utils.trace import annotate
 logger = getLogger(__name__)
 
 LOG_FORMAT = "%(asctime)s - %(levelname)s - %(message)s"
+
+
+def _validate_device(device: str | torch.device | None) -> torch.device | None:
+    if device is None:
+        return None
+
+    device = get_device(device)
+    if device.type == "xpu":
+        assert_is_available()
+    return device
 
 
 @annotate(domain="Torch Tweak")
@@ -68,9 +78,7 @@ def tune(
         _clear_cache()
 
     with libraries_logging(disable_external_logging):
-        # Convert device to torch.device
-        if device is not None:
-            device = get_device(device)
+        device = _validate_device(device)
 
         # Validate batch sizes
         batch_sizes = _validate_and_normalize_batch_sizes(batch_sizes)

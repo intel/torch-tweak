@@ -21,6 +21,7 @@ from torch_tweak.torch.checkpoint.storage_tasks import is_weights_only_safe
 from torch_tweak.torch.module.graph_spec import GraphSpec
 from torch_tweak.torch.module.recording_module import Sample
 from torch_tweak.torch.utils.memory import free_device_memory
+from torch_tweak.torch.utils.xpu import assert_is_available
 from torch_tweak.utils.hashing import hash_string
 from torch_tweak.utils.permissions import secure_file
 from torch_tweak.utils.trace import annotate
@@ -406,13 +407,7 @@ class Backend(ABC):
             raise ValueError(f"Device {device.type} is not supported by the backend {self.name}")
 
         if device.type == "xpu":
-            xpu = getattr(torch, "xpu", None)
-            if xpu is None or not xpu.is_available():
-                raise RuntimeError(
-                    "torch-tweak was NOT installed with XPU support. To enable Intel GPU acceleration, "
-                    "please install torch-tweak with the XPU index:\n"
-                    'pip install --extra-index-url https://download.pytorch.org/whl/xpu "torch_tweak[xpu]"'
-                )
+            assert_is_available()
 
     def _set_device(self, device: torch.device):
         """Set the device of the backend.
