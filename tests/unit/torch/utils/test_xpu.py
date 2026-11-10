@@ -5,6 +5,8 @@
 # NOTE: This file has been modified by Intel Corporation.
 """Test for XPU utilities."""
 
+import re
+
 import pytest
 import torch
 
@@ -33,23 +35,32 @@ def test_synchronize(mocker):
         torch.xpu.synchronize.assert_called_once()
 
 
-def test_assert_is_available_when_torch_has_no_xpu_support(mocker):
-    mocker.patch("torch.xpu._is_compiled", return_value=False)
+@pytest.mark.parametrize(
+    "message",
+    [
+        "has no XPU support",
+        "pip install --force-reinstall --index-url https://download.pytorch.org/whl/xpu torch",
+        'pass device="cpu"',
+    ],
+)
+def test_torch_without_xpu_support_is_rejected(mocker, message):
+    mocker.patch("torch.version.xpu", None)
 
-    with pytest.raises(RuntimeError, match="PyTorch was not built with XPU support"):
+    with pytest.raises(RuntimeError, match=re.escape(message)):
         assert_is_available()
 
 
-def test_assert_is_available_when_no_intel_gpu_is_visible(mocker):
-    mocker.patch("torch.xpu._is_compiled", return_value=True)
+@pytest.mark.parametrize("message", ["no Intel GPU is visible", "render group", 'pass device="cpu"'])
+def test_xpu_build_without_a_visible_gpu_is_rejected(mocker, message):
+    mocker.patch("torch.version.xpu", "20260101")
     mocker.patch("torch.xpu.is_available", return_value=False)
 
-    with pytest.raises(RuntimeError, match="No Intel GPU is available"):
+    with pytest.raises(RuntimeError, match=re.escape(message)):
         assert_is_available()
 
 
-def test_assert_is_available_when_intel_gpu_is_visible(mocker):
-    mocker.patch("torch.xpu._is_compiled", return_value=True)
+def test_xpu_build_with_a_visible_gpu_is_accepted(mocker):
+    mocker.patch("torch.version.xpu", "20260101")
     mocker.patch("torch.xpu.is_available", return_value=True)
 
     assert_is_available()

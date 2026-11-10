@@ -94,6 +94,8 @@ pip install \
     "torch_tweak[xpu]"
 ```
 
+Without an Intel GPU, see [CPU only](docs/learn/install.md#cpu-only) in the install guide.
+
 To build and install torch-tweak from the local repository we recommend using uv
 (with stable PyTorch XPU wheels). This simple command builds the local version of
 torch-tweak and installs all required developer dependencies:

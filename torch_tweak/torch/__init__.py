@@ -4,15 +4,18 @@
 # NOTE: This file has been modified by Intel Corporation.
 """Torch tuning module."""
 
+from torch_tweak.troubleshooting import COMMON_ISSUES_URL, CPU_TORCH_INSTALL, XPU_TORCH_INSTALL
+
 try:
     import torch  # noqa: F401
 except ModuleNotFoundError as err:
     if err.name != "torch":
         raise
     raise ImportError(
-        "PyTorch is not installed. Torch Tweak requires PyTorch to function. "
-        "For installation and troubleshooting guidance, see the Common Issues section: "
-        "https://github.com/intel/torch-tweak/blob/main/docs/learn/install.md#common-issues"
+        "PyTorch is not installed. Torch Tweak requires PyTorch.\n"
+        f"For an Intel GPU:\n    {XPU_TORCH_INSTALL}\n"
+        f"For CPU only:\n    {CPU_TORCH_INSTALL}\n"
+        f"See {COMMON_ISSUES_URL}"
     ) from err
 
 # configuring some variables before importing other modules

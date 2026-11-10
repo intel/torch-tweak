@@ -9,6 +9,10 @@ import re
 
 import torch
 
+from torch_tweak.troubleshooting import COMMON_ISSUES_URL, XPU_TORCH_INSTALL
+
+_RUN_ON_CPU = 'To tune on CPU instead, pass device="cpu" to tune() or set TORCH_TWEAK_DEVICE=cpu.'
+
 
 def assert_is_available():
     """Assert that Intel XPU is available.
@@ -20,15 +24,19 @@ def assert_is_available():
     Raises:
         RuntimeError: If XPU is not available.
     """
-    if not torch.xpu._is_compiled():
+    if torch.version.xpu is None:
         raise RuntimeError(
-            "PyTorch was not built with XPU support. Check the Common Issues section in the installation guide: "
-            "https://github.com/intel/torch-tweak/blob/main/docs/learn/install.md#common-issues"
+            f"PyTorch {torch.__version__} has no XPU support, so Torch Tweak cannot use an Intel GPU.\n"
+            f"Install the XPU build of PyTorch:\n    {XPU_TORCH_INSTALL}\n"
+            f"{_RUN_ON_CPU}\n"
+            f"See {COMMON_ISSUES_URL}"
         )
     if not torch.xpu.is_available():
         raise RuntimeError(
-            "No Intel GPU is available. Check the Common Issues section in the installation guide: "
-            "https://github.com/intel/torch-tweak/blob/main/docs/learn/install.md#common-issues"
+            f"PyTorch {torch.__version__} supports XPU, but no Intel GPU is visible.\n"
+            "Check the GPU driver and membership in the render group.\n"
+            f"{_RUN_ON_CPU}\n"
+            f"See {COMMON_ISSUES_URL}"
         )
 
 

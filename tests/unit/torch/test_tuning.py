@@ -68,9 +68,9 @@ def test_tune(mocker, dry_run):
 
 
 def test_tune_raises_when_torch_has_no_xpu_support(mocker):
-    mocker.patch("torch.xpu._is_compiled", return_value=False)
+    mocker.patch("torch.version.xpu", None)
 
-    with pytest.raises(RuntimeError, match="PyTorch was not built with XPU support"):
+    with pytest.raises(RuntimeError, match="has no XPU support"):
         tune(Mock(), [torch.tensor([1.0])], batch_sizes=[1])
 
 

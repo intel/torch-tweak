@@ -15,7 +15,7 @@ Before proceeding with the installation of Torch Tweak, ensure your system meets
 
 * **Operating System**: Linux (Ubuntu 22.04+ recommended)
 * **Python**: Version `3.11` or newer
-* **PyTorch**: Version `2.13` or newer **with XPU support**
+* **PyTorch**: Version `2.13` or newer. Tuning on an Intel GPU needs the **XPU build**. Tuning on CPU works with any build.
 * **Intel GPU**: Required for XPU-accelerated tuning
 
 ## pip
@@ -44,6 +44,19 @@ pip install \
 ```
 
 Nightly stack of PyTorch XPU **is not supported** on the pip path. Use uv for nightly wheels.
+
+### CPU only
+
+Without an Intel GPU, install the CPU build of PyTorch. It skips the GPU runtime packages:
+
+```bash
+pip install \
+    --index-url https://download.pytorch.org/whl/cpu \
+    --extra-index-url https://pypi.org/simple \
+    torch "torch_tweak[torchao]"
+```
+
+An existing CPU or CUDA build of PyTorch also works. Pass `device="cpu"` to `tune()`, or set `TORCH_TWEAK_DEVICE=cpu`.
 
 ## uv (recommended for dev)
 
@@ -100,14 +113,21 @@ The TorchAO backend needs the `torchao` extra.
 
 ### PyTorch is installed but XPU support is unavailable
 
-Confirm that the active Python environment contains an XPU-enabled PyTorch build. A CPU- or CUDA-only build
-cannot use an Intel GPU. Check the pip installation output or logs to see which torch wheel and package index
-were used. If the installed build does not include XPU support, reinstall torch from the XPU index in the active
-environment:
+A CPU or CUDA build of PyTorch cannot use an Intel GPU.
+Check the build in the active Python environment:
+
+```bash
+python -c "import torch; print(torch.__version__, torch.version.xpu)"
+```
+
+An XPU build prints a version ending in `+xpu` and a date. Any other build prints `None`.
+Reinstall torch from the XPU index:
 
 ```bash
 python -m pip install --force-reinstall --index-url https://download.pytorch.org/whl/xpu torch
 ```
+
+To keep the current build, tune on CPU with `device="cpu"`.
 
 ### No Intel GPU is available
 
