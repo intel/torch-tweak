@@ -74,6 +74,13 @@ uv sync --extra dev
 uv run pytest
 ```
 
+**CPU (optional)** installs the CPU build of PyTorch, like the CI job without an Intel GPU:
+
+```bash
+UV_PROJECT_ENVIRONMENT=.venv-cpu uv sync --no-default-groups --group cpu --extra torchao --extra dev
+UV_PROJECT_ENVIRONMENT=.venv-cpu uv run pytest -m "not functional and not nightly"
+```
+
 **Nightly (optional)**. The recommended option is a separate environment, so stable and nightly stay installed side by side:
 
 ```bash

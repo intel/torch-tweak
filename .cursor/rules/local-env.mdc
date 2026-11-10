@@ -85,5 +85,7 @@ uv sync --extra dev
 | Stable: OpenVINO tests | `uv run pytest tests/unit/torch/backend/test_openvino_backend.py -v` |
 | Nightly: install deps | `UV_PROJECT_ENVIRONMENT=.venv-nightly uv sync --no-default-groups --group xpu-nightly --extra dev` |
 | Nightly: unit tests | `UV_PROJECT_ENVIRONMENT=.venv-nightly uv run pytest` |
+| CPU build: install deps | `UV_PROJECT_ENVIRONMENT=.venv-cpu uv sync --no-default-groups --group cpu --extra torchao --extra dev` |
+| CPU build: unit tests | `UV_PROJECT_ENVIRONMENT=.venv-cpu uv run pytest -m "not functional and not nightly"` |
 | Ruff (lint + fix) | `uv run ruff check --fix && uv run ruff format` |
 | Pre-commit | `uv run pre-commit run --all-files` |
