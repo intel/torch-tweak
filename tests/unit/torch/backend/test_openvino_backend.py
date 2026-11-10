@@ -374,16 +374,15 @@ class _SharedBatchModel(nn.Module):
         return self.proj_a(a) + self.proj_b(b)
 
 
-@pytest.fixture(scope="module")
-def _shared_batch_artifacts() -> tuple[nn.Module, GraphSpec, list]:
+@pytest.fixture
+def _shared_batch_artifacts(torch_device) -> tuple[nn.Module, GraphSpec, list]:
     """Return (model, graph_spec, samples) for _SharedBatchModel across a range of batch sizes."""
-    device = "xpu"
-    model = _SharedBatchModel().to(device).eval()
+    model = _SharedBatchModel().to(torch_device).eval()
     graph_spec: GraphSpec | None = None
     batch_sizes = [1, 8]
     samples = []
     for bs in batch_sizes:
-        args = (torch.rand(bs, DIM, device=device), torch.rand(bs, DIM_B, device=device))
+        args = (torch.rand(bs, DIM, device=torch_device), torch.rand(bs, DIM_B, device=torch_device))
         kwargs: dict = {}
         out = model(*args)
         in_meta = SampleMetadata.from_inputs(args, kwargs, batch_size=bs)
