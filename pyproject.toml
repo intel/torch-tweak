@@ -45,6 +45,7 @@ dependencies = [
 
 [project.urls]
 "Documentation" = "https://github.com/intel/torch-tweak"
+"Installation" = "https://github.com/intel/torch-tweak/blob/main/docs/learn/install.md"
 "Repository" = "https://github.com/intel/torch-tweak.git"
 "Tracker" = "https://github.com/intel/torch-tweak/issues"
 
@@ -135,6 +136,7 @@ replacement = '\1(https://github.com/intel/torch-tweak/blob/v$HFPR_VERSION/\2)'
 [dependency-groups]
 xpu-nightly = ["torch>=2.13.0", "triton-xpu"]
 xpu-stable = ["torch>=2.13.0"]
+cpu = ["torch>=2.13.0"]
 # Lightweight set for the CI coverage reporting job (no torch needed).
 coverage = ["coverage>=7.17.0", "diff-cover>=11.0.0"]
 
@@ -151,6 +153,9 @@ required-environments = [
 conflicts = [
     [{ group = "xpu-nightly" }, { group = "xpu-stable" }],
     [{ group = "xpu-nightly" }, { extra = "xpu" }],
+    [{ group = "cpu" }, { group = "xpu-stable" }],
+    [{ group = "cpu" }, { group = "xpu-nightly" }],
+    [{ group = "cpu" }, { extra = "xpu" }],
 ]
 
 [[tool.uv.index]]
@@ -172,6 +177,7 @@ torch = [
     { index = "pytorch-xpu-nightly", group = "xpu-nightly" },
     { index = "pytorch-xpu", group = "xpu-stable" },
     { index = "pytorch-xpu", extra = "xpu" },
+    { index = "pytorch-cpu", group = "cpu" },
 ]
 torchao = { index = "pytorch-cpu" }
 triton-xpu = [

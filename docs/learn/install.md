@@ -15,7 +15,7 @@ Before proceeding with the installation of Torch Tweak, ensure your system meets
 
 * **Operating System**: Linux (Ubuntu 22.04+ recommended)
 * **Python**: Version `3.11` or newer
-* **PyTorch**: Version `2.13` or newer **with XPU support**
+* **PyTorch**: Version `2.13` or newer. Tuning on an Intel GPU needs the **XPU build**. Tuning on CPU works with any build.
 * **Intel GPU**: Required for XPU-accelerated tuning
 
 ## pip
@@ -45,6 +45,22 @@ pip install \
 
 Nightly stack of PyTorch XPU **is not supported** on the pip path. Use uv for nightly wheels.
 
+### CPU only
+
+Without an Intel GPU, install the CPU build of PyTorch. It skips the GPU runtime packages:
+
+```bash
+pip install \
+    --index-url https://download.pytorch.org/whl/cpu \
+    --extra-index-url https://pypi.org/simple \
+    torch "torch_tweak[torchao]"
+```
+
+An existing CPU or CUDA build of PyTorch also works.
+On a machine without an Intel GPU, `tune()` picks the CPU.
+On a machine with an Intel GPU, `tune()` expects the XPU build. Pass `device="cpu"` to `tune()`, or set
+`TORCH_TWEAK_DEVICE=cpu`, to tune on CPU anyway.
+
 ## uv (recommended for dev)
 
 **Stable** is the default stack; **nightly** is uv-only.
@@ -56,6 +72,13 @@ Configuration: `[dependency-groups]`, optional extra `xpu`, and `[tool.uv]` inde
 ```bash
 uv sync --extra dev
 uv run pytest
+```
+
+**CPU (optional)** installs the CPU build of PyTorch, like the CI job without an Intel GPU:
+
+```bash
+UV_PROJECT_ENVIRONMENT=.venv-cpu uv sync --no-default-groups --group cpu --extra torchao --extra dev
+UV_PROJECT_ENVIRONMENT=.venv-cpu uv run pytest -m "not functional and not nightly"
 ```
 
 **Nightly (optional)**. The recommended option is a separate environment, so stable and nightly stay installed side by side:
@@ -95,3 +118,35 @@ pip install .
 
 The TorchAO backend needs the `torchao` extra.
 `torch_tweak[xpu]` installs it.
+
+## Common Issues
+
+### PyTorch is installed but XPU support is unavailable
+
+A CPU or CUDA build of PyTorch cannot use an Intel GPU.
+Check the build in the active Python environment:
+
+```bash
+python -c "import torch; print(torch.__version__, torch.version.xpu)"
+```
+
+An XPU build prints a version ending in `+xpu` and a date. Any other build prints `None`.
+Reinstall torch from the XPU index:
+
+```bash
+python -m pip install --force-reinstall --index-url https://download.pytorch.org/whl/xpu torch
+```
+
+To keep the current build, tune on CPU with `device="cpu"`.
+
+### No Intel GPU is available
+
+Confirm that an Intel GPU is visible to the system and that its driver and runtime are functioning.
+Also check that your user or container has permission to access the device. On some Linux systems, for example,
+GPU access may require membership in the `render` group.
+
+### Importing PyTorch fails
+
+Make sure you are using the Python environment where PyTorch is installed. If importing PyTorch fails
+with a missing library or another dependency error, use the original traceback to troubleshoot that
+installation. Torch Tweak only reports PyTorch as missing when the `torch` module itself cannot be found.

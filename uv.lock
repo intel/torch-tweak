@@ -19,6 +19,15 @@ conflicts = [[
 ], [
     { package = "torch-tweak", extra = "xpu" },
     { package = "torch-tweak", group = "xpu-nightly" },
+], [
+    { package = "torch-tweak", group = "cpu" },
+    { package = "torch-tweak", group = "xpu-stable" },
+], [
+    { package = "torch-tweak", group = "cpu" },
+    { package = "torch-tweak", group = "xpu-nightly" },
+], [
+    { package = "torch-tweak", extra = "xpu" },
+    { package = "torch-tweak", group = "cpu" },
 ]]
 
 [[package]]
@@ -330,9 +339,9 @@ name = "dpcpp-cpp-rt"
 version = "2026.1.2"
 source = { registry = "https://download.pytorch.org/whl/xpu" }
 dependencies = [
-    { name = "intel-opencl-rt" },
-    { name = "intel-openmp" },
-    { name = "intel-sycl-rt" },
+    { name = "intel-opencl-rt", marker = "extra == 'extra-11-torch-tweak-xpu' or extra == 'group-11-torch-tweak-xpu-nightly' or extra == 'group-11-torch-tweak-xpu-stable'" },
+    { name = "intel-openmp", marker = "extra == 'extra-11-torch-tweak-xpu' or extra == 'group-11-torch-tweak-xpu-nightly' or extra == 'group-11-torch-tweak-xpu-stable'" },
+    { name = "intel-sycl-rt", marker = "extra == 'extra-11-torch-tweak-xpu' or extra == 'group-11-torch-tweak-xpu-nightly' or extra == 'group-11-torch-tweak-xpu-stable'" },
 ]
 wheels = [
     { url = "https://files.pythonhosted.org/packages/b5/d7/c19db67c824c49f126b31b61bdd1f1cf9283e671daa254868b48987b6a43/dpcpp_cpp_rt-2026.1.2-py2.py3-none-manylinux_2_28_x86_64.whl", hash = "sha256:77396a9e5e388bc9f778ec4c1131181966ea5e31fd68ed49b2613844e869dc1c" },
@@ -533,7 +542,7 @@ name = "intel-cmplr-lib-ur"
 version = "2026.1.2"
 source = { registry = "https://download.pytorch.org/whl/xpu" }
 dependencies = [
-    { name = "umf" },
+    { name = "umf", marker = "extra == 'extra-11-torch-tweak-xpu' or extra == 'group-11-torch-tweak-xpu-nightly' or extra == 'group-11-torch-tweak-xpu-stable'" },
 ]
 wheels = [
     { url = "https://files.pythonhosted.org/packages/80/f0/b7e8305da2d2ea162599795886d03a809bf1554ec5079c59f147b506f277/intel_cmplr_lib_ur-2026.1.2-py2.py3-none-manylinux_2_28_x86_64.whl", hash = "sha256:b27207f3b42d12ce88cd53ca8b3b7a7e79755aa07a84eccf1c209fcbefe468bf" },
@@ -552,8 +561,8 @@ name = "intel-opencl-rt"
 version = "2026.1.2"
 source = { registry = "https://download.pytorch.org/whl/xpu" }
 dependencies = [
-    { name = "intel-cmplr-lic-rt" },
-    { name = "tbb" },
+    { name = "intel-cmplr-lic-rt", marker = "extra == 'extra-11-torch-tweak-xpu' or extra == 'group-11-torch-tweak-xpu-nightly' or extra == 'group-11-torch-tweak-xpu-stable'" },
+    { name = "tbb", marker = "extra == 'extra-11-torch-tweak-xpu' or extra == 'group-11-torch-tweak-xpu-nightly' or extra == 'group-11-torch-tweak-xpu-stable'" },
 ]
 wheels = [
     { url = "https://files.pythonhosted.org/packages/1d/3d/895a1628ca64752a235a045a649609d6e3b3f42b1588312225bf2fd7dd48/intel_opencl_rt-2026.1.2-py2.py3-none-manylinux_2_28_x86_64.whl", hash = "sha256:b543a09209fc157a70eb40f72338862a35cf86ad1ef4808d4e89cf0078bf8947" },
@@ -564,7 +573,7 @@ name = "intel-openmp"
 version = "2026.1.2"
 source = { registry = "https://download.pytorch.org/whl/xpu" }
 dependencies = [
-    { name = "intel-cmplr-lib-ur" },
+    { name = "intel-cmplr-lib-ur", marker = "extra == 'extra-11-torch-tweak-xpu' or extra == 'group-11-torch-tweak-xpu-nightly' or extra == 'group-11-torch-tweak-xpu-stable'" },
 ]
 wheels = [
     { url = "https://files.pythonhosted.org/packages/8b/4d/27cb1284bee222fdd4f4280a651c264031bc1f8ebbdbd29cdfd0f906a466/intel_openmp-2026.1.2-py2.py3-none-manylinux_2_28_x86_64.whl", hash = "sha256:4612231a3605db891265c1d8cc4af49ee66009dc55f24012770a9faf3d8ac35e" },
@@ -583,9 +592,9 @@ name = "intel-sycl-rt"
 version = "2026.1.2"
 source = { registry = "https://download.pytorch.org/whl/xpu" }
 dependencies = [
-    { name = "intel-cmplr-lib-rt" },
-    { name = "intel-cmplr-lib-ur" },
-    { name = "intel-cmplr-lic-rt" },
+    { name = "intel-cmplr-lib-rt", marker = "extra == 'extra-11-torch-tweak-xpu' or extra == 'group-11-torch-tweak-xpu-nightly' or extra == 'group-11-torch-tweak-xpu-stable'" },
+    { name = "intel-cmplr-lib-ur", marker = "extra == 'extra-11-torch-tweak-xpu' or extra == 'group-11-torch-tweak-xpu-nightly' or extra == 'group-11-torch-tweak-xpu-stable'" },
+    { name = "intel-cmplr-lic-rt", marker = "extra == 'extra-11-torch-tweak-xpu' or extra == 'group-11-torch-tweak-xpu-nightly' or extra == 'group-11-torch-tweak-xpu-stable'" },
 ]
 wheels = [
     { url = "https://files.pythonhosted.org/packages/80/3c/f8ef51b3d21eb1b2e7d1b302877d3354bbe3a0e728c5a8c4f9b7ff080957/intel_sycl_rt-2026.1.2-py2.py3-none-manylinux_2_28_x86_64.whl", hash = "sha256:9f4c9aff11177a29ff81bcecffd47e43b1edf54b766f97ed1dac13a820b649e6" },
@@ -843,9 +852,9 @@ name = "mkl"
 version = "2026.1.0"
 source = { registry = "https://download.pytorch.org/whl/xpu" }
 dependencies = [
-    { name = "intel-openmp" },
-    { name = "onemkl-license" },
-    { name = "tbb" },
+    { name = "intel-openmp", marker = "extra == 'extra-11-torch-tweak-xpu' or extra == 'group-11-torch-tweak-xpu-nightly' or extra == 'group-11-torch-tweak-xpu-stable'" },
+    { name = "onemkl-license", marker = "extra == 'extra-11-torch-tweak-xpu' or extra == 'group-11-torch-tweak-xpu-nightly' or extra == 'group-11-torch-tweak-xpu-stable'" },
+    { name = "tbb", marker = "extra == 'extra-11-torch-tweak-xpu' or extra == 'group-11-torch-tweak-xpu-nightly' or extra == 'group-11-torch-tweak-xpu-stable'" },
 ]
 wheels = [
     { url = "https://files.pythonhosted.org/packages/61/da/4921e17b1f455f7fed30d5cc0964f3289eee6a6cb03cdf7d5e20c14bd025/mkl-2026.1.0-py2.py3-none-manylinux_2_28_x86_64.whl", hash = "sha256:4d5a26449818a8aebd4b2aaf6b291831e691f9cf74b152df49b99cf48bbd5360" },
@@ -990,8 +999,8 @@ name = "oneccl"
 version = "2022.1.2"
 source = { registry = "https://download.pytorch.org/whl/xpu" }
 dependencies = [
-    { name = "impi-rt" },
-    { name = "intel-sycl-rt" },
+    { name = "impi-rt", marker = "extra == 'extra-11-torch-tweak-xpu' or extra == 'group-11-torch-tweak-xpu-nightly' or extra == 'group-11-torch-tweak-xpu-stable'" },
+    { name = "intel-sycl-rt", marker = "extra == 'extra-11-torch-tweak-xpu' or extra == 'group-11-torch-tweak-xpu-nightly' or extra == 'group-11-torch-tweak-xpu-stable'" },
 ]
 wheels = [
     { url = "https://files.pythonhosted.org/packages/56/31/c0b03d6ed8cda5ad9a4de065e9e5da0eb1e8e5b5fa1b23a10d6f3a6ebed4/oneccl-2022.1.2-py2.py3-none-manylinux_2_28_x86_64.whl", hash = "sha256:c87c28fcce5435b03b8f01f3e669ab3ec59718f28f9ab537403b49efe83f4c16" },
@@ -1002,7 +1011,7 @@ name = "oneccl-devel"
 version = "2022.1.2"
 source = { registry = "https://download.pytorch.org/whl/xpu" }
 dependencies = [
-    { name = "oneccl" },
+    { name = "oneccl", marker = "extra == 'extra-11-torch-tweak-xpu' or extra == 'group-11-torch-tweak-xpu-nightly' or extra == 'group-11-torch-tweak-xpu-stable'" },
 ]
 wheels = [
     { url = "https://files.pythonhosted.org/packages/e9/6b/df3454051871ad3e3ff5bd9e00bf3004d76480c49c3a554f5c004927727f/oneccl_devel-2022.1.2-py2.py3-none-manylinux_2_28_x86_64.whl", hash = "sha256:bdf97644da971fc112b6bd53d6e22e8ff032fb8f32442bb914e98727442c229d" },
@@ -1021,9 +1030,9 @@ name = "onemkl-sycl-blas"
 version = "2026.1.0"
 source = { registry = "https://download.pytorch.org/whl/xpu" }
 dependencies = [
-    { name = "dpcpp-cpp-rt" },
-    { name = "intel-opencl-rt" },
-    { name = "mkl" },
+    { name = "dpcpp-cpp-rt", marker = "extra == 'extra-11-torch-tweak-xpu' or extra == 'group-11-torch-tweak-xpu-nightly' or extra == 'group-11-torch-tweak-xpu-stable'" },
+    { name = "intel-opencl-rt", marker = "extra == 'extra-11-torch-tweak-xpu' or extra == 'group-11-torch-tweak-xpu-nightly' or extra == 'group-11-torch-tweak-xpu-stable'" },
+    { name = "mkl", marker = "extra == 'extra-11-torch-tweak-xpu' or extra == 'group-11-torch-tweak-xpu-nightly' or extra == 'group-11-torch-tweak-xpu-stable'" },
 ]
 wheels = [
     { url = "https://files.pythonhosted.org/packages/d6/c5/94ce322721013c42578398846e57da4273d1f8e48ab1e49ad311a418d36e/onemkl_sycl_blas-2026.1.0-py2.py3-none-manylinux_2_28_x86_64.whl", hash = "sha256:229dd19462b4a588c156ea73bce29feaf0e96434d797a9bae38a89694fc46493" },
@@ -1034,9 +1043,9 @@ name = "onemkl-sycl-dft"
 version = "2026.1.0"
 source = { registry = "https://download.pytorch.org/whl/xpu" }
 dependencies = [
-    { name = "dpcpp-cpp-rt" },
-    { name = "intel-opencl-rt" },
-    { name = "mkl" },
+    { name = "dpcpp-cpp-rt", marker = "extra == 'extra-11-torch-tweak-xpu' or extra == 'group-11-torch-tweak-xpu-nightly' or extra == 'group-11-torch-tweak-xpu-stable'" },
+    { name = "intel-opencl-rt", marker = "extra == 'extra-11-torch-tweak-xpu' or extra == 'group-11-torch-tweak-xpu-nightly' or extra == 'group-11-torch-tweak-xpu-stable'" },
+    { name = "mkl", marker = "extra == 'extra-11-torch-tweak-xpu' or extra == 'group-11-torch-tweak-xpu-nightly' or extra == 'group-11-torch-tweak-xpu-stable'" },
 ]
 wheels = [
     { url = "https://files.pythonhosted.org/packages/71/60/80d4fa8e4e100f290572cf99856e067195fb9d22a7f462b8e0993833c526/onemkl_sycl_dft-2026.1.0-py2.py3-none-manylinux_2_28_x86_64.whl", hash = "sha256:71bd34f8c25b6869a440a01eadd2743151601bf2d011b01c11206ec81f6de80b" },
@@ -1047,10 +1056,10 @@ name = "onemkl-sycl-lapack"
 version = "2026.1.0"
 source = { registry = "https://download.pytorch.org/whl/xpu" }
 dependencies = [
-    { name = "dpcpp-cpp-rt" },
-    { name = "intel-opencl-rt" },
-    { name = "mkl" },
-    { name = "onemkl-sycl-blas" },
+    { name = "dpcpp-cpp-rt", marker = "extra == 'extra-11-torch-tweak-xpu' or extra == 'group-11-torch-tweak-xpu-nightly' or extra == 'group-11-torch-tweak-xpu-stable'" },
+    { name = "intel-opencl-rt", marker = "extra == 'extra-11-torch-tweak-xpu' or extra == 'group-11-torch-tweak-xpu-nightly' or extra == 'group-11-torch-tweak-xpu-stable'" },
+    { name = "mkl", marker = "extra == 'extra-11-torch-tweak-xpu' or extra == 'group-11-torch-tweak-xpu-nightly' or extra == 'group-11-torch-tweak-xpu-stable'" },
+    { name = "onemkl-sycl-blas", marker = "extra == 'extra-11-torch-tweak-xpu' or extra == 'group-11-torch-tweak-xpu-nightly' or extra == 'group-11-torch-tweak-xpu-stable'" },
 ]
 wheels = [
     { url = "https://files.pythonhosted.org/packages/0c/ee/9058fe036b82bc742adb6280574502da2a8c70364a945829579fd3dd8084/onemkl_sycl_lapack-2026.1.0-py2.py3-none-manylinux_2_28_x86_64.whl", hash = "sha256:97ff3626f99463e50734a85034ed2ca765601b5c5d3b0560695da7aec0b4f629" },
@@ -1061,9 +1070,9 @@ name = "onemkl-sycl-rng"
 version = "2026.1.0"
 source = { registry = "https://download.pytorch.org/whl/xpu" }
 dependencies = [
-    { name = "dpcpp-cpp-rt" },
-    { name = "intel-opencl-rt" },
-    { name = "mkl" },
+    { name = "dpcpp-cpp-rt", marker = "extra == 'extra-11-torch-tweak-xpu' or extra == 'group-11-torch-tweak-xpu-nightly' or extra == 'group-11-torch-tweak-xpu-stable'" },
+    { name = "intel-opencl-rt", marker = "extra == 'extra-11-torch-tweak-xpu' or extra == 'group-11-torch-tweak-xpu-nightly' or extra == 'group-11-torch-tweak-xpu-stable'" },
+    { name = "mkl", marker = "extra == 'extra-11-torch-tweak-xpu' or extra == 'group-11-torch-tweak-xpu-nightly' or extra == 'group-11-torch-tweak-xpu-stable'" },
 ]
 wheels = [
     { url = "https://files.pythonhosted.org/packages/f0/3c/4ee5d31e04539d1acd0a1acd3ddf722db570ac8c381d5bc2a9a197e31ca7/onemkl_sycl_rng-2026.1.0-py2.py3-none-manylinux_2_28_x86_64.whl", hash = "sha256:6d24ee79da2d7fe38b99dfdf3c36e39f2dc796be0ab5c477a3e6d1c244ed5ccd" },
@@ -1074,10 +1083,10 @@ name = "onemkl-sycl-sparse"
 version = "2026.1.0"
 source = { registry = "https://download.pytorch.org/whl/xpu" }
 dependencies = [
-    { name = "dpcpp-cpp-rt" },
-    { name = "intel-opencl-rt" },
-    { name = "mkl" },
-    { name = "onemkl-sycl-blas" },
+    { name = "dpcpp-cpp-rt", marker = "extra == 'extra-11-torch-tweak-xpu' or extra == 'group-11-torch-tweak-xpu-nightly' or extra == 'group-11-torch-tweak-xpu-stable'" },
+    { name = "intel-opencl-rt", marker = "extra == 'extra-11-torch-tweak-xpu' or extra == 'group-11-torch-tweak-xpu-nightly' or extra == 'group-11-torch-tweak-xpu-stable'" },
+    { name = "mkl", marker = "extra == 'extra-11-torch-tweak-xpu' or extra == 'group-11-torch-tweak-xpu-nightly' or extra == 'group-11-torch-tweak-xpu-stable'" },
+    { name = "onemkl-sycl-blas", marker = "extra == 'extra-11-torch-tweak-xpu' or extra == 'group-11-torch-tweak-xpu-nightly' or extra == 'group-11-torch-tweak-xpu-stable'" },
 ]
 wheels = [
     { url = "https://files.pythonhosted.org/packages/83/af/416bc19b3488129975a9bd1dbdb8bbe9340a49a802c1e24db6728e233359/onemkl_sycl_sparse-2026.1.0-py2.py3-none-manylinux_2_28_x86_64.whl", hash = "sha256:50e6fe2cd901090d473fc572001cfa5c0d000719036745e3a4c95ea74b32f9cc" },
@@ -1611,7 +1620,7 @@ name = "tbb"
 version = "2023.1.0"
 source = { registry = "https://download.pytorch.org/whl/xpu" }
 dependencies = [
-    { name = "tcmlib" },
+    { name = "tcmlib", marker = "extra == 'extra-11-torch-tweak-xpu' or extra == 'group-11-torch-tweak-xpu-nightly' or extra == 'group-11-torch-tweak-xpu-stable'" },
 ]
 wheels = [
     { url = "https://files.pythonhosted.org/packages/25/0c/0266c71e3fa50a71db5ce8a1d0807863df3215c5f7b5fe7c98b257561138/tbb-2023.1.0-py2.py3-none-manylinux_2_28_x86_64.whl", hash = "sha256:64ad35241c736a595498f5343abec8eaaa203e9fe0dbdbf4b86d37c5a3ab1d9c" },
@@ -1633,8 +1642,9 @@ dependencies = [
     { name = "huggingface-hub" },
     { name = "pyyaml" },
     { name = "safetensors" },
-    { name = "torch", version = "2.15.0+xpu", source = { registry = "https://download.pytorch.org/whl/xpu" }, marker = "extra == 'extra-11-torch-tweak-xpu' or extra != 'group-11-torch-tweak-xpu-nightly' or extra == 'group-11-torch-tweak-xpu-stable'" },
-    { name = "torch", version = "2.16.0.dev20261029+xpu", source = { registry = "https://download.pytorch.org/whl/nightly/xpu" }, marker = "extra == 'group-11-torch-tweak-xpu-nightly'" },
+    { name = "torch", version = "2.15.0+cpu", source = { registry = "https://download.pytorch.org/whl/cpu" }, marker = "extra == 'group-11-torch-tweak-cpu' or (extra == 'extra-11-torch-tweak-xpu' and extra == 'group-11-torch-tweak-xpu-nightly') or (extra == 'group-11-torch-tweak-xpu-nightly' and extra == 'group-11-torch-tweak-xpu-stable') or (extra != 'extra-11-torch-tweak-xpu' and extra != 'group-11-torch-tweak-xpu-nightly' and extra != 'group-11-torch-tweak-xpu-stable')" },
+    { name = "torch", version = "2.15.0+xpu", source = { registry = "https://download.pytorch.org/whl/xpu" }, marker = "extra == 'extra-11-torch-tweak-xpu' or extra == 'group-11-torch-tweak-xpu-stable' or (extra == 'group-11-torch-tweak-cpu' and extra == 'group-11-torch-tweak-xpu-nightly')" },
+    { name = "torch", version = "2.16.0.dev20261029+xpu", source = { registry = "https://download.pytorch.org/whl/nightly/xpu" }, marker = "extra == 'group-11-torch-tweak-xpu-nightly' or (extra == 'extra-11-torch-tweak-xpu' and extra == 'group-11-torch-tweak-cpu') or (extra == 'group-11-torch-tweak-cpu' and extra == 'group-11-torch-tweak-xpu-stable')" },
     { name = "torchvision" },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/0e/ab/49041213990e48edcb6013463b18ef86d8d3c5d6ac5b408802c480443025/timm-1.0.30.tar.gz", hash = "sha256:1444a3af7e17fdba5440ac2bcf6e4b728da96dd62289ed9e1bcba31a545f5935", size = 2534738, upload-time = "2026-09-22T20:46:13.9Z" }
@@ -1659,6 +1669,36 @@ wheels = [
 
 [[package]]
 name = "torch"
+version = "2.15.0+cpu"
+source = { registry = "https://download.pytorch.org/whl/cpu" }
+resolution-markers = [
+    "python_full_version >= '3.14' and platform_machine == 'x86_64' and sys_platform == 'linux'",
+    "python_full_version >= '3.12' and python_full_version < '3.14' and platform_machine == 'x86_64' and sys_platform == 'linux'",
+    "python_full_version >= '3.11.5' and python_full_version < '3.12' and platform_machine == 'x86_64' and sys_platform == 'linux'",
+    "python_full_version < '3.11.5' and platform_machine == 'x86_64' and sys_platform == 'linux'",
+]
+dependencies = [
+    { name = "filelock", marker = "extra == 'group-11-torch-tweak-cpu' or (extra == 'extra-11-torch-tweak-xpu' and extra == 'group-11-torch-tweak-xpu-nightly') or (extra == 'group-11-torch-tweak-xpu-nightly' and extra == 'group-11-torch-tweak-xpu-stable') or (extra != 'extra-11-torch-tweak-xpu' and extra != 'group-11-torch-tweak-xpu-nightly' and extra != 'group-11-torch-tweak-xpu-stable')" },
+    { name = "fsspec", marker = "extra == 'group-11-torch-tweak-cpu' or (extra == 'extra-11-torch-tweak-xpu' and extra == 'group-11-torch-tweak-xpu-nightly') or (extra == 'group-11-torch-tweak-xpu-nightly' and extra == 'group-11-torch-tweak-xpu-stable') or (extra != 'extra-11-torch-tweak-xpu' and extra != 'group-11-torch-tweak-xpu-nightly' and extra != 'group-11-torch-tweak-xpu-stable')" },
+    { name = "jinja2", marker = "extra == 'group-11-torch-tweak-cpu' or (extra == 'extra-11-torch-tweak-xpu' and extra == 'group-11-torch-tweak-xpu-nightly') or (extra == 'group-11-torch-tweak-xpu-nightly' and extra == 'group-11-torch-tweak-xpu-stable') or (extra != 'extra-11-torch-tweak-xpu' and extra != 'group-11-torch-tweak-xpu-nightly' and extra != 'group-11-torch-tweak-xpu-stable')" },
+    { name = "networkx", version = "3.6.1", source = { registry = "https://download.pytorch.org/whl/xpu" }, marker = "(python_full_version < '3.12' and extra != 'extra-11-torch-tweak-xpu' and extra != 'group-11-torch-tweak-xpu-nightly' and extra != 'group-11-torch-tweak-xpu-stable') or (extra == 'extra-11-torch-tweak-xpu' and extra == 'group-11-torch-tweak-cpu') or (extra == 'extra-11-torch-tweak-xpu' and extra == 'group-11-torch-tweak-xpu-nightly') or (extra == 'group-11-torch-tweak-cpu' and extra == 'group-11-torch-tweak-xpu-nightly') or (extra == 'group-11-torch-tweak-cpu' and extra == 'group-11-torch-tweak-xpu-stable') or (extra == 'group-11-torch-tweak-xpu-nightly' and extra == 'group-11-torch-tweak-xpu-stable')" },
+    { name = "networkx", version = "3.7", source = { registry = "https://download.pytorch.org/whl/xpu" }, marker = "(python_full_version >= '3.12' and extra != 'extra-11-torch-tweak-xpu' and extra != 'group-11-torch-tweak-xpu-nightly' and extra != 'group-11-torch-tweak-xpu-stable') or (extra == 'extra-11-torch-tweak-xpu' and extra == 'group-11-torch-tweak-cpu') or (extra == 'extra-11-torch-tweak-xpu' and extra == 'group-11-torch-tweak-xpu-nightly') or (extra == 'group-11-torch-tweak-cpu' and extra == 'group-11-torch-tweak-xpu-nightly') or (extra == 'group-11-torch-tweak-cpu' and extra == 'group-11-torch-tweak-xpu-stable') or (extra == 'group-11-torch-tweak-xpu-nightly' and extra == 'group-11-torch-tweak-xpu-stable')" },
+    { name = "setuptools", marker = "extra == 'group-11-torch-tweak-cpu' or (extra == 'extra-11-torch-tweak-xpu' and extra == 'group-11-torch-tweak-xpu-nightly') or (extra == 'group-11-torch-tweak-xpu-nightly' and extra == 'group-11-torch-tweak-xpu-stable') or (extra != 'extra-11-torch-tweak-xpu' and extra != 'group-11-torch-tweak-xpu-nightly' and extra != 'group-11-torch-tweak-xpu-stable')" },
+    { name = "sympy", marker = "extra == 'group-11-torch-tweak-cpu' or (extra == 'extra-11-torch-tweak-xpu' and extra == 'group-11-torch-tweak-xpu-nightly') or (extra == 'group-11-torch-tweak-xpu-nightly' and extra == 'group-11-torch-tweak-xpu-stable') or (extra != 'extra-11-torch-tweak-xpu' and extra != 'group-11-torch-tweak-xpu-nightly' and extra != 'group-11-torch-tweak-xpu-stable')" },
+    { name = "typing-extensions", marker = "extra == 'group-11-torch-tweak-cpu' or (extra == 'extra-11-torch-tweak-xpu' and extra == 'group-11-torch-tweak-xpu-nightly') or (extra == 'group-11-torch-tweak-xpu-nightly' and extra == 'group-11-torch-tweak-xpu-stable') or (extra != 'extra-11-torch-tweak-xpu' and extra != 'group-11-torch-tweak-xpu-nightly' and extra != 'group-11-torch-tweak-xpu-stable')" },
+]
+wheels = [
+    { url = "https://download-r2.pytorch.org/whl/cpu/torch-2.15.0%2Bcpu-cp311-cp311-manylinux_2_28_x86_64.whl", hash = "sha256:cee15855a32ad89a9bb27b8a9d6e07a859dcd2e11ed1b5561f3d6206e31a103b", upload-time = "2026-10-28T13:18:09Z" },
+    { url = "https://download-r2.pytorch.org/whl/cpu/torch-2.15.0%2Bcpu-cp312-cp312-manylinux_2_28_x86_64.whl", hash = "sha256:0955c7e3446326293f48af18fad67872fa31dee5a36a87690eb9e5be8b465be3", upload-time = "2026-10-28T13:18:39Z" },
+    { url = "https://download-r2.pytorch.org/whl/cpu/torch-2.15.0%2Bcpu-cp313-cp313-manylinux_2_28_x86_64.whl", hash = "sha256:0f6f69701b2d38ddc412364dfb92e2e13e74960d33fa3573b4930ced626e81c7", upload-time = "2026-10-28T13:19:05Z" },
+    { url = "https://download-r2.pytorch.org/whl/cpu/torch-2.15.0%2Bcpu-cp314-cp314-manylinux_2_28_x86_64.whl", hash = "sha256:f089c94912c955269a20e5fee6b6a371209b610849c9ece26e908a748d87a723", upload-time = "2026-10-28T13:19:32Z" },
+    { url = "https://download-r2.pytorch.org/whl/cpu/torch-2.15.0%2Bcpu-cp314-cp314t-manylinux_2_28_x86_64.whl", hash = "sha256:17d66ae6f8a49d4dfca368b50b7dc15f7129175e80b4ae2832dfa0cce86d3159", upload-time = "2026-10-28T13:19:55Z" },
+    { url = "https://download-r2.pytorch.org/whl/cpu/torch-2.15.0%2Bcpu-cp315-cp315-manylinux_2_28_x86_64.whl", hash = "sha256:3552930ba3d358d3ff0b6fee19cb296e199767443c0c86be2a715471036d9233", upload-time = "2026-10-28T13:20:15Z" },
+    { url = "https://download-r2.pytorch.org/whl/cpu/torch-2.15.0%2Bcpu-cp315-cp315t-manylinux_2_28_x86_64.whl", hash = "sha256:92551daf5873fc6db15be48fe9644398f13143291c151ab6769f19e7c5ebd10c", upload-time = "2026-10-28T13:20:33Z" },
+]
+
+[[package]]
+name = "torch"
 version = "2.15.0+xpu"
 source = { registry = "https://download.pytorch.org/whl/xpu" }
 resolution-markers = [
@@ -1668,37 +1708,37 @@ resolution-markers = [
     "python_full_version < '3.11.5' and platform_machine == 'x86_64' and sys_platform == 'linux'",
 ]
 dependencies = [
-    { name = "dpcpp-cpp-rt", marker = "extra == 'extra-11-torch-tweak-xpu' or extra != 'group-11-torch-tweak-xpu-nightly' or extra == 'group-11-torch-tweak-xpu-stable'" },
-    { name = "filelock", marker = "extra == 'extra-11-torch-tweak-xpu' or extra != 'group-11-torch-tweak-xpu-nightly' or extra == 'group-11-torch-tweak-xpu-stable'" },
-    { name = "fsspec", marker = "extra == 'extra-11-torch-tweak-xpu' or extra != 'group-11-torch-tweak-xpu-nightly' or extra == 'group-11-torch-tweak-xpu-stable'" },
-    { name = "impi-rt", marker = "extra == 'extra-11-torch-tweak-xpu' or extra != 'group-11-torch-tweak-xpu-nightly' or extra == 'group-11-torch-tweak-xpu-stable'" },
-    { name = "intel-cmplr-lib-rt", marker = "extra == 'extra-11-torch-tweak-xpu' or extra != 'group-11-torch-tweak-xpu-nightly' or extra == 'group-11-torch-tweak-xpu-stable'" },
-    { name = "intel-cmplr-lib-ur", marker = "extra == 'extra-11-torch-tweak-xpu' or extra != 'group-11-torch-tweak-xpu-nightly' or extra == 'group-11-torch-tweak-xpu-stable'" },
-    { name = "intel-cmplr-lic-rt", marker = "extra == 'extra-11-torch-tweak-xpu' or extra != 'group-11-torch-tweak-xpu-nightly' or extra == 'group-11-torch-tweak-xpu-stable'" },
-    { name = "intel-opencl-rt", marker = "extra == 'extra-11-torch-tweak-xpu' or extra != 'group-11-torch-tweak-xpu-nightly' or extra == 'group-11-torch-tweak-xpu-stable'" },
-    { name = "intel-openmp", marker = "extra == 'extra-11-torch-tweak-xpu' or extra != 'group-11-torch-tweak-xpu-nightly' or extra == 'group-11-torch-tweak-xpu-stable'" },
-    { name = "intel-pti", marker = "extra == 'extra-11-torch-tweak-xpu' or extra != 'group-11-torch-tweak-xpu-nightly' or extra == 'group-11-torch-tweak-xpu-stable'" },
-    { name = "intel-sycl-rt", marker = "extra == 'extra-11-torch-tweak-xpu' or extra != 'group-11-torch-tweak-xpu-nightly' or extra == 'group-11-torch-tweak-xpu-stable'" },
-    { name = "jinja2", marker = "extra == 'extra-11-torch-tweak-xpu' or extra != 'group-11-torch-tweak-xpu-nightly' or extra == 'group-11-torch-tweak-xpu-stable'" },
-    { name = "mkl", marker = "extra == 'extra-11-torch-tweak-xpu' or extra != 'group-11-torch-tweak-xpu-nightly' or extra == 'group-11-torch-tweak-xpu-stable'" },
-    { name = "networkx", version = "3.6.1", source = { registry = "https://download.pytorch.org/whl/xpu" }, marker = "(python_full_version < '3.12' and extra != 'group-11-torch-tweak-xpu-nightly') or (extra == 'extra-11-torch-tweak-xpu' and extra == 'group-11-torch-tweak-xpu-nightly') or (extra == 'group-11-torch-tweak-xpu-nightly' and extra == 'group-11-torch-tweak-xpu-stable')" },
-    { name = "networkx", version = "3.7", source = { registry = "https://download.pytorch.org/whl/xpu" }, marker = "(python_full_version >= '3.12' and extra != 'group-11-torch-tweak-xpu-nightly') or (extra == 'extra-11-torch-tweak-xpu' and extra == 'group-11-torch-tweak-xpu-nightly') or (extra == 'group-11-torch-tweak-xpu-nightly' and extra == 'group-11-torch-tweak-xpu-stable')" },
-    { name = "oneccl", marker = "extra == 'extra-11-torch-tweak-xpu' or extra != 'group-11-torch-tweak-xpu-nightly' or extra == 'group-11-torch-tweak-xpu-stable'" },
-    { name = "oneccl-devel", marker = "extra == 'extra-11-torch-tweak-xpu' or extra != 'group-11-torch-tweak-xpu-nightly' or extra == 'group-11-torch-tweak-xpu-stable'" },
-    { name = "onemkl-license", marker = "extra == 'extra-11-torch-tweak-xpu' or extra != 'group-11-torch-tweak-xpu-nightly' or extra == 'group-11-torch-tweak-xpu-stable'" },
-    { name = "onemkl-sycl-blas", marker = "extra == 'extra-11-torch-tweak-xpu' or extra != 'group-11-torch-tweak-xpu-nightly' or extra == 'group-11-torch-tweak-xpu-stable'" },
-    { name = "onemkl-sycl-dft", marker = "extra == 'extra-11-torch-tweak-xpu' or extra != 'group-11-torch-tweak-xpu-nightly' or extra == 'group-11-torch-tweak-xpu-stable'" },
-    { name = "onemkl-sycl-lapack", marker = "extra == 'extra-11-torch-tweak-xpu' or extra != 'group-11-torch-tweak-xpu-nightly' or extra == 'group-11-torch-tweak-xpu-stable'" },
-    { name = "onemkl-sycl-rng", marker = "extra == 'extra-11-torch-tweak-xpu' or extra != 'group-11-torch-tweak-xpu-nightly' or extra == 'group-11-torch-tweak-xpu-stable'" },
-    { name = "onemkl-sycl-sparse", marker = "extra == 'extra-11-torch-tweak-xpu' or extra != 'group-11-torch-tweak-xpu-nightly' or extra == 'group-11-torch-tweak-xpu-stable'" },
-    { name = "pyzes", marker = "extra == 'extra-11-torch-tweak-xpu' or extra != 'group-11-torch-tweak-xpu-nightly' or extra == 'group-11-torch-tweak-xpu-stable'" },
-    { name = "setuptools", marker = "extra == 'extra-11-torch-tweak-xpu' or extra != 'group-11-torch-tweak-xpu-nightly' or extra == 'group-11-torch-tweak-xpu-stable'" },
-    { name = "sympy", marker = "extra == 'extra-11-torch-tweak-xpu' or extra != 'group-11-torch-tweak-xpu-nightly' or extra == 'group-11-torch-tweak-xpu-stable'" },
-    { name = "tbb", marker = "extra == 'extra-11-torch-tweak-xpu' or extra != 'group-11-torch-tweak-xpu-nightly' or extra == 'group-11-torch-tweak-xpu-stable'" },
-    { name = "tcmlib", marker = "extra == 'extra-11-torch-tweak-xpu' or extra != 'group-11-torch-tweak-xpu-nightly' or extra == 'group-11-torch-tweak-xpu-stable'" },
-    { name = "triton-xpu", version = "3.9.0", source = { registry = "https://download.pytorch.org/whl/xpu" }, marker = "(python_full_version < '3.16' and extra != 'group-11-torch-tweak-xpu-nightly') or (extra == 'extra-11-torch-tweak-xpu' and extra == 'group-11-torch-tweak-xpu-nightly') or (extra == 'group-11-torch-tweak-xpu-nightly' and extra == 'group-11-torch-tweak-xpu-stable')" },
-    { name = "typing-extensions", marker = "extra == 'extra-11-torch-tweak-xpu' or extra != 'group-11-torch-tweak-xpu-nightly' or extra == 'group-11-torch-tweak-xpu-stable'" },
-    { name = "umf", marker = "extra == 'extra-11-torch-tweak-xpu' or extra != 'group-11-torch-tweak-xpu-nightly' or extra == 'group-11-torch-tweak-xpu-stable'" },
+    { name = "dpcpp-cpp-rt", marker = "extra == 'extra-11-torch-tweak-xpu' or extra == 'group-11-torch-tweak-xpu-stable' or (extra == 'group-11-torch-tweak-cpu' and extra == 'group-11-torch-tweak-xpu-nightly')" },
+    { name = "filelock", marker = "extra == 'extra-11-torch-tweak-xpu' or extra == 'group-11-torch-tweak-xpu-stable' or (extra == 'group-11-torch-tweak-cpu' and extra == 'group-11-torch-tweak-xpu-nightly')" },
+    { name = "fsspec", marker = "extra == 'extra-11-torch-tweak-xpu' or extra == 'group-11-torch-tweak-xpu-stable' or (extra == 'group-11-torch-tweak-cpu' and extra == 'group-11-torch-tweak-xpu-nightly')" },
+    { name = "impi-rt", marker = "extra == 'extra-11-torch-tweak-xpu' or extra == 'group-11-torch-tweak-xpu-stable' or (extra == 'group-11-torch-tweak-cpu' and extra == 'group-11-torch-tweak-xpu-nightly')" },
+    { name = "intel-cmplr-lib-rt", marker = "extra == 'extra-11-torch-tweak-xpu' or extra == 'group-11-torch-tweak-xpu-stable' or (extra == 'group-11-torch-tweak-cpu' and extra == 'group-11-torch-tweak-xpu-nightly')" },
+    { name = "intel-cmplr-lib-ur", marker = "extra == 'extra-11-torch-tweak-xpu' or extra == 'group-11-torch-tweak-xpu-stable' or (extra == 'group-11-torch-tweak-cpu' and extra == 'group-11-torch-tweak-xpu-nightly')" },
+    { name = "intel-cmplr-lic-rt", marker = "extra == 'extra-11-torch-tweak-xpu' or extra == 'group-11-torch-tweak-xpu-stable' or (extra == 'group-11-torch-tweak-cpu' and extra == 'group-11-torch-tweak-xpu-nightly')" },
+    { name = "intel-opencl-rt", marker = "extra == 'extra-11-torch-tweak-xpu' or extra == 'group-11-torch-tweak-xpu-stable' or (extra == 'group-11-torch-tweak-cpu' and extra == 'group-11-torch-tweak-xpu-nightly')" },
+    { name = "intel-openmp", marker = "extra == 'extra-11-torch-tweak-xpu' or extra == 'group-11-torch-tweak-xpu-stable' or (extra == 'group-11-torch-tweak-cpu' and extra == 'group-11-torch-tweak-xpu-nightly')" },
+    { name = "intel-pti", marker = "extra == 'extra-11-torch-tweak-xpu' or extra == 'group-11-torch-tweak-xpu-stable' or (extra == 'group-11-torch-tweak-cpu' and extra == 'group-11-torch-tweak-xpu-nightly')" },
+    { name = "intel-sycl-rt", marker = "extra == 'extra-11-torch-tweak-xpu' or extra == 'group-11-torch-tweak-xpu-stable' or (extra == 'group-11-torch-tweak-cpu' and extra == 'group-11-torch-tweak-xpu-nightly')" },
+    { name = "jinja2", marker = "extra == 'extra-11-torch-tweak-xpu' or extra == 'group-11-torch-tweak-xpu-stable' or (extra == 'group-11-torch-tweak-cpu' and extra == 'group-11-torch-tweak-xpu-nightly')" },
+    { name = "mkl", marker = "extra == 'extra-11-torch-tweak-xpu' or extra == 'group-11-torch-tweak-xpu-stable' or (extra == 'group-11-torch-tweak-cpu' and extra == 'group-11-torch-tweak-xpu-nightly')" },
+    { name = "networkx", version = "3.6.1", source = { registry = "https://download.pytorch.org/whl/xpu" }, marker = "(python_full_version < '3.12' and extra == 'extra-11-torch-tweak-xpu') or (python_full_version < '3.12' and extra == 'group-11-torch-tweak-xpu-stable') or (extra == 'extra-11-torch-tweak-xpu' and extra == 'group-11-torch-tweak-cpu') or (extra == 'extra-11-torch-tweak-xpu' and extra == 'group-11-torch-tweak-xpu-nightly') or (extra == 'group-11-torch-tweak-cpu' and extra == 'group-11-torch-tweak-xpu-nightly') or (extra == 'group-11-torch-tweak-cpu' and extra == 'group-11-torch-tweak-xpu-stable') or (extra == 'group-11-torch-tweak-xpu-nightly' and extra == 'group-11-torch-tweak-xpu-stable')" },
+    { name = "networkx", version = "3.7", source = { registry = "https://download.pytorch.org/whl/xpu" }, marker = "(python_full_version >= '3.12' and extra == 'extra-11-torch-tweak-xpu') or (python_full_version >= '3.12' and extra == 'group-11-torch-tweak-xpu-stable') or (extra == 'extra-11-torch-tweak-xpu' and extra == 'group-11-torch-tweak-cpu') or (extra == 'extra-11-torch-tweak-xpu' and extra == 'group-11-torch-tweak-xpu-nightly') or (extra == 'group-11-torch-tweak-cpu' and extra == 'group-11-torch-tweak-xpu-nightly') or (extra == 'group-11-torch-tweak-cpu' and extra == 'group-11-torch-tweak-xpu-stable') or (extra == 'group-11-torch-tweak-xpu-nightly' and extra == 'group-11-torch-tweak-xpu-stable')" },
+    { name = "oneccl", marker = "extra == 'extra-11-torch-tweak-xpu' or extra == 'group-11-torch-tweak-xpu-stable' or (extra == 'group-11-torch-tweak-cpu' and extra == 'group-11-torch-tweak-xpu-nightly')" },
+    { name = "oneccl-devel", marker = "extra == 'extra-11-torch-tweak-xpu' or extra == 'group-11-torch-tweak-xpu-stable' or (extra == 'group-11-torch-tweak-cpu' and extra == 'group-11-torch-tweak-xpu-nightly')" },
+    { name = "onemkl-license", marker = "extra == 'extra-11-torch-tweak-xpu' or extra == 'group-11-torch-tweak-xpu-stable' or (extra == 'group-11-torch-tweak-cpu' and extra == 'group-11-torch-tweak-xpu-nightly')" },
+    { name = "onemkl-sycl-blas", marker = "extra == 'extra-11-torch-tweak-xpu' or extra == 'group-11-torch-tweak-xpu-stable' or (extra == 'group-11-torch-tweak-cpu' and extra == 'group-11-torch-tweak-xpu-nightly')" },
+    { name = "onemkl-sycl-dft", marker = "extra == 'extra-11-torch-tweak-xpu' or extra == 'group-11-torch-tweak-xpu-stable' or (extra == 'group-11-torch-tweak-cpu' and extra == 'group-11-torch-tweak-xpu-nightly')" },
+    { name = "onemkl-sycl-lapack", marker = "extra == 'extra-11-torch-tweak-xpu' or extra == 'group-11-torch-tweak-xpu-stable' or (extra == 'group-11-torch-tweak-cpu' and extra == 'group-11-torch-tweak-xpu-nightly')" },
+    { name = "onemkl-sycl-rng", marker = "extra == 'extra-11-torch-tweak-xpu' or extra == 'group-11-torch-tweak-xpu-stable' or (extra == 'group-11-torch-tweak-cpu' and extra == 'group-11-torch-tweak-xpu-nightly')" },
+    { name = "onemkl-sycl-sparse", marker = "extra == 'extra-11-torch-tweak-xpu' or extra == 'group-11-torch-tweak-xpu-stable' or (extra == 'group-11-torch-tweak-cpu' and extra == 'group-11-torch-tweak-xpu-nightly')" },
+    { name = "pyzes", marker = "extra == 'extra-11-torch-tweak-xpu' or extra == 'group-11-torch-tweak-xpu-stable' or (extra == 'group-11-torch-tweak-cpu' and extra == 'group-11-torch-tweak-xpu-nightly')" },
+    { name = "setuptools", marker = "extra == 'extra-11-torch-tweak-xpu' or extra == 'group-11-torch-tweak-xpu-stable' or (extra == 'group-11-torch-tweak-cpu' and extra == 'group-11-torch-tweak-xpu-nightly')" },
+    { name = "sympy", marker = "extra == 'extra-11-torch-tweak-xpu' or extra == 'group-11-torch-tweak-xpu-stable' or (extra == 'group-11-torch-tweak-cpu' and extra == 'group-11-torch-tweak-xpu-nightly')" },
+    { name = "tbb", marker = "extra == 'extra-11-torch-tweak-xpu' or extra == 'group-11-torch-tweak-xpu-stable' or (extra == 'group-11-torch-tweak-cpu' and extra == 'group-11-torch-tweak-xpu-nightly')" },
+    { name = "tcmlib", marker = "extra == 'extra-11-torch-tweak-xpu' or extra == 'group-11-torch-tweak-xpu-stable' or (extra == 'group-11-torch-tweak-cpu' and extra == 'group-11-torch-tweak-xpu-nightly')" },
+    { name = "triton-xpu", version = "3.9.0", source = { registry = "https://download.pytorch.org/whl/xpu" }, marker = "(python_full_version < '3.16' and extra == 'extra-11-torch-tweak-xpu') or (python_full_version < '3.16' and extra == 'group-11-torch-tweak-xpu-stable') or (extra == 'extra-11-torch-tweak-xpu' and extra == 'group-11-torch-tweak-cpu') or (extra == 'extra-11-torch-tweak-xpu' and extra == 'group-11-torch-tweak-xpu-nightly') or (extra == 'group-11-torch-tweak-cpu' and extra == 'group-11-torch-tweak-xpu-nightly') or (extra == 'group-11-torch-tweak-cpu' and extra == 'group-11-torch-tweak-xpu-stable') or (extra == 'group-11-torch-tweak-xpu-nightly' and extra == 'group-11-torch-tweak-xpu-stable')" },
+    { name = "typing-extensions", marker = "extra == 'extra-11-torch-tweak-xpu' or extra == 'group-11-torch-tweak-xpu-stable' or (extra == 'group-11-torch-tweak-cpu' and extra == 'group-11-torch-tweak-xpu-nightly')" },
+    { name = "umf", marker = "extra == 'extra-11-torch-tweak-xpu' or extra == 'group-11-torch-tweak-xpu-stable' or (extra == 'group-11-torch-tweak-cpu' and extra == 'group-11-torch-tweak-xpu-nightly')" },
 ]
 wheels = [
     { url = "https://download-r2.pytorch.org/whl/xpu/torch-2.15.0%2Bxpu-cp311-cp311-manylinux_2_28_x86_64.whl", hash = "sha256:16f89c6267e532bce5f6fc92fcbca8d3730a7271619f36063e7289e4fa688b15", upload-time = "2026-10-28T17:58:25Z" },
@@ -1721,37 +1761,37 @@ resolution-markers = [
     "python_full_version < '3.11.5' and platform_machine == 'x86_64' and sys_platform == 'linux'",
 ]
 dependencies = [
-    { name = "dpcpp-cpp-rt", marker = "extra == 'group-11-torch-tweak-xpu-nightly'" },
-    { name = "filelock", marker = "extra == 'group-11-torch-tweak-xpu-nightly'" },
-    { name = "fsspec", marker = "extra == 'group-11-torch-tweak-xpu-nightly'" },
-    { name = "impi-rt", marker = "extra == 'group-11-torch-tweak-xpu-nightly'" },
-    { name = "intel-cmplr-lib-rt", marker = "extra == 'group-11-torch-tweak-xpu-nightly'" },
-    { name = "intel-cmplr-lib-ur", marker = "extra == 'group-11-torch-tweak-xpu-nightly'" },
-    { name = "intel-cmplr-lic-rt", marker = "extra == 'group-11-torch-tweak-xpu-nightly'" },
-    { name = "intel-opencl-rt", marker = "extra == 'group-11-torch-tweak-xpu-nightly'" },
-    { name = "intel-openmp", marker = "extra == 'group-11-torch-tweak-xpu-nightly'" },
-    { name = "intel-pti", marker = "extra == 'group-11-torch-tweak-xpu-nightly'" },
-    { name = "intel-sycl-rt", marker = "extra == 'group-11-torch-tweak-xpu-nightly'" },
-    { name = "jinja2", marker = "extra == 'group-11-torch-tweak-xpu-nightly'" },
-    { name = "mkl", marker = "extra == 'group-11-torch-tweak-xpu-nightly'" },
-    { name = "networkx", version = "3.6.1", source = { registry = "https://download.pytorch.org/whl/xpu" }, marker = "(python_full_version < '3.12' and extra == 'group-11-torch-tweak-xpu-nightly') or (extra == 'extra-11-torch-tweak-xpu' and extra == 'group-11-torch-tweak-xpu-nightly') or (extra == 'group-11-torch-tweak-xpu-nightly' and extra == 'group-11-torch-tweak-xpu-stable')" },
-    { name = "networkx", version = "3.7", source = { registry = "https://download.pytorch.org/whl/xpu" }, marker = "(python_full_version >= '3.12' and extra == 'group-11-torch-tweak-xpu-nightly') or (extra == 'extra-11-torch-tweak-xpu' and extra == 'group-11-torch-tweak-xpu-nightly') or (extra == 'group-11-torch-tweak-xpu-nightly' and extra == 'group-11-torch-tweak-xpu-stable')" },
-    { name = "oneccl", marker = "extra == 'group-11-torch-tweak-xpu-nightly'" },
-    { name = "oneccl-devel", marker = "extra == 'group-11-torch-tweak-xpu-nightly'" },
-    { name = "onemkl-license", marker = "extra == 'group-11-torch-tweak-xpu-nightly'" },
-    { name = "onemkl-sycl-blas", marker = "extra == 'group-11-torch-tweak-xpu-nightly'" },
-    { name = "onemkl-sycl-dft", marker = "extra == 'group-11-torch-tweak-xpu-nightly'" },
-    { name = "onemkl-sycl-lapack", marker = "extra == 'group-11-torch-tweak-xpu-nightly'" },
-    { name = "onemkl-sycl-rng", marker = "extra == 'group-11-torch-tweak-xpu-nightly'" },
-    { name = "onemkl-sycl-sparse", marker = "extra == 'group-11-torch-tweak-xpu-nightly'" },
-    { name = "pyzes", marker = "extra == 'group-11-torch-tweak-xpu-nightly'" },
-    { name = "setuptools", marker = "extra == 'group-11-torch-tweak-xpu-nightly'" },
-    { name = "sympy", marker = "extra == 'group-11-torch-tweak-xpu-nightly'" },
-    { name = "tbb", marker = "extra == 'group-11-torch-tweak-xpu-nightly'" },
-    { name = "tcmlib", marker = "extra == 'group-11-torch-tweak-xpu-nightly'" },
-    { name = "triton-xpu", version = "3.9.0+gitb6f7ac74", source = { registry = "https://download.pytorch.org/whl/nightly/xpu" }, marker = "(python_full_version < '3.16' and extra == 'group-11-torch-tweak-xpu-nightly') or (extra == 'extra-11-torch-tweak-xpu' and extra == 'group-11-torch-tweak-xpu-nightly') or (extra == 'group-11-torch-tweak-xpu-nightly' and extra == 'group-11-torch-tweak-xpu-stable')" },
-    { name = "typing-extensions", marker = "extra == 'group-11-torch-tweak-xpu-nightly'" },
-    { name = "umf", marker = "extra == 'group-11-torch-tweak-xpu-nightly'" },
+    { name = "dpcpp-cpp-rt", marker = "extra == 'group-11-torch-tweak-xpu-nightly' or (extra == 'extra-11-torch-tweak-xpu' and extra == 'group-11-torch-tweak-cpu') or (extra == 'group-11-torch-tweak-cpu' and extra == 'group-11-torch-tweak-xpu-stable')" },
+    { name = "filelock", marker = "extra == 'group-11-torch-tweak-xpu-nightly' or (extra == 'extra-11-torch-tweak-xpu' and extra == 'group-11-torch-tweak-cpu') or (extra == 'group-11-torch-tweak-cpu' and extra == 'group-11-torch-tweak-xpu-stable')" },
+    { name = "fsspec", marker = "extra == 'group-11-torch-tweak-xpu-nightly' or (extra == 'extra-11-torch-tweak-xpu' and extra == 'group-11-torch-tweak-cpu') or (extra == 'group-11-torch-tweak-cpu' and extra == 'group-11-torch-tweak-xpu-stable')" },
+    { name = "impi-rt", marker = "extra == 'group-11-torch-tweak-xpu-nightly' or (extra == 'extra-11-torch-tweak-xpu' and extra == 'group-11-torch-tweak-cpu') or (extra == 'group-11-torch-tweak-cpu' and extra == 'group-11-torch-tweak-xpu-stable')" },
+    { name = "intel-cmplr-lib-rt", marker = "extra == 'group-11-torch-tweak-xpu-nightly' or (extra == 'extra-11-torch-tweak-xpu' and extra == 'group-11-torch-tweak-cpu') or (extra == 'group-11-torch-tweak-cpu' and extra == 'group-11-torch-tweak-xpu-stable')" },
+    { name = "intel-cmplr-lib-ur", marker = "extra == 'group-11-torch-tweak-xpu-nightly' or (extra == 'extra-11-torch-tweak-xpu' and extra == 'group-11-torch-tweak-cpu') or (extra == 'group-11-torch-tweak-cpu' and extra == 'group-11-torch-tweak-xpu-stable')" },
+    { name = "intel-cmplr-lic-rt", marker = "extra == 'group-11-torch-tweak-xpu-nightly' or (extra == 'extra-11-torch-tweak-xpu' and extra == 'group-11-torch-tweak-cpu') or (extra == 'group-11-torch-tweak-cpu' and extra == 'group-11-torch-tweak-xpu-stable')" },
+    { name = "intel-opencl-rt", marker = "extra == 'group-11-torch-tweak-xpu-nightly' or (extra == 'extra-11-torch-tweak-xpu' and extra == 'group-11-torch-tweak-cpu') or (extra == 'group-11-torch-tweak-cpu' and extra == 'group-11-torch-tweak-xpu-stable')" },
+    { name = "intel-openmp", marker = "extra == 'group-11-torch-tweak-xpu-nightly' or (extra == 'extra-11-torch-tweak-xpu' and extra == 'group-11-torch-tweak-cpu') or (extra == 'group-11-torch-tweak-cpu' and extra == 'group-11-torch-tweak-xpu-stable')" },
+    { name = "intel-pti", marker = "extra == 'group-11-torch-tweak-xpu-nightly' or (extra == 'extra-11-torch-tweak-xpu' and extra == 'group-11-torch-tweak-cpu') or (extra == 'group-11-torch-tweak-cpu' and extra == 'group-11-torch-tweak-xpu-stable')" },
+    { name = "intel-sycl-rt", marker = "extra == 'group-11-torch-tweak-xpu-nightly' or (extra == 'extra-11-torch-tweak-xpu' and extra == 'group-11-torch-tweak-cpu') or (extra == 'group-11-torch-tweak-cpu' and extra == 'group-11-torch-tweak-xpu-stable')" },
+    { name = "jinja2", marker = "extra == 'group-11-torch-tweak-xpu-nightly' or (extra == 'extra-11-torch-tweak-xpu' and extra == 'group-11-torch-tweak-cpu') or (extra == 'group-11-torch-tweak-cpu' and extra == 'group-11-torch-tweak-xpu-stable')" },
+    { name = "mkl", marker = "extra == 'group-11-torch-tweak-xpu-nightly' or (extra == 'extra-11-torch-tweak-xpu' and extra == 'group-11-torch-tweak-cpu') or (extra == 'group-11-torch-tweak-cpu' and extra == 'group-11-torch-tweak-xpu-stable')" },
+    { name = "networkx", version = "3.6.1", source = { registry = "https://download.pytorch.org/whl/xpu" }, marker = "(python_full_version < '3.12' and extra == 'group-11-torch-tweak-xpu-nightly') or (extra == 'extra-11-torch-tweak-xpu' and extra == 'group-11-torch-tweak-cpu') or (extra == 'extra-11-torch-tweak-xpu' and extra == 'group-11-torch-tweak-xpu-nightly') or (extra == 'group-11-torch-tweak-cpu' and extra == 'group-11-torch-tweak-xpu-nightly') or (extra == 'group-11-torch-tweak-cpu' and extra == 'group-11-torch-tweak-xpu-stable') or (extra == 'group-11-torch-tweak-xpu-nightly' and extra == 'group-11-torch-tweak-xpu-stable')" },
+    { name = "networkx", version = "3.7", source = { registry = "https://download.pytorch.org/whl/xpu" }, marker = "(python_full_version >= '3.12' and extra == 'group-11-torch-tweak-xpu-nightly') or (extra == 'extra-11-torch-tweak-xpu' and extra == 'group-11-torch-tweak-cpu') or (extra == 'extra-11-torch-tweak-xpu' and extra == 'group-11-torch-tweak-xpu-nightly') or (extra == 'group-11-torch-tweak-cpu' and extra == 'group-11-torch-tweak-xpu-nightly') or (extra == 'group-11-torch-tweak-cpu' and extra == 'group-11-torch-tweak-xpu-stable') or (extra == 'group-11-torch-tweak-xpu-nightly' and extra == 'group-11-torch-tweak-xpu-stable')" },
+    { name = "oneccl", marker = "extra == 'group-11-torch-tweak-xpu-nightly' or (extra == 'extra-11-torch-tweak-xpu' and extra == 'group-11-torch-tweak-cpu') or (extra == 'group-11-torch-tweak-cpu' and extra == 'group-11-torch-tweak-xpu-stable')" },
+    { name = "oneccl-devel", marker = "extra == 'group-11-torch-tweak-xpu-nightly' or (extra == 'extra-11-torch-tweak-xpu' and extra == 'group-11-torch-tweak-cpu') or (extra == 'group-11-torch-tweak-cpu' and extra == 'group-11-torch-tweak-xpu-stable')" },
+    { name = "onemkl-license", marker = "extra == 'group-11-torch-tweak-xpu-nightly' or (extra == 'extra-11-torch-tweak-xpu' and extra == 'group-11-torch-tweak-cpu') or (extra == 'group-11-torch-tweak-cpu' and extra == 'group-11-torch-tweak-xpu-stable')" },
+    { name = "onemkl-sycl-blas", marker = "extra == 'group-11-torch-tweak-xpu-nightly' or (extra == 'extra-11-torch-tweak-xpu' and extra == 'group-11-torch-tweak-cpu') or (extra == 'group-11-torch-tweak-cpu' and extra == 'group-11-torch-tweak-xpu-stable')" },
+    { name = "onemkl-sycl-dft", marker = "extra == 'group-11-torch-tweak-xpu-nightly' or (extra == 'extra-11-torch-tweak-xpu' and extra == 'group-11-torch-tweak-cpu') or (extra == 'group-11-torch-tweak-cpu' and extra == 'group-11-torch-tweak-xpu-stable')" },
+    { name = "onemkl-sycl-lapack", marker = "extra == 'group-11-torch-tweak-xpu-nightly' or (extra == 'extra-11-torch-tweak-xpu' and extra == 'group-11-torch-tweak-cpu') or (extra == 'group-11-torch-tweak-cpu' and extra == 'group-11-torch-tweak-xpu-stable')" },
+    { name = "onemkl-sycl-rng", marker = "extra == 'group-11-torch-tweak-xpu-nightly' or (extra == 'extra-11-torch-tweak-xpu' and extra == 'group-11-torch-tweak-cpu') or (extra == 'group-11-torch-tweak-cpu' and extra == 'group-11-torch-tweak-xpu-stable')" },
+    { name = "onemkl-sycl-sparse", marker = "extra == 'group-11-torch-tweak-xpu-nightly' or (extra == 'extra-11-torch-tweak-xpu' and extra == 'group-11-torch-tweak-cpu') or (extra == 'group-11-torch-tweak-cpu' and extra == 'group-11-torch-tweak-xpu-stable')" },
+    { name = "pyzes", marker = "extra == 'group-11-torch-tweak-xpu-nightly' or (extra == 'extra-11-torch-tweak-xpu' and extra == 'group-11-torch-tweak-cpu') or (extra == 'group-11-torch-tweak-cpu' and extra == 'group-11-torch-tweak-xpu-stable')" },
+    { name = "setuptools", marker = "extra == 'group-11-torch-tweak-xpu-nightly' or (extra == 'extra-11-torch-tweak-xpu' and extra == 'group-11-torch-tweak-cpu') or (extra == 'group-11-torch-tweak-cpu' and extra == 'group-11-torch-tweak-xpu-stable')" },
+    { name = "sympy", marker = "extra == 'group-11-torch-tweak-xpu-nightly' or (extra == 'extra-11-torch-tweak-xpu' and extra == 'group-11-torch-tweak-cpu') or (extra == 'group-11-torch-tweak-cpu' and extra == 'group-11-torch-tweak-xpu-stable')" },
+    { name = "tbb", marker = "extra == 'group-11-torch-tweak-xpu-nightly' or (extra == 'extra-11-torch-tweak-xpu' and extra == 'group-11-torch-tweak-cpu') or (extra == 'group-11-torch-tweak-cpu' and extra == 'group-11-torch-tweak-xpu-stable')" },
+    { name = "tcmlib", marker = "extra == 'group-11-torch-tweak-xpu-nightly' or (extra == 'extra-11-torch-tweak-xpu' and extra == 'group-11-torch-tweak-cpu') or (extra == 'group-11-torch-tweak-cpu' and extra == 'group-11-torch-tweak-xpu-stable')" },
+    { name = "triton-xpu", version = "3.9.0+gitb6f7ac74", source = { registry = "https://download.pytorch.org/whl/nightly/xpu" }, marker = "(python_full_version < '3.16' and extra == 'group-11-torch-tweak-xpu-nightly') or (extra == 'extra-11-torch-tweak-xpu' and extra == 'group-11-torch-tweak-cpu') or (extra == 'extra-11-torch-tweak-xpu' and extra == 'group-11-torch-tweak-xpu-nightly') or (extra == 'group-11-torch-tweak-cpu' and extra == 'group-11-torch-tweak-xpu-nightly') or (extra == 'group-11-torch-tweak-cpu' and extra == 'group-11-torch-tweak-xpu-stable') or (extra == 'group-11-torch-tweak-xpu-nightly' and extra == 'group-11-torch-tweak-xpu-stable')" },
+    { name = "typing-extensions", marker = "extra == 'group-11-torch-tweak-xpu-nightly' or (extra == 'extra-11-torch-tweak-xpu' and extra == 'group-11-torch-tweak-cpu') or (extra == 'group-11-torch-tweak-cpu' and extra == 'group-11-torch-tweak-xpu-stable')" },
+    { name = "umf", marker = "extra == 'group-11-torch-tweak-xpu-nightly' or (extra == 'extra-11-torch-tweak-xpu' and extra == 'group-11-torch-tweak-cpu') or (extra == 'group-11-torch-tweak-cpu' and extra == 'group-11-torch-tweak-xpu-stable')" },
 ]
 wheels = [
     { url = "https://download-r2.pytorch.org/whl/nightly/xpu/torch-2.16.0.dev20261029%2Bxpu-cp311-cp311-manylinux_2_28_x86_64.whl", upload-time = "2026-10-29T11:32:41Z" },
@@ -1843,6 +1883,9 @@ coverage = [
     { name = "coverage" },
     { name = "diff-cover" },
 ]
+cpu = [
+    { name = "torch", version = "2.15.0+cpu", source = { registry = "https://download.pytorch.org/whl/cpu" } },
+]
 xpu-nightly = [
     { name = "torch", version = "2.16.0.dev20261029+xpu", source = { registry = "https://download.pytorch.org/whl/nightly/xpu" } },
     { name = "triton-xpu", version = "3.9.0+gitb6f7ac74", source = { registry = "https://download.pytorch.org/whl/nightly/xpu" } },
@@ -1916,6 +1959,7 @@ coverage = [
     { name = "coverage", specifier = ">=7.17.0" },
     { name = "diff-cover", specifier = ">=11.0.0" },
 ]
+cpu = [{ name = "torch", specifier = ">=2.13.0", index = "https://download.pytorch.org/whl/cpu", conflict = { package = "torch-tweak", group = "cpu" } }]
 xpu-nightly = [
     { name = "torch", specifier = ">=2.13.0", index = "https://download.pytorch.org/whl/nightly/xpu", conflict = { package = "torch-tweak", group = "xpu-nightly" } },
     { name = "triton-xpu", index = "https://download.pytorch.org/whl/nightly/xpu", conflict = { package = "torch-tweak", group = "xpu-nightly" } },
@@ -1938,8 +1982,9 @@ dependencies = [
     { name = "numpy", version = "2.4.6", source = { registry = "https://download.pytorch.org/whl/xpu" }, marker = "python_full_version < '3.12'" },
     { name = "numpy", version = "2.5.4", source = { registry = "https://download.pytorch.org/whl/xpu" }, marker = "python_full_version >= '3.12'" },
     { name = "pillow" },
-    { name = "torch", version = "2.15.0+xpu", source = { registry = "https://download.pytorch.org/whl/xpu" }, marker = "extra == 'extra-11-torch-tweak-xpu' or extra != 'group-11-torch-tweak-xpu-nightly' or extra == 'group-11-torch-tweak-xpu-stable'" },
-    { name = "torch", version = "2.16.0.dev20261029+xpu", source = { registry = "https://download.pytorch.org/whl/nightly/xpu" }, marker = "extra == 'group-11-torch-tweak-xpu-nightly'" },
+    { name = "torch", version = "2.15.0+cpu", source = { registry = "https://download.pytorch.org/whl/cpu" }, marker = "extra == 'group-11-torch-tweak-cpu' or (extra == 'extra-11-torch-tweak-xpu' and extra == 'group-11-torch-tweak-xpu-nightly') or (extra == 'group-11-torch-tweak-xpu-nightly' and extra == 'group-11-torch-tweak-xpu-stable') or (extra != 'extra-11-torch-tweak-xpu' and extra != 'group-11-torch-tweak-xpu-nightly' and extra != 'group-11-torch-tweak-xpu-stable')" },
+    { name = "torch", version = "2.15.0+xpu", source = { registry = "https://download.pytorch.org/whl/xpu" }, marker = "extra == 'extra-11-torch-tweak-xpu' or extra == 'group-11-torch-tweak-xpu-stable' or (extra == 'group-11-torch-tweak-cpu' and extra == 'group-11-torch-tweak-xpu-nightly')" },
+    { name = "torch", version = "2.16.0.dev20261029+xpu", source = { registry = "https://download.pytorch.org/whl/nightly/xpu" }, marker = "extra == 'group-11-torch-tweak-xpu-nightly' or (extra == 'extra-11-torch-tweak-xpu' and extra == 'group-11-torch-tweak-cpu') or (extra == 'group-11-torch-tweak-cpu' and extra == 'group-11-torch-tweak-xpu-stable')" },
 ]
 wheels = [
     { url = "https://download-r2.pytorch.org/whl/xpu/torchvision-0.29.2%2Bxpu-py3-none-manylinux_2_28_x86_64.whl", hash = "sha256:b15295f0395380f1c460315e116548afb66e1ddaaa5ee2862cccbdcd119b8c7b", upload-time = "2026-10-28T14:19:14Z" },
@@ -1986,7 +2031,7 @@ resolution-markers = [
     "python_full_version < '3.11.5' and platform_machine == 'x86_64' and sys_platform == 'linux'",
 ]
 dependencies = [
-    { name = "pyelftools", marker = "extra == 'extra-11-torch-tweak-xpu' or extra != 'group-11-torch-tweak-xpu-nightly' or extra == 'group-11-torch-tweak-xpu-stable'" },
+    { name = "pyelftools", marker = "extra == 'extra-11-torch-tweak-xpu' or extra == 'group-11-torch-tweak-xpu-stable' or (extra == 'group-11-torch-tweak-cpu' and extra == 'group-11-torch-tweak-xpu-nightly')" },
 ]
 wheels = [
     { url = "https://download-r2.pytorch.org/whl/triton_xpu-3.9.0-cp311-cp311-manylinux_2_27_x86_64.manylinux_2_28_x86_64.whl", hash = "sha256:56c2e96b0afe8e392e038aee3e2835106a547e5cc64cc88aa065a245d6eddb81", upload-time = "2026-10-28T11:49:30Z" },
@@ -2009,7 +2054,7 @@ resolution-markers = [
     "python_full_version < '3.11.5' and platform_machine == 'x86_64' and sys_platform == 'linux'",
 ]
 dependencies = [
-    { name = "pyelftools", marker = "extra == 'group-11-torch-tweak-xpu-nightly'" },
+    { name = "pyelftools", marker = "extra == 'group-11-torch-tweak-xpu-nightly' or (extra == 'extra-11-torch-tweak-xpu' and extra == 'group-11-torch-tweak-cpu') or (extra == 'group-11-torch-tweak-cpu' and extra == 'group-11-torch-tweak-xpu-stable')" },
 ]
 wheels = [
     { url = "https://download-r2.pytorch.org/whl/nightly/triton_xpu-3.9.0%2Bgitb6f7ac74-cp311-cp311-manylinux_2_27_x86_64.manylinux_2_28_x86_64.whl", upload-time = "2026-10-27T14:09:59Z" },
@@ -2067,7 +2112,7 @@ name = "umf"
 version = "1.1.0"
 source = { registry = "https://download.pytorch.org/whl/xpu" }
 dependencies = [
-    { name = "tcmlib" },
+    { name = "tcmlib", marker = "extra == 'extra-11-torch-tweak-xpu' or extra == 'group-11-torch-tweak-xpu-nightly' or extra == 'group-11-torch-tweak-xpu-stable'" },
 ]
 wheels = [
     { url = "https://files.pythonhosted.org/packages/c4/72/2e0182f4e6a727a15d0a8a99a82182a4f5bdec1a4f5767acfd2abdc72070/umf-1.1.0-py2.py3-none-manylinux_2_28_x86_64.whl", hash = "sha256:567152c5ee6b8e16cc56b29a8a9a6b918de1febf89877f71ea2e8247ef39fc32" },
