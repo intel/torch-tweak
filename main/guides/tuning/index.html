@@ -2815,7 +2815,7 @@ NOTE: This file has been modified by Intel Corporation.
 <a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a>    <span class="n">dataset</span><span class="o">=</span><span class="n">input_data</span><span class="p">,</span>  <span class="c1"># Dataset to use for tuning (list, Dataset, DataLoaderFactory, or Tensor)</span>
 <a id="__codelineno-4-4" name="__codelineno-4-4" href="#__codelineno-4-4"></a>    <span class="n">batch_sizes</span><span class="o">=</span><span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">4</span><span class="p">,</span> <span class="mi">8</span><span class="p">],</span>  <span class="c1"># Optional: Multiple batch sizes. Defaults to [1, 2]</span>
 <a id="__codelineno-4-5" name="__codelineno-4-5" href="#__codelineno-4-5"></a>    <span class="n">max_num_batches_per_batch_size</span><span class="o">=</span><span class="mi">10</span><span class="p">,</span>  <span class="c1"># Max batches per size. Defaults to None (all)</span>
-<a id="__codelineno-4-6" name="__codelineno-4-6" href="#__codelineno-4-6"></a>    <span class="n">device</span><span class="o">=</span><span class="s2">"xpu"</span><span class="p">,</span>  <span class="c1"># Device for tuning. Defaults to "xpu:0"</span>
+<a id="__codelineno-4-6" name="__codelineno-4-6" href="#__codelineno-4-6"></a>    <span class="n">device</span><span class="o">=</span><span class="s2">"xpu"</span><span class="p">,</span>  <span class="c1"># Device for tuning. Defaults to "auto"</span>
 <a id="__codelineno-4-7" name="__codelineno-4-7" href="#__codelineno-4-7"></a>    <span class="n">dry_run</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>  <span class="c1"># Set True to test without tuning</span>
 <a id="__codelineno-4-8" name="__codelineno-4-8" href="#__codelineno-4-8"></a>    <span class="n">disable_external_logging</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>  <span class="c1"># Disable third-party logs</span>
 <a id="__codelineno-4-9" name="__codelineno-4-9" href="#__codelineno-4-9"></a>    <span class="n">clear_cache</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>  <span class="c1"># Clear Torch Tweak cache before tuning</span>
@@ -2827,7 +2827,9 @@ NOTE: This file has been modified by Intel Corporation.
 <li><strong>dataset</strong>: Dataset for tuning. It can be a list of samples, <code>torch.utils.data.Dataset</code>, <code>DataLoaderFactory</code>,  <code>Tensor</code> or sequence of tensors, dictionaries, strings</li>
 <li><strong>batch_sizes</strong>: List of batch sizes to tune against. If not specified, values [1, 2] will be used</li>
 <li><strong>max_num_batches_per_batch_size</strong>: Maximum number of batches per batch size. If None, all batches will be used</li>
-<li><strong>device</strong>: Device to use for tuning. Defaults to "xpu:0"</li>
+<li><strong>device</strong>: Device to use for tuning. Defaults to "auto", which you can override with <code>TORCH_TWEAK_DEVICE</code>.
+  "auto" selects "xpu:0" when PyTorch has XPU support or the system has an Intel GPU, and "cpu" otherwise.
+  When "auto" selects "xpu:0" and XPU is not available, <code>tune</code> raises an error. Pass "cpu" to tune on CPU anyway.</li>
 <li><strong>dry_run</strong>: If True, performs a dry run without actual tuning</li>
 <li><strong>disable_external_logging</strong>: Disable logging from external libraries</li>
 <li><strong>clear_cache</strong>: Clear Torch Tweak cache before tuning</li>

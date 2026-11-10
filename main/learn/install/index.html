@@ -525,6 +525,23 @@
     </span>
   </a>
   
+    <nav class="md-nav" aria-label="pip">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#cpu-only" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        CPU only
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
 </li>
       
         <li class="md-nav__item">
@@ -546,6 +563,56 @@
       
     </span>
   </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#common-issues" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Common Issues
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Common Issues">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#pytorch-is-installed-but-xpu-support-is-unavailable" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        PyTorch is installed but XPU support is unavailable
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#no-intel-gpu-is-available" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        No Intel GPU is available
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#importing-pytorch-fails" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Importing PyTorch fails
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
   
 </li>
       
@@ -2425,6 +2492,23 @@
     </span>
   </a>
   
+    <nav class="md-nav" aria-label="pip">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#cpu-only" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        CPU only
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
 </li>
       
         <li class="md-nav__item">
@@ -2446,6 +2530,56 @@
       
     </span>
   </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#common-issues" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Common Issues
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Common Issues">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#pytorch-is-installed-but-xpu-support-is-unavailable" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        PyTorch is installed but XPU support is unavailable
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#no-intel-gpu-is-available" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        No Intel GPU is available
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#importing-pytorch-fails" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Importing PyTorch fails
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
   
 </li>
       
@@ -2483,7 +2617,7 @@ models on Intel GPUs.</p>
 <ul>
 <li><strong>Operating System</strong>: Linux (Ubuntu 22.04+ recommended)</li>
 <li><strong>Python</strong>: Version <code>3.11</code> or newer</li>
-<li><strong>PyTorch</strong>: Version <code>2.13</code> or newer <strong>with XPU support</strong></li>
+<li><strong>PyTorch</strong>: Version <code>2.13</code> or newer. Tuning on an Intel GPU needs the <strong>XPU build</strong>. Tuning on CPU works with any build.</li>
 <li><strong>Intel GPU</strong>: Required for XPU-accelerated tuning</li>
 </ul>
 <h2 id="pip">pip</h2>
@@ -2505,25 +2639,40 @@ of torch-tweak we recommend uv (see uv commands below).</p>
 <a id="__codelineno-1-6" name="__codelineno-1-6" href="#__codelineno-1-6"></a><span class="w">    </span>-e<span class="w"> </span><span class="s2">".[xpu,dev]"</span>
 </code></pre></div>
 <p>Nightly stack of PyTorch XPU <strong>is not supported</strong> on the pip path. Use uv for nightly wheels.</p>
+<h3 id="cpu-only">CPU only</h3>
+<p>Without an Intel GPU, install the CPU build of PyTorch. It skips the GPU runtime packages:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>pip<span class="w"> </span>install<span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a><span class="w">    </span>--index-url<span class="w"> </span>https://download.pytorch.org/whl/cpu<span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a><span class="w">    </span>--extra-index-url<span class="w"> </span>https://pypi.org/simple<span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a><span class="w">    </span>torch<span class="w"> </span><span class="s2">"torch_tweak[torchao]"</span>
+</code></pre></div>
+<p>An existing CPU or CUDA build of PyTorch also works.
+On a machine without an Intel GPU, <code>tune()</code> picks the CPU.
+On a machine with an Intel GPU, <code>tune()</code> expects the XPU build. Pass <code>device="cpu"</code> to <code>tune()</code>, or set
+<code>TORCH_TWEAK_DEVICE=cpu</code>, to tune on CPU anyway.</p>
 <h2 id="uv-recommended-for-dev">uv (recommended for dev)</h2>
 <p><strong>Stable</strong> is the default stack; <strong>nightly</strong> is uv-only.
 Configuration: <code>[dependency-groups]</code>, optional extra <code>xpu</code>, and <code>[tool.uv]</code> indexes are defined in <code>pyproject.toml</code>. You cannot install both PyTorch stacks in one resolved environment
 (see <code>conflicts</code> in <code>pyproject.toml</code>), but you may either keep two venvs (recommended) or switch stacks in a single <code>.venv</code> with the correct <code>uv sync</code> flags each time.</p>
 <p><strong>Stable (default)</strong> uses the project environment in <code>.venv</code>:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>uv<span class="w"> </span>sync<span class="w"> </span>--extra<span class="w"> </span>dev
-<a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a>uv<span class="w"> </span>run<span class="w"> </span>pytest
+<div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>uv<span class="w"> </span>sync<span class="w"> </span>--extra<span class="w"> </span>dev
+<a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a>uv<span class="w"> </span>run<span class="w"> </span>pytest
+</code></pre></div>
+<p><strong>CPU (optional)</strong> installs the CPU build of PyTorch, like the CI job without an Intel GPU:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="nv">UV_PROJECT_ENVIRONMENT</span><span class="o">=</span>.venv-cpu<span class="w"> </span>uv<span class="w"> </span>sync<span class="w"> </span>--no-default-groups<span class="w"> </span>--group<span class="w"> </span>cpu<span class="w"> </span>--extra<span class="w"> </span>torchao<span class="w"> </span>--extra<span class="w"> </span>dev
+<a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a><span class="nv">UV_PROJECT_ENVIRONMENT</span><span class="o">=</span>.venv-cpu<span class="w"> </span>uv<span class="w"> </span>run<span class="w"> </span>pytest<span class="w"> </span>-m<span class="w"> </span><span class="s2">"not functional and not nightly"</span>
 </code></pre></div>
 <p><strong>Nightly (optional)</strong>. The recommended option is a separate environment, so stable and nightly stay installed side by side:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="nv">UV_PROJECT_ENVIRONMENT</span><span class="o">=</span>.venv-nightly<span class="w"> </span>uv<span class="w"> </span>sync<span class="w"> </span>--no-default-groups<span class="w"> </span>--group<span class="w"> </span>xpu-nightly<span class="w"> </span>--extra<span class="w"> </span>dev
-<a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a><span class="nv">UV_PROJECT_ENVIRONMENT</span><span class="o">=</span>.venv-nightly<span class="w"> </span>uv<span class="w"> </span>run<span class="w"> </span>pytest
+<div class="highlight"><pre><span></span><code><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a><span class="nv">UV_PROJECT_ENVIRONMENT</span><span class="o">=</span>.venv-nightly<span class="w"> </span>uv<span class="w"> </span>sync<span class="w"> </span>--no-default-groups<span class="w"> </span>--group<span class="w"> </span>xpu-nightly<span class="w"> </span>--extra<span class="w"> </span>dev
+<a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a><span class="nv">UV_PROJECT_ENVIRONMENT</span><span class="o">=</span>.venv-nightly<span class="w"> </span>uv<span class="w"> </span>run<span class="w"> </span>pytest
 </code></pre></div>
 <p><strong>Nightly in the same <code>.venv</code> as stable (optional)</strong>. <code>uv sync</code> reconciles the environment (removes packages not in the current resolution unless you pass <code>--inexact</code>).
 Switching reinstalls <code>torch</code> and related wheels (the cache speeds downloads, but it is not instant):</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="c1"># nightly</span>
-<a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a>uv<span class="w"> </span>sync<span class="w"> </span>--no-default-groups<span class="w"> </span>--group<span class="w"> </span>xpu-nightly<span class="w"> </span>--extra<span class="w"> </span>dev
-<a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a>
-<a id="__codelineno-4-4" name="__codelineno-4-4" href="#__codelineno-4-4"></a><span class="c1"># back to stable</span>
-<a id="__codelineno-4-5" name="__codelineno-4-5" href="#__codelineno-4-5"></a>uv<span class="w"> </span>sync<span class="w"> </span>--extra<span class="w"> </span>dev
+<div class="highlight"><pre><span></span><code><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a><span class="c1"># nightly</span>
+<a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a>uv<span class="w"> </span>sync<span class="w"> </span>--no-default-groups<span class="w"> </span>--group<span class="w"> </span>xpu-nightly<span class="w"> </span>--extra<span class="w"> </span>dev
+<a id="__codelineno-6-3" name="__codelineno-6-3" href="#__codelineno-6-3"></a>
+<a id="__codelineno-6-4" name="__codelineno-6-4" href="#__codelineno-6-4"></a><span class="c1"># back to stable</span>
+<a id="__codelineno-6-5" name="__codelineno-6-5" href="#__codelineno-6-5"></a>uv<span class="w"> </span>sync<span class="w"> </span>--extra<span class="w"> </span>dev
 </code></pre></div>
 <p>Rules:</p>
 <ol>
@@ -2533,13 +2682,32 @@ Switching reinstalls <code>torch</code> and related wheels (the cache speeds dow
 <li>Do not use <code>uv sync --all-extras</code> expecting both PyTorch stacks. Do not combine the <code>xpu</code> extra with the <code>xpu-nightly</code> group in one environment (<code>conflicts</code> in <code>pyproject.toml</code>).</li>
 </ol>
 <h2 id="installing-torch-tweak-only">Installing torch-tweak only</h2>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a>git<span class="w"> </span>clone<span class="w"> </span>https://github.com/intel/torch-tweak
-<a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a><span class="nb">cd</span><span class="w"> </span>torch-tweak
-<a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a>pip<span class="w"> </span>install<span class="w"> </span>.
+<div class="highlight"><pre><span></span><code><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a>git<span class="w"> </span>clone<span class="w"> </span>https://github.com/intel/torch-tweak
+<a id="__codelineno-7-2" name="__codelineno-7-2" href="#__codelineno-7-2"></a><span class="nb">cd</span><span class="w"> </span>torch-tweak
+<a id="__codelineno-7-3" name="__codelineno-7-3" href="#__codelineno-7-3"></a>pip<span class="w"> </span>install<span class="w"> </span>.
 </code></pre></div>
 <p><code>pip install .</code> or <code>pip install -e .</code> installs <strong>torch-tweak only</strong> (no <code>torch</code>). Use the pip or uv commands above for a full stack.</p>
 <p>The TorchAO backend needs the <code>torchao</code> extra.
 <code>torch_tweak[xpu]</code> installs it.</p>
+<h2 id="common-issues">Common Issues</h2>
+<h3 id="pytorch-is-installed-but-xpu-support-is-unavailable">PyTorch is installed but XPU support is unavailable</h3>
+<p>A CPU or CUDA build of PyTorch cannot use an Intel GPU.
+Check the build in the active Python environment:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a>python<span class="w"> </span>-c<span class="w"> </span><span class="s2">"import torch; print(torch.__version__, torch.version.xpu)"</span>
+</code></pre></div>
+<p>An XPU build prints a version ending in <code>+xpu</code> and a date. Any other build prints <code>None</code>.
+Reinstall torch from the XPU index:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a>python<span class="w"> </span>-m<span class="w"> </span>pip<span class="w"> </span>install<span class="w"> </span>--force-reinstall<span class="w"> </span>--index-url<span class="w"> </span>https://download.pytorch.org/whl/xpu<span class="w"> </span>torch
+</code></pre></div>
+<p>To keep the current build, tune on CPU with <code>device="cpu"</code>.</p>
+<h3 id="no-intel-gpu-is-available">No Intel GPU is available</h3>
+<p>Confirm that an Intel GPU is visible to the system and that its driver and runtime are functioning.
+Also check that your user or container has permission to access the device. On some Linux systems, for example,
+GPU access may require membership in the <code>render</code> group.</p>
+<h3 id="importing-pytorch-fails">Importing PyTorch fails</h3>
+<p>Make sure you are using the Python environment where PyTorch is installed. If importing PyTorch fails
+with a missing library or another dependency error, use the original traceback to troubleshoot that
+installation. Torch Tweak only reports PyTorch as missing when the <code>torch</code> module itself cannot be found.</p>
 
 
 
