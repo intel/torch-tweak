@@ -420,8 +420,18 @@ def test_dynamo_converter_succeeds_for_shared_batch_model(tmp_path, torch_device
     """Dynamo conversion must complete without error and produce valid IR.
     The converter should export the model to OpenVINO IR with a wide dynamic range
     and inference results must match PyTorch eager.
+    Binary-exact weights and inputs keep the comparison stable with BF16 inference.
     """
     model, graph_spec, samples = _shared_batch_artifacts
+    nn.init.constant_(model.proj_a.weight, 0.125)
+    nn.init.constant_(model.proj_a.bias, 0.25)
+    nn.init.constant_(model.proj_b.weight, -0.0625)
+    nn.init.constant_(model.proj_b.bias, -0.125)
+    bs = 2
+    a = torch.arange(bs * DIM, device=torch_device, dtype=torch.float32).reshape(bs, DIM) / 16
+    b = torch.arange(bs * DIM_B, device=torch_device, dtype=torch.float32).reshape(bs, DIM_B) / 32
+    ref = model(a, b)
+
     converter = OpenVINOModelConverter(output_dir=tmp_path / "ov", use_dynamo=True)
     xml_path = converter.convert(module=model, sample=samples[-1], graph_spec=graph_spec)
     assert xml_path.exists(), "Converter did not produce an IR file"
@@ -431,11 +441,6 @@ def test_dynamo_converter_succeeds_for_shared_batch_model(tmp_path, torch_device
     backend = OpenVINOBackend(config=OpenVINOBackendConfig(use_dynamo=True))
     backend = backend.build(model, graph_spec=graph_spec, data=samples, device=torch_device, cache_dir=be_cache)
 
-    bs = 2
-    a = torch.rand(bs, DIM, device=torch_device)
-    b = torch.rand(bs, DIM_B, device=torch_device)
-    model = model.to(torch_device)
-    ref = model(a, b)
     ov_out = backend.infer(a, b)
 
     torch.testing.assert_close(ov_out, ref, rtol=2e-3, atol=2e-3)
