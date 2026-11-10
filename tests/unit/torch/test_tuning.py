@@ -15,12 +15,12 @@ from torch.utils.data import Dataset
 from tests.toy_backends import SleepBackend
 from tests.utilities.helpers import requires_xpu
 from torch_tweak.torch import tuning
-from torch_tweak.torch.config import DEFAULT_DEVICE
 from torch_tweak.torch.dataloader import DataLoaderFactory
 from torch_tweak.torch.module.tunable_module import ModuleState, TunableModule
 from torch_tweak.torch.module_registry import MODULE_REGISTRY
 from torch_tweak.torch.tune_strategy import OneBackendStrategy
 from torch_tweak.torch.tuning import LOG_FORMAT, tune
+from torch_tweak.torch.utils import xpu
 
 
 class DummyDataset(Dataset):
@@ -59,7 +59,7 @@ def test_tune(mocker, dry_run):
 
     # then
     assert mock_module.call_count > 0
-    mock_module.tune.assert_called_once_with(dry_run=dry_run, device=torch.device(DEFAULT_DEVICE))
+    mock_module.tune.assert_called_once_with(dry_run=dry_run, device=torch.device("xpu:0"))
 
     batch_size_counter = Counter()
     for args, _ in mock_module.call_args_list:
@@ -89,6 +89,23 @@ def test_tune_without_xpu_device_runs_on_torch_without_xpu_support(mocker, devic
     )
 
     tune(module, [torch.tensor([1.0, 2.0])], batch_sizes=[1], device=device)
+
+    torch.testing.assert_close(module(sample), eager, rtol=1e-4, atol=1e-5)
+
+
+def test_tune_by_default_runs_on_cpu_without_an_intel_gpu_or_an_xpu_build(mocker, tmp_path):
+    mocker.patch("torch.version.xpu", None)
+    mocker.patch.object(xpu, "DRM_DIR", tmp_path)
+    model = torch.nn.Linear(2, 1, bias=False)
+    sample = torch.tensor([[1.0, 2.0]])
+    eager = model(sample)
+    module = TunableModule(
+        model,
+        "auto-device",
+        strategy=OneBackendStrategy(SleepBackend()).enable_find_max_batch_size(False),
+    )
+
+    tune(module, [torch.tensor([1.0, 2.0])], batch_sizes=[1])
 
     torch.testing.assert_close(module(sample), eager, rtol=1e-4, atol=1e-5)
 

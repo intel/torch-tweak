@@ -56,7 +56,10 @@ pip install \
     torch "torch_tweak[torchao]"
 ```
 
-An existing CPU or CUDA build of PyTorch also works. Pass `device="cpu"` to `tune()`, or set `TORCH_TWEAK_DEVICE=cpu`.
+An existing CPU or CUDA build of PyTorch also works.
+On a machine without an Intel GPU, `tune()` picks the CPU.
+On a machine with an Intel GPU, `tune()` expects the XPU build. Pass `device="cpu"` to `tune()`, or set
+`TORCH_TWEAK_DEVICE=cpu`, to tune on CPU anyway.
 
 ## uv (recommended for dev)
 

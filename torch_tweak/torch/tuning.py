@@ -16,13 +16,13 @@ from torch_tweak.global_context import BATCH_SIZE_KEY, global_context
 from torch_tweak.torch.checkpoint.local_torch_storage import LocalTorchStorage
 from torch_tweak.torch.checkpoint.storage import Storage
 from torch_tweak.torch.checkpoint.torch_checkpoint import TorchCheckpoint
-from torch_tweak.torch.config import DEFAULT_DEVICE, torch_tweak_cache_dir
+from torch_tweak.torch.config import AUTO_DEVICE, DEFAULT_DEVICE, torch_tweak_cache_dir
 from torch_tweak.torch.dataloader import DataLoaderFactory, DatasetLike, samples_generator
 from torch_tweak.torch.module.tensor_spec import InfoLevel
 from torch_tweak.torch.module.tunable_module import ModuleState, TunableModule
 from torch_tweak.torch.module_registry import MODULE_REGISTRY
 from torch_tweak.torch.utils.device import get_device
-from torch_tweak.torch.utils.xpu import assert_is_available, synchronize
+from torch_tweak.torch.utils.xpu import assert_is_available, auto_device, synchronize
 from torch_tweak.utils.logging import libraries_logging, setup_logging
 from torch_tweak.utils.timer import Timer
 from torch_tweak.utils.trace import annotate
@@ -35,6 +35,8 @@ LOG_FORMAT = "%(asctime)s - %(levelname)s - %(message)s"
 def _validate_device(device: str | torch.device | None) -> torch.device | None:
     if device is None:
         return None
+    if device == AUTO_DEVICE:
+        return auto_device()
 
     device = get_device(device)
     if device.type == "xpu":
@@ -63,7 +65,9 @@ def tune(
         batch_sizes: The batch sizes to use for tuning. At least 2 different batch sizes are required for determining
             batch axis.
         max_num_batches_per_batch_size: The maximum number of batches to use for tuning per batch size.
-        device: The device to use for tuning.
+        device: The device to use for tuning. "auto" selects xpu:0 when PyTorch has XPU support or the system
+            has an Intel GPU, and cpu otherwise. It raises when xpu:0 is selected but XPU is not available.
+            None tunes each module on its own device.
         dry_run: If True, only dry run the tuning.
         disable_external_logging: If True, libraries logging will be suppressed.
         clear_cache: If True, the cache will be cleared before tuning.
