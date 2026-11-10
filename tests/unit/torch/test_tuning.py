@@ -13,6 +13,7 @@ import torch
 from torch.utils.data import Dataset
 
 from tests.toy_backends import SleepBackend
+from tests.utilities.helpers import requires_xpu
 from torch_tweak.torch import tuning
 from torch_tweak.torch.config import DEFAULT_DEVICE
 from torch_tweak.torch.dataloader import DataLoaderFactory
@@ -33,6 +34,7 @@ class DummyDataset(Dataset):
         return torch.randn(3, 32, 32)
 
 
+@requires_xpu
 @pytest.mark.parametrize("dry_run", [True, False])
 def test_tune(mocker, dry_run):
     # given
@@ -71,7 +73,24 @@ def test_tune_raises_when_torch_has_no_xpu_support(mocker):
     mocker.patch("torch.version.xpu", None)
 
     with pytest.raises(RuntimeError, match="has no XPU support"):
-        tune(Mock(), [torch.tensor([1.0])], batch_sizes=[1])
+        tune(Mock(), [torch.tensor([1.0])], batch_sizes=[1], device="xpu")
+
+
+@pytest.mark.parametrize("device", ["cpu", None])
+def test_tune_without_xpu_device_runs_on_torch_without_xpu_support(mocker, device):
+    mocker.patch("torch.version.xpu", None)
+    model = torch.nn.Linear(2, 1, bias=False)
+    sample = torch.tensor([[1.0, 2.0]])
+    eager = model(sample)
+    module = TunableModule(
+        model,
+        "cpu-only",
+        strategy=OneBackendStrategy(SleepBackend()).enable_find_max_batch_size(False),
+    )
+
+    tune(module, [torch.tensor([1.0, 2.0])], batch_sizes=[1], device=device)
+
+    torch.testing.assert_close(module(sample), eager, rtol=1e-4, atol=1e-5)
 
 
 @pytest.mark.parametrize("clear_cache", [True, False])
@@ -93,13 +112,14 @@ def test_tune_with_cache_clear(mocker, clear_cache):
         dataset,
         batch_sizes=batch_sizes,
         max_num_batches_per_batch_size=max_batches,
+        device="cpu",
         disable_external_logging=False,
         clear_cache=clear_cache,
     )
 
     # then
     assert mock_module.call_count > 0
-    mock_module.tune.assert_called_once_with(dry_run=False, device=torch.device(DEFAULT_DEVICE))
+    mock_module.tune.assert_called_once_with(dry_run=False, device=torch.device("cpu"))
 
     assert spy_clear_cache.call_count == (1 if clear_cache else 0)
 
@@ -111,7 +131,7 @@ def test_tune_with_cache_clear(mocker, clear_cache):
     assert batch_size_counter == Counter({1: max_batches, 2: max_batches, 4: max_batches})
 
 
-def test_tune_with_dataloader_factory(mocker):
+def test_tune_with_dataloader_factory(mocker, torch_device):
     # given
     mock_module = Mock()
     mock_module.backends = {}
@@ -122,13 +142,13 @@ def test_tune_with_dataloader_factory(mocker):
     mocker.patch("torch_tweak.torch.tuning._describe_module")
 
     # when
-    tune(mock_module, factory, batch_sizes=[2], disable_external_logging=False)
+    tune(mock_module, factory, batch_sizes=[2], device=torch_device, disable_external_logging=False)
 
     # then
     assert mock_module.call_count > 0
 
 
-def test_tune_log_level(mocker):
+def test_tune_log_level(mocker, torch_device):
     """Test that the tune function correctly responds to global logging level."""
     # given
     mock_func = Mock()
@@ -147,7 +167,7 @@ def test_tune_log_level(mocker):
     try:
         # Test 1: Global logging level DEBUG - should enable GPU memory logging
         root_logger.setLevel(logging.DEBUG)
-        tune(mock_func, dataset, batch_sizes=[1])
+        tune(mock_func, dataset, batch_sizes=[1], device=torch_device)
         spy_setup_logging.assert_called_once_with(format_string=LOG_FORMAT)
         mock_enable_gpu_memory_logging.assert_called_once()
 
@@ -157,7 +177,7 @@ def test_tune_log_level(mocker):
 
         # Test 2: Global logging level WARNING - should NOT enable GPU memory logging
         root_logger.setLevel(logging.WARNING)
-        tune(mock_func, dataset, batch_sizes=[1])
+        tune(mock_func, dataset, batch_sizes=[1], device=torch_device)
         spy_setup_logging.assert_called_once_with(format_string=LOG_FORMAT)
         mock_enable_gpu_memory_logging.assert_not_called()
 
@@ -167,7 +187,7 @@ def test_tune_log_level(mocker):
 
         # Test 3: Global logging level INFO - should NOT enable GPU memory logging
         root_logger.setLevel(logging.INFO)
-        tune(mock_func, dataset, batch_sizes=[1])
+        tune(mock_func, dataset, batch_sizes=[1], device=torch_device)
         spy_setup_logging.assert_called_once_with(format_string=LOG_FORMAT)
         mock_enable_gpu_memory_logging.assert_not_called()
 
@@ -177,7 +197,7 @@ def test_tune_log_level(mocker):
 
         # Test 4: Global logging level ERROR - should NOT enable GPU memory logging
         root_logger.setLevel(logging.ERROR)
-        tune(mock_func, dataset, batch_sizes=[1])
+        tune(mock_func, dataset, batch_sizes=[1], device=torch_device)
         spy_setup_logging.assert_called_once_with(format_string=LOG_FORMAT)
         mock_enable_gpu_memory_logging.assert_not_called()
 
@@ -186,7 +206,7 @@ def test_tune_log_level(mocker):
         root_logger.setLevel(original_level)
 
 
-def test_tune_disable_external_logging(mocker):
+def test_tune_disable_external_logging(mocker, torch_device):
     """Test that the tune function correctly responds to disable_external_logging parameter."""
     # given
     mock_func = Mock()
@@ -197,7 +217,7 @@ def test_tune_disable_external_logging(mocker):
     mocker.patch.dict(MODULE_REGISTRY.modules, {}, clear=True)
 
     # when
-    tune(mock_func, dataset, batch_sizes=[1], disable_external_logging=False)
+    tune(mock_func, dataset, batch_sizes=[1], device=torch_device, disable_external_logging=False)
 
     # then
     spy_libraries_logging.assert_called_once_with(False)
@@ -206,7 +226,7 @@ def test_tune_disable_external_logging(mocker):
     spy_libraries_logging.reset_mock()
 
     # when
-    tune(mock_func, dataset, batch_sizes=[1], disable_external_logging=True)
+    tune(mock_func, dataset, batch_sizes=[1], device=torch_device, disable_external_logging=True)
 
     # then
     spy_libraries_logging.assert_called_once_with(True)
