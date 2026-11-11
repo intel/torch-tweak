@@ -9,12 +9,14 @@ import timm
 import torch
 
 import torch_tweak.torch as tt
+from tests.utilities.helpers import requires_leo
 from torch_tweak.torch.backend import OpenVINOBackend, OpenVINOBackendConfig
 from torch_tweak.torch.module import TunableModule
 from torch_tweak.torch.tune_strategy import OneBackendStrategy
 
 
 @pytest.mark.functional
+@requires_leo
 @pytest.mark.parametrize("use_dynamo", [False, True], ids=["ovc", "dynamo"])
 def test_openvino(use_dynamo: bool):
     model = timm.create_model("resnet18").xpu().eval()

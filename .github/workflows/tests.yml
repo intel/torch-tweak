@@ -47,6 +47,8 @@ jobs:
       # Shared by tests and examples (which run in their own venvs), so all data lands in one place.
       COVERAGE_RCFILE: ${{ github.workspace }}/torch-tweak/pyproject.toml
       COVERAGE_FILE: ${{ github.workspace }}/torch-tweak/.coverage
+      # OpenVINO on XPU needs OpenCL on Level Zero, which Battlemage enables only with EnableLEO=1.
+      EnableLEO: "1"
 
     steps:
       - name: Checkout Torch Tweak repository

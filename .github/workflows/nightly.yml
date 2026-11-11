@@ -30,6 +30,9 @@ jobs:
         --device=/dev/dri
       volumes:
         - ${{ github.workspace }}:${{ github.workspace }}
+    env:
+      # OpenVINO on XPU needs OpenCL on Level Zero, which Battlemage enables only with EnableLEO=1.
+      EnableLEO: "1"
 
     steps:
       - name: Checkout Torch Tweak repository
