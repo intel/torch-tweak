@@ -139,6 +139,24 @@ def test_openvino_backend_build_and_infer(model, sample_data, tmp_path, torch_de
     backend.deactivate()
 
 
+def _scaling(factor: float) -> nn.Linear:
+    layer = nn.Linear(2, 2, bias=False)
+    with torch.no_grad():
+        layer.weight.copy_(factor * torch.eye(2))
+    return layer
+
+
+def test_openvino_backend_with_reuse_ir_compiles_the_ir_already_in_its_directory(tmp_path, torch_device):
+    sample = ((torch.tensor([[1.0, 2.0]], device=torch_device),), {})
+    config = OpenVINOBackendConfig(reuse_ir=True)
+    backend_build(OpenVINOBackend(config), _scaling(2.0), [sample], tmp_path, torch_device)
+    backend = backend_build(OpenVINOBackend(config), _scaling(3.0), [sample], tmp_path, torch_device)
+
+    actual = backend.infer(*sample[0])
+
+    torch.testing.assert_close(actual.cpu(), torch.tensor([[2.0, 4.0]]))
+
+
 def test_openvino_backend_serialization(model, sample_data, tmp_path, torch_device):
     backend = backend_build(
         OpenVINOBackend(OpenVINOBackendConfig(use_dynamo=False)), model, sample_data, tmp_path, torch_device
