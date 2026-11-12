@@ -111,20 +111,25 @@ jobs:
         id: summary
         env:
           BASELINE_LABEL: ${{ steps.baseline.outputs.label }}
-          FAIL_THRESHOLD_PARAM: ${{ inputs.event_name == 'pull_request' && '--fail-threshold 5' || '' }}
+          EVENT_NAME: ${{ inputs.event_name }}
+        shell: bash
         run: |
+          threshold_args=()
+          if [ "$EVENT_NAME" = 'pull_request' ]; then
+            threshold_args=(--fail-threshold 5)
+          fi
           python .github/scripts/coverage_summary.py \
             --current coverage.json \
             --baseline baseline/coverage.json \
             --baseline-label "${BASELINE_LABEL:-main}" \
             --diff-cover diff-cover.json \
             --diff-cover-markdown diff-cover.md \
-            ${FAIL_THRESHOLD_PARAM}
+            "${threshold_args[@]}"
 
           # Export value of the code coverage %, rounded up to 2 decimal places
-          export COV_OUT=$(python -c 'import json; print(round(json.load(open("coverage.json"))["totals"]["percent_covered"], 2))')
+          COV_OUT=$(python -c 'import json; print(round(json.load(open("coverage.json"))["totals"]["percent_covered"], 2))')
           echo "calculated coverage=${COV_OUT}\%"
-          echo "COV_OUT=$COV_OUT" >> $GITHUB_OUTPUT
+          echo "COV_OUT=$COV_OUT" >> "$GITHUB_OUTPUT"
 
       # Only update the badge on push (event is passed only for total coverage)
       - name: Update coverage badge

@@ -74,7 +74,7 @@ jobs:
       - name: Install Torch Tweak
         working-directory: torch-tweak
         run: |
-          git config --global --add safe.directory $GITHUB_WORKSPACE
+          git config --global --add safe.directory "$GITHUB_WORKSPACE"
 
           uv sync --extra xpu --extra dev
 

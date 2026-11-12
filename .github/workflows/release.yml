@@ -97,7 +97,7 @@ jobs:
           expected="$(printf '%s\n' \
             "torch_tweak-${version}-py3-none-any.whl" \
             "torch_tweak-${version}.tar.gz" | sort)"
-          actual="$(ls dist/core | sort)"
+          actual="$(find dist/core -mindepth 1 -maxdepth 1 -printf '%f\n' | sort)"
           if [ "${actual}" != "${expected}" ]; then
             echo "::error::dist/core does not match version ${version}."
             printf 'Expected:\n%s\nActual:\n%s\n' "${expected}" "${actual}"

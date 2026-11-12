@@ -90,13 +90,13 @@ jobs:
       - name: Create venv
         run: |
           python3 -m venv /opt/venv
-          echo "/opt/venv/bin" >> $GITHUB_PATH
+          echo "/opt/venv/bin" >> "$GITHUB_PATH"
 
       # Install xpu (important!) and dev dependencies (they include tests' deps plus extras for CI).
       - name: Install Torch Tweak
         working-directory: torch-tweak
         run: |
-          git config --global --add safe.directory $GITHUB_WORKSPACE
+          git config --global --add safe.directory "$GITHUB_WORKSPACE"
 
           python3 -m pip install \
             --index-url https://download.pytorch.org/whl/xpu \
