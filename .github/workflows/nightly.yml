@@ -1,5 +1,8 @@
 name: Nightly Tests
 
+# Runs long-running nightly tests on GPU configuration
+# and self-hosted runner health check.
+
 on:
   schedule:
     - cron: "0 22 * * 1-5"  # 22:00 UTC, Monday-Friday

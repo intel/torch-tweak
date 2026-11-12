@@ -1,6 +1,7 @@
 name: Deploy docs
 
-# The strict docs build is checked in reusable_checks.yml; this workflow only deploys.
+# Deploy documentation to GitHub Pages.
+# The strict docs build is checked in reusable_checks.yml (per PR).
 
 on:
   workflow_dispatch:

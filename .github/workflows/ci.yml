@@ -1,11 +1,11 @@
 name: CI
 
 # Run all checks and tests for Torch Tweak.
-# Tests (on BMG card) are only run if relevant changes are detected
-# and all checks have passed.
+# Run workflow on push to main and on pull requests.
+# All tests (on GPU card and on CPU) are run if relevant changes
+# are detected, and all checks have passed.
 
 on:
-  workflow_dispatch:
   push:
     branches: [main]
   pull_request:
@@ -35,54 +35,16 @@ jobs:
     uses: ./.github/workflows/reusable_packaging.yml
 
   tests:
-    name: Tests
+    name: Tests (GPU)
     needs: checks
     # run only on upstream; forks won't have the HW
-    if: github.repository == 'intel/torch-tweak' && needs.checks.outputs.run_tests == 'true'
-    uses: ./.github/workflows/reusable_tests.yml
+    if: github.repository == 'intel/torch-tweak' && needs.checks.outputs.run_gpu_tests == 'true'
+    uses: ./.github/workflows/reusable_tests_gpu.yml
 
   tests-cpu:
     name: Tests (CPU)
-    needs: lint
-    runs-on: ${{ github.repository_owner == 'intel' && 'intel-ubuntu-latest' || 'ubuntu-latest' }}
-    timeout-minutes: 30
-    env:
-      COVERAGE_RCFILE: ${{ github.workspace }}/torch-tweak/pyproject.toml
-      COVERAGE_FILE: ${{ github.workspace }}/torch-tweak/.coverage
-
-    steps:
-      - name: Checkout Torch Tweak repository
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          path: torch-tweak
-
-      # Same Python as the XPU job, see the TODO there.
-      - name: Set up Python
-        uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
-        with:
-          python-version: "3.14"
-
-      - name: Set up uv
-        uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2 # v10.3.3
-
-      - name: Install Torch Tweak with the CPU build of PyTorch
-        working-directory: torch-tweak
-        run: uv sync --locked --no-default-groups --group cpu --extra torchao --extra dev
-
-      - name: Run unit tests and library doctests
-        env:
-          TORCH_TWEAK_TESTS_LOG_LEVEL: DEBUG
-        working-directory: torch-tweak
-        run: uv run --no-sync coverage run -m pytest -v -m "not functional and not nightly"
-
-      - name: Upload coverage data
-        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
-        with:
-          name: coverage-data-cpu
-          path: torch-tweak/.coverage.*
-          include-hidden-files: true
-          if-no-files-found: error
-          retention-days: 7
+    needs: checks
+    uses: ./.github/workflows/reusable_tests_cpu.yml
 
   coverage:
     name: Coverage
@@ -93,3 +55,7 @@ jobs:
       actions: read
     secrets:
       BB_GIST_TOKEN: ${{ secrets.BB_GIST_TOKEN }}
+    uses: ./.github/workflows/reusable_coverage.yml
+    with:
+      event_name: ${{ github.event_name }}
+      pull_request_base_sha: ${{ github.event.pull_request.base.sha }}

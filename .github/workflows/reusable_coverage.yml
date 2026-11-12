@@ -1,10 +1,19 @@
 name: Coverage
 
-# Combines the coverage data uploaded by reusable_tests.yml in the same run,
+# Combines the coverage data uploaded by reusable_tests_gpu.yml and reusable_tests_cpu.yml,
 # compares it with main and updates the badge on push.
 
 on:
   workflow_call:
+    inputs:
+      event_name:
+        description: Event that triggered the caller workflow
+        required: true
+        type: string
+      pull_request_base_sha:
+        description: Base commit SHA for pull request coverage
+        required: false
+        type: string
     secrets:
       BB_GIST_TOKEN:
         required: false
@@ -88,9 +97,9 @@ jobs:
           fi
 
       - name: Measure coverage of changed lines
-        if: github.event_name == 'pull_request'
+        if: inputs.event_name == 'pull_request'
         env:
-          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          BASE_SHA: ${{ inputs.pull_request_base_sha }}
         run: |
           uv run --no-sync diff-cover coverage.xml \
             --compare-branch "$BASE_SHA" \
@@ -102,7 +111,7 @@ jobs:
         id: summary
         env:
           BASELINE_LABEL: ${{ steps.baseline.outputs.label }}
-          FAIL_THRESHOLD_PARAM: ${{ github.event_name == 'pull_request' && '--fail-threshold 5' || '' }}
+          FAIL_THRESHOLD_PARAM: ${{ inputs.event_name == 'pull_request' && '--fail-threshold 5' || '' }}
         run: |
           python .github/scripts/coverage_summary.py \
             --current coverage.json \
@@ -119,7 +128,7 @@ jobs:
 
       # Only update the badge on push (event is passed only for total coverage)
       - name: Update coverage badge
-        if: ${{ success() && github.event_name == 'push' }}
+        if: ${{ success() && inputs.event_name == 'push' }}
         uses: Schneegans/dynamic-badges-action@28b0fa8bdeb46170ac397105ece0c1fe58f68910 # v1.9.0
         with:
           auth: ${{ secrets.BB_GIST_TOKEN }}

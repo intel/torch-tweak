@@ -6,9 +6,9 @@ name: Checks
 on:
   workflow_call:
     outputs:
-      run_tests:
+      run_gpu_tests:
         description: "'true' if changed files need the GPU tests"
-        value: ${{ jobs.checks.outputs.run_tests }}
+        value: ${{ jobs.checks.outputs.run_gpu_tests }}
 
 permissions:
   contents: read
@@ -23,7 +23,7 @@ jobs:
       security-events: write
       actions: read
     outputs:
-      run_tests: ${{ steps.changes.outputs.run_tests }}
+      run_gpu_tests: ${{ steps.changes.outputs.run_gpu_tests }}
 
     steps:
       - name: Checkout Torch Tweak repository
@@ -103,10 +103,10 @@ jobs:
               || ! changed="$(git diff --name-only "${BASE_SHA}" HEAD)"; then
             run=true
           elif printf '%s\n' "${changed}" | grep -Eq \
-              '^(torch_tweak/|examples/|tests/|pyproject\.toml$|conftest\.py$|uv\.lock$|\.github/workflows/(ci|reusable_tests|reusable_coverage)\.yml$|\.github/scripts/coverage_summary\.py$)'; then
+              '^(torch_tweak/|examples/|tests/|pyproject\.toml$|conftest\.py$|uv\.lock$|\.github/workflows/(ci|reusable_tests_gpu|reusable_coverage)\.yml$|\.github/scripts/coverage_summary\.py$)'; then
             run=true
           else
             run=false
             echo "No relevant changes detected; skipping GPU tests."
           fi
-          echo "run_tests=${run}" >> "${GITHUB_OUTPUT}"
+          echo "run_gpu_tests=${run}" >> "${GITHUB_OUTPUT}"

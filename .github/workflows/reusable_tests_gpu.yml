@@ -1,6 +1,6 @@
-name: Tests
+name: Tests (GPU)
 
-# Unit, functional and example tests on the BMG GPU; uploads the coverage data.
+# Run unit and functional tests, and examples on the BMG GPU; uploads the coverage data.
 
 on:
   workflow_call:
@@ -10,7 +10,7 @@ permissions:
 
 jobs:
   tests:
-    name: Tests
+    name: Tests (GPU)
     runs-on: [BMG]
     timeout-minutes: 30
     container:
