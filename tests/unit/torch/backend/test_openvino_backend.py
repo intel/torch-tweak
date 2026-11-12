@@ -164,6 +164,20 @@ def test_openvino_backend_keeps_the_bf16_weights_of_an_xpu_module(tmp_path):
     torch.testing.assert_close(actual.cpu(), torch.full((1, 1024), 2.0))
 
 
+@requires_xpu
+def test_openvino_backend_without_dynamo_keeps_the_bf16_weights_of_an_xpu_module(tmp_path):
+    module = _Bfloat16Doubling()
+    sample = ((torch.ones(1, 1024, device="xpu"),), {})
+    graph_spec = _graph_spec(module, sample)
+    backend = OpenVINOBackend(OpenVINOBackendConfig(use_dynamo=False)).build(
+        module, graph_spec=graph_spec, data=[sample], device=torch.device("xpu"), cache_dir=tmp_path
+    )
+
+    actual = backend.infer(*sample[0])
+
+    torch.testing.assert_close(actual.cpu(), torch.full((1, 1024), 2.0))
+
+
 def test_openvino_backend_serialization(model, sample_data, tmp_path, torch_device):
     backend = backend_build(
         OpenVINOBackend(OpenVINOBackendConfig(use_dynamo=False)), model, sample_data, tmp_path, torch_device

@@ -10,6 +10,8 @@ SPDX-License-Identifier: Apache-2.0
 - feat (breaking): a module without a strategy is tuned with `tt.default_strategy(device)`.
   It measures every backend that runs on the device and keeps the fastest (#55)
 - fix (breaking): `profile` returns `ProfilingResult` with measured throughput per batch size (#64)
+- fix(openvino): bf16 and f8 weights of an XPU module keep their values in the OpenVINO IR.
+  Before, they could hold garbage and saving the model could crash (#85)
 
 ## 0.4.1
 
