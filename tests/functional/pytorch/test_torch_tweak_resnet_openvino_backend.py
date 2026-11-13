@@ -19,30 +19,27 @@ from torch_tweak.torch.tune_strategy import OneBackendStrategy
 @requires_leo
 @pytest.mark.parametrize("use_dynamo", [False, True], ids=["ovc", "dynamo"])
 def test_openvino(use_dynamo: bool):
+    torch.manual_seed(0)
     model = timm.create_model("resnet18").xpu().eval()
     samples = torch.randn((3, 224, 224), device="xpu")
+    batch_1 = samples.unsqueeze(0)
+    batch_10 = batch_1.expand(10, -1, -1, -1)
+    with torch.no_grad():
+        eager_1 = model(batch_1)
+        eager_10 = model(batch_10)
 
     backend = OpenVINOBackend(config=OpenVINOBackendConfig(use_dynamo=use_dynamo))
-    strategy = OneBackendStrategy(backend)
-    module = TunableModule(model, "test-resnet18", strategy=strategy)
-
-    batch_sizes = [1, 10]
-    tt.tune(module, samples, batch_sizes=batch_sizes)
+    module = TunableModule(model, "test-resnet18", strategy=OneBackendStrategy(backend))
+    tt.tune(module, samples, batch_sizes=[1, 10])
 
     with tempfile.TemporaryDirectory() as tmp_dir:
         output_path = Path(tmp_dir) / "test-resnet18.pt"
         tt.save(module, output_path)
+        loaded_model = tt.load(timm.create_model("resnet18").xpu().eval(), output_path)
 
-        new_model = timm.create_model("resnet18").xpu().eval()
-        loaded_model = tt.load(new_model, output_path)
-
-        for batch_size in batch_sizes:
-            batch = samples.unsqueeze(0).expand(batch_size, -1, -1, -1)
-            with torch.no_grad():
-                expected = module(batch)
-                output = loaded_model(batch)
-
-            torch.testing.assert_close(output, expected, rtol=1e-3, atol=2e-3)
+        with torch.no_grad():
+            torch.testing.assert_close(loaded_model(batch_1), eager_1, rtol=1e-3, atol=2e-3)
+            torch.testing.assert_close(loaded_model(batch_10), eager_10, rtol=1e-3, atol=2e-3)
 
 
 if __name__ == "__main__":
