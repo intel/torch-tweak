@@ -66,6 +66,13 @@ repos:
     - id: check-dependabot
     - id: check-github-workflows
 
+  - repo: https://github.com/Mateusz-Grzelinski/actionlint-py
+    rev: v1.7.12.25
+    hooks:
+      - id: actionlint
+        additional_dependencies:
+          - shellcheck-py==0.11.0.1
+
   # Strip output from Jupyter and IPython notebooks
   - repo: https://github.com/kynan/nbstripout
     rev: 0.9.1

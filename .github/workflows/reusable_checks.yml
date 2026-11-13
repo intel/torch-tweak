@@ -1,0 +1,112 @@
+name: Checks
+
+# Static checks (pre-commit, licenses, docs build, CodeQL), all on one runner.
+# Also tells the caller whether the GPU tests are needed.
+
+on:
+  workflow_call:
+    outputs:
+      run_gpu_tests:
+        description: "'true' if changed files need the GPU tests"
+        value: ${{ jobs.checks.outputs.run_gpu_tests }}
+
+permissions:
+  contents: read
+
+jobs:
+  checks:
+    name: Checks
+    runs-on: ${{ github.repository_owner == 'intel' && 'intel-ubuntu-latest' || 'ubuntu-latest' }}
+    timeout-minutes: 30
+    permissions:
+      # CodeQL results upload.
+      security-events: write
+      actions: read
+    outputs:
+      run_gpu_tests: ${{ steps.changes.outputs.run_gpu_tests }}
+
+    steps:
+      - name: Checkout Torch Tweak repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+
+      # TODO: Change back to "3.x" once openvino releases 3.15 version
+      # ref. https://github.com/openvinotoolkit/openvino/issues/38721
+      - name: Set up Python
+        uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        with:
+          python-version: "3.14"
+
+      - name: Set up uv
+        uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2 # v10.3.3
+
+      # dev includes all deps (including pre-commit);
+      # we also build tt itself as it is needed for the API docs.
+      - name: Install dev dependencies
+        run: uv sync --extra dev --no-default-groups
+
+      - name: Check tool version pins
+        run: |
+          # Make sure the ruff version pinned in pyproject.toml matches the one in .pre-commit-config.yaml
+          ruff_pin=$(python3 -c 'import pathlib,re; m=re.search(r"ruff==([0-9.]+)", pathlib.Path("pyproject.toml").read_text()); print(m.group(1) if m else "")')
+          ruff_rev=$(python3 -c 'import pathlib,re; m=re.search(r"astral-sh/ruff-pre-commit.*?rev:\s*v(\S+)", pathlib.Path(".pre-commit-config.yaml").read_text(), re.S); print(m.group(1) if m else "")')
+          if [ -z "$ruff_pin" ] || [ "$ruff_pin" != "$ruff_rev" ]; then
+            echo "ruff pin '${ruff_pin:-missing}' != pre-commit rev '${ruff_rev:-missing}'"
+            exit 1
+          fi
+
+      - name: Run pre-commit
+        env:
+          # Branch guard; irrelevant when validating files in CI (e.g. push to main).
+          SKIP: no-commit-to-branch
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.sha }}
+        run: |
+          if [ -n "$BASE_SHA" ]; then
+            uv run --no-sync pre-commit run --from-ref "$BASE_SHA" --to-ref "$HEAD_SHA" --show-diff-on-failure
+          else
+            uv run --no-sync pre-commit run --all-files --show-diff-on-failure
+          fi
+
+      # Rules are relative to the PR base, so there is nothing to check on push.
+      - name: Run license checker
+        if: github.event_name == 'pull_request'
+        run: |
+          git fetch origin "${GITHUB_BASE_REF}"
+          TORCH_TWEAK_LICENSE_CHECKER_BASE_REF="${GITHUB_BASE_REF}" python .github/scripts/check_licenses.py
+
+      - name: Build docs
+        run: uv run --no-sync properdocs build --strict
+
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@9b3254085494b55a0f7c4c2b3d2d52cc712ce370 # v4.39.1
+        with:
+          languages: actions, python
+          # Outputs of the previous steps.
+          config: |
+            paths-ignore:
+              - .venv
+              - site
+
+      - name: Perform CodeQL analysis
+        uses: github/codeql-action/analyze@9b3254085494b55a0f7c4c2b3d2d52cc712ce370 # v4.39.1
+
+      - name: Detect changes that need GPU tests
+        id: changes
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          BASE_SHA: ${{ github.event.pull_request.base.sha || github.event.before }}
+        run: |
+          if [ -z "${BASE_SHA}" ] \
+              || [ "${BASE_SHA}" = "0000000000000000000000000000000000000000" ] \
+              || ! changed="$(git diff --name-only "${BASE_SHA}" HEAD)"; then
+            run=true
+          elif printf '%s\n' "${changed}" | grep -Eq \
+              '^(torch_tweak/|examples/|tests/|pyproject\.toml$|conftest\.py$|uv\.lock$|\.github/workflows/(ci|reusable_tests_gpu|reusable_coverage)\.yml$|\.github/scripts/coverage_summary\.py$)'; then
+            run=true
+          else
+            run=false
+            echo "No relevant changes detected; skipping GPU tests."
+          fi
+          echo "run_gpu_tests=${run}" >> "${GITHUB_OUTPUT}"
