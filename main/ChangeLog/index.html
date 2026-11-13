@@ -2458,6 +2458,8 @@ SPDX-License-Identifier: Apache-2.0
 <li>feat (breaking): a module without a strategy is tuned with <code>tt.default_strategy(device)</code>.
   It measures every backend that runs on the device and keeps the fastest (#55)</li>
 <li>fix (breaking): <code>profile</code> returns <code>ProfilingResult</code> with measured throughput per batch size (#64)</li>
+<li>fix(openvino): inputs that compilation renames are fed again.
+  A diffusers UNet ran with an unset timestep and returned wrong outputs without an error.</li>
 </ul>
 <h2 id="041">0.4.1</h2>
 <ul>
