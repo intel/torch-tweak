@@ -16,6 +16,7 @@ from typing import Any, Literal
 
 import torch
 
+from torch_tweak.torch.checkpoint.checkpoint_header import read_header, tuning_environment, write_header
 from torch_tweak.torch.utils.path_utils import format_file_size, get_file_size
 from torch_tweak.utils.permissions import secure_file, secure_mkdir, secure_tree
 
@@ -316,8 +317,17 @@ class ShaSumsSaveTask(SaveTask):
 class ZipSaveTask(SaveTask):
     """Task to save a state dictionary to a zip file."""
 
+    def __init__(self, environment: dict[str, str] | None = None):
+        """Initialize the task.
+
+        Args:
+            environment: Environment recorded in the checkpoint header.
+                Defaults to :func:`tuning_environment` at save time.
+        """
+        self.environment = environment
+
     def save(self, path: Path, state_dict: dict) -> None:
-        """Compress the folder under the given path to a zip file, including all nested folders.
+        """Write the checkpoint header, then the folder under the given path as a zip archive.
 
         Args:
             path: The path to the folder that should be compressed to a zip file.
@@ -330,14 +340,16 @@ class ZipSaveTask(SaveTask):
         zip_path = path.with_name(path.name + TT_EXTENSION)
 
         logger.info("🔄 Compressing checkpoint...")
-        with zipfile.ZipFile(zip_path, "w", zipfile.ZIP_STORED) as zip_fp:
-            # Recursively find all files in the directory tree
-            for file_path in path.rglob("*"):
-                if file_path.is_file():
-                    # Calculate relative path from the root folder to preserve directory structure
-                    file_path_in_zip = file_path.relative_to(path)
-                    zip_fp.write(file_path, file_path_in_zip)
-                secure_file(zip_path)
+        with zip_path.open("wb") as fp:
+            write_header(fp, tuning_environment() if self.environment is None else self.environment)
+            with zipfile.ZipFile(fp, "w", zipfile.ZIP_STORED) as zip_fp:
+                # Recursively find all files in the directory tree
+                for file_path in path.rglob("*"):
+                    if file_path.is_file():
+                        # Calculate relative path from the root folder to preserve directory structure
+                        file_path_in_zip = file_path.relative_to(path)
+                        zip_fp.write(file_path, file_path_in_zip)
+        secure_file(zip_path)
 
         zip_file_size = get_file_size(zip_path)
         logger.info("✅ Checkpoint compressed and saved to %s [%s]", zip_path, format_file_size(zip_file_size))
@@ -408,8 +420,19 @@ class ShaSumsLoadTask(LoadTask):
 class UnzipLoadTask(LoadTask):
     """Task to load a state dictionary from a zip file."""
 
+    def __init__(self, environment: dict[str, str] | None = None, strict_environment: bool = False):
+        """Initialize the task.
+
+        Args:
+            environment: Environment compared with the one in the checkpoint header.
+                Defaults to :func:`tuning_environment` at load time.
+            strict_environment: Raise instead of warning when the environments differ.
+        """
+        self.environment = environment
+        self.strict_environment = strict_environment
+
     def load(self, path: Path) -> dict:
-        """Extract the zip file at the given path to a folder with the same name.
+        """Check the checkpoint header, then extract the archive to a folder with the same name.
 
         Args:
             path: The path to the zip file that should be extracted.
@@ -419,7 +442,8 @@ class UnzipLoadTask(LoadTask):
 
         Raises:
             FileNotFoundError: If the zip file does not exist.
-            ValueError: If the path is not a zip file.
+            IncompatibleCheckpointError: If the checkpoint has another format version,
+                or was tuned in another environment and ``strict_environment`` is set.
         """
         zip_path = path.with_name(path.name + TT_EXTENSION)
         if not zip_path.exists():
@@ -428,9 +452,15 @@ class UnzipLoadTask(LoadTask):
         file_size = get_file_size(zip_path)
         logger.info("🔄 Extracting checkpoint from: %s [%s]", path, format_file_size(file_size))
 
-        if not check_checkpoint_valid(path):
-            with zipfile.ZipFile(zip_path, "r") as zip_fp:
-                _safe_extract_zip(zip_fp, path)
+        with zip_path.open("rb") as fp:
+            read_header(
+                fp,
+                tuning_environment() if self.environment is None else self.environment,
+                strict=self.strict_environment,
+            )
+            if not check_checkpoint_valid(path):
+                with zipfile.ZipFile(fp, "r") as zip_fp:
+                    _safe_extract_zip(zip_fp, path)
         logger.info("✅ Checkpoint extracted")
         return {}
 
