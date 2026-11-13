@@ -684,6 +684,28 @@ def test_openvino_xpu_reads_a_transposed_input(tmp_path):
 
 
 @requires_leo
+def test_openvino_xpu_second_infer_with_the_same_shape_returns_its_own_result(tmp_path):
+    sample = torch.zeros(2, 3, device="xpu")
+    backend = backend_build(OpenVINOBackend(), _DoubleModel(), [((sample,), {})], tmp_path, torch.device("xpu"))
+    backend.infer(torch.tensor([[1.0, 2.0, 3.0], [4.0, 5.0, 6.0]], device="xpu"))
+
+    actual = backend.infer(torch.tensor([[7.0, 8.0, 9.0], [10.0, 11.0, 12.0]], device="xpu"))
+
+    torch.testing.assert_close(actual, torch.tensor([[14.0, 16.0, 18.0], [20.0, 22.0, 24.0]], device="xpu"))
+
+
+@requires_leo
+def test_openvino_xpu_second_infer_with_the_same_shape_keeps_the_first_result(tmp_path):
+    sample = torch.zeros(2, 3, device="xpu")
+    backend = backend_build(OpenVINOBackend(), _DoubleModel(), [((sample,), {})], tmp_path, torch.device("xpu"))
+    first = backend.infer(torch.tensor([[1.0, 2.0, 3.0], [4.0, 5.0, 6.0]], device="xpu"))
+
+    backend.infer(torch.tensor([[7.0, 8.0, 9.0], [10.0, 11.0, 12.0]], device="xpu"))
+
+    torch.testing.assert_close(first, torch.tensor([[2.0, 4.0, 6.0], [8.0, 10.0, 12.0]], device="xpu"))
+
+
+@requires_leo
 def test_openvino_xpu_rejects_an_input_on_the_cpu(tmp_path):
     sample = torch.zeros(2, 3, device="xpu")
     backend = backend_build(OpenVINOBackend(), _DoubleModel(), [((sample,), {})], tmp_path, torch.device("xpu"))
