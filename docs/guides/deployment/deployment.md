@@ -58,6 +58,11 @@ This creates:
 - `checkpoints/model_sha256_sums.txt`: SHA256 checksums
 - `checkpoints/model/`: Decompressed artifacts (after first load)
 
+The `.tt` file starts with a format version and a record of the tuning environment:
+host name, CPU, accelerators and their drivers, and the versions of Python, torch-tweak, torch, and the backend libraries.
+`tt.load` raises `tt.IncompatibleCheckpointError` before it reads the tuned modules when the format version or any part of the environment differs.
+Tune the model again on the target machine in that case.
+
 ### With Custom Storage
 
 ```python

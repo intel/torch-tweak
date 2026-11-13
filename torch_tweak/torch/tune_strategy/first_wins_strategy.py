@@ -53,7 +53,7 @@ class FirstWinsStrategy(TuneStrategyFindMaxBatchSizeExtension):
         )
 
         # Run backend by backend until first working backend is found
-        for backend in self._backends or default_backends(device):
+        for backend in self.candidate_backends(device):
             backend_cache_dir = cache_dir / backend.key()
             log_file = self._log_file(backend_cache_dir, "build.log")
 
@@ -84,6 +84,10 @@ class FirstWinsStrategy(TuneStrategyFindMaxBatchSizeExtension):
             return selected_backend
 
         raise RuntimeError(f"There is no valid backend for a module: {name}, graph_spec: {graph_spec}")
+
+    def candidate_backends(self, device: torch.device) -> list[Backend]:
+        """The backends this strategy tries on `device`, in order."""
+        return list(self._backends or default_backends(device))
 
     def _describe_parts(self) -> list[str]:
         """Returns the parts of the description."""

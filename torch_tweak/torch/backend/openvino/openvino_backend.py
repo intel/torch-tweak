@@ -19,6 +19,7 @@ import torch.utils._pytree as pytree
 
 from torch_tweak.torch.backend.backend import Backend, BackendConfig, BackendState
 from torch_tweak.torch.backend.openvino.ov_model_converter import (
+    OV_MODEL_BIN_NAME,
     OV_MODEL_XML_NAME,
     OpenVINOModelConverter,
     staticize_extra_openvino_inputs,
@@ -79,10 +80,16 @@ class OpenVINOBackendConfig(BackendConfig):
     Attributes:
         use_dynamo: Use ``torch.export`` (True) or legacy trace conversion (False) in OVC.
         performance_hint: OpenVINO compile hint (LATENCY, THROUGHPUT, CUMULATIVE_THROUGHPUT).
+        offload_module: Move the module to CPU after conversion, which frees its device memory.
+            The compiled model holds its own copy of the weights.
+        reuse_ir: Compile the IR already in the build directory instead of converting the module.
+            The IR holds the weights, so the caller keys that directory by the weights and the shapes.
     """
 
     use_dynamo: bool = True
     performance_hint: str = "LATENCY"
+    offload_module: bool = True
+    reuse_ir: bool = False
 
     @classmethod
     def from_dict(cls, state_dict: dict):
@@ -132,9 +139,15 @@ class OpenVINOBackend(Backend):
         model_dir = cache_dir / "openvino"
         secure_mkdir(model_dir)
         self._ov_model_dir = model_dir
-        converter = OpenVINOModelConverter(output_dir=model_dir, use_dynamo=self._config.use_dynamo)
-        self._ov_model_xml = converter.convert(module=module, sample=data[0], graph_spec=graph_spec)
-        offload(module, device="cpu")
+        model_xml = model_dir / OV_MODEL_XML_NAME
+        if self._config.reuse_ir and model_xml.exists() and (model_dir / OV_MODEL_BIN_NAME).exists():
+            logger.info("Reusing OpenVINO IR: %s", model_xml)
+            self._ov_model_xml = model_xml
+        else:
+            converter = OpenVINOModelConverter(output_dir=model_dir, use_dynamo=self._config.use_dynamo)
+            self._ov_model_xml = converter.convert(module=module, sample=data[0], graph_spec=graph_spec)
+        if self._config.offload_module:
+            offload(module, device="cpu")
 
         self._activate()
         logger.info("OpenVINO backend build finished, model: %s", self._ov_model_xml)
