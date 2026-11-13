@@ -420,14 +420,16 @@ class ShaSumsLoadTask(LoadTask):
 class UnzipLoadTask(LoadTask):
     """Task to load a state dictionary from a zip file."""
 
-    def __init__(self, environment: dict[str, str] | None = None):
+    def __init__(self, environment: dict[str, str] | None = None, strict_environment: bool = False):
         """Initialize the task.
 
         Args:
-            environment: Environment the checkpoint header has to match.
+            environment: Environment compared with the one in the checkpoint header.
                 Defaults to :func:`tuning_environment` at load time.
+            strict_environment: Raise instead of warning when the environments differ.
         """
         self.environment = environment
+        self.strict_environment = strict_environment
 
     def load(self, path: Path) -> dict:
         """Check the checkpoint header, then extract the archive to a folder with the same name.
@@ -440,8 +442,8 @@ class UnzipLoadTask(LoadTask):
 
         Raises:
             FileNotFoundError: If the zip file does not exist.
-            IncompatibleCheckpointError: If the checkpoint has another format version
-                or was tuned in another environment.
+            IncompatibleCheckpointError: If the checkpoint has another format version,
+                or was tuned in another environment and ``strict_environment`` is set.
         """
         zip_path = path.with_name(path.name + TT_EXTENSION)
         if not zip_path.exists():
@@ -451,7 +453,11 @@ class UnzipLoadTask(LoadTask):
         logger.info("🔄 Extracting checkpoint from: %s [%s]", path, format_file_size(file_size))
 
         with zip_path.open("rb") as fp:
-            read_header(fp, tuning_environment() if self.environment is None else self.environment)
+            read_header(
+                fp,
+                tuning_environment() if self.environment is None else self.environment,
+                strict=self.strict_environment,
+            )
             if not check_checkpoint_valid(path):
                 with zipfile.ZipFile(fp, "r") as zip_fp:
                     _safe_extract_zip(zip_fp, path)

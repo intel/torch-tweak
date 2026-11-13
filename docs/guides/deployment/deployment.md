@@ -59,9 +59,13 @@ This creates:
 - `checkpoints/model/`: Decompressed artifacts (after first load)
 
 The `.tt` file starts with a format version and a record of the tuning environment:
-host name, CPU, accelerators and their drivers, and the versions of Python, torch-tweak, torch, and the backend libraries.
-`tt.load` raises `tt.IncompatibleCheckpointError` before it reads the tuned modules when the format version or any part of the environment differs.
-Tune the model again on the target machine in that case.
+CPU, accelerator models and their drivers, and the versions of Python, torch-tweak, torch, and the backend libraries.
+`tt.load` raises `tt.IncompatibleCheckpointError` before it reads the tuned modules when the format version differs.
+Tune the model again in that case.
+
+When the environment differs, `tt.load` logs a warning that lists the differences and loads the checkpoint.
+The backends are rebuilt on the target machine, but the ones chosen during tuning may not be the fastest there.
+To reject such a checkpoint instead, load it with `LocalTorchStorage(strict_environment=True)`.
 
 ### With Custom Storage
 
