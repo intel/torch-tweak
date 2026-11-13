@@ -682,6 +682,15 @@ def test_openvino_xpu_reads_a_transposed_input(tmp_path):
     torch.testing.assert_close(actual, torch.tensor([[2.0, 6.0, 10.0], [4.0, 8.0, 12.0]], device="xpu"))
 
 
+@requires_leo
+def test_openvino_xpu_rejects_an_input_on_the_cpu(tmp_path):
+    sample = torch.zeros(2, 3, device="xpu")
+    backend = backend_build(OpenVINOBackend(), _DoubleModel(), [((sample,), {})], tmp_path, torch.device("xpu"))
+
+    with pytest.raises(ValueError, match="OpenVINO tensor args_0 is on cpu, but the model runs on xpu:0"):
+        backend.infer(torch.zeros(2, 3))
+
+
 @requires_xpu
 def test_openvino_xpu_backend_without_leo_is_rejected(tmp_path, monkeypatch):
     monkeypatch.setattr(xpu_remote, "_opencl_gpus", lambda: [])

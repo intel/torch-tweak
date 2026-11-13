@@ -265,7 +265,8 @@ class XpuInferRequest:
             config: OpenVINO compile properties.
             scalar_inputs: Model inputs to reshape to a static scalar before compiling.
         """
-        self._device = device
+        # Tensors on XPU always carry an index, and "xpu" without one is the current device.
+        self._device = device if device.index is not None else torch.device(device.type, torch.xpu.current_device())
         self._release: list[tuple[Callable[[int], None], int]] = []
         try:
             self._compile(model_xml, ov_device, config, scalar_inputs)
@@ -349,13 +350,19 @@ class XpuInferRequest:
     def infer(self, inputs: Mapping[str, torch.Tensor], outputs: Mapping[str, torch.Tensor]) -> None:
         """Runs the model on ``inputs`` and writes the results into ``outputs``.
 
-        Every tensor is contiguous and lives on the XPU device of this request. Each mapping is keyed
-        by OpenVINO tensor name.
+        Every tensor is contiguous. Each mapping is keyed by OpenVINO tensor name.
+
+        Raises:
+            ValueError: A tensor is not on the XPU device of this request.
         """
         lib = _openvino_c()
         remote_tensors: list[int] = []
         try:
             for name, tensor in (*inputs.items(), *outputs.items()):
+                if tensor.device != self._device:
+                    raise ValueError(
+                        f"OpenVINO tensor {name} is on {tensor.device}, but the model runs on {self._device}"
+                    )
                 remote_tensors.append(self._remote_tensor(tensor))
                 _check(
                     lib.ov_infer_request_set_tensor(self._request, name.encode(), remote_tensors[-1]),
