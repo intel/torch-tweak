@@ -23,6 +23,7 @@ concurrency:
 
 jobs:
   semgrep:
+    name: Semgrep Scan
     runs-on: [BMG]
     # run only on upstream; forks won't have the HW
     if: github.repository == 'intel/torch-tweak'
@@ -37,7 +38,7 @@ jobs:
         run: semgrep ci --code --secrets
 
   nightly:
-    name: Nightly
+    name: Long Tests/Examples
     runs-on: [BMG]
     # run only on upstream; forks won't have the HW
     if: github.repository == 'intel/torch-tweak'

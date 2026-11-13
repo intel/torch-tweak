@@ -98,7 +98,7 @@ jobs:
           EVENT_NAME: ${{ github.event_name }}
           BASE_SHA: ${{ github.event.pull_request.base.sha || github.event.before }}
         run: |
-          if [ "${EVENT_NAME}" = "workflow_dispatch" ] || [ -z "${BASE_SHA}" ] \
+          if [ -z "${BASE_SHA}" ] \
               || [ "${BASE_SHA}" = "0000000000000000000000000000000000000000" ] \
               || ! changed="$(git diff --name-only "${BASE_SHA}" HEAD)"; then
             run=true

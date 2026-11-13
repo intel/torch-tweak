@@ -2,18 +2,19 @@ name: CI
 
 # Run all checks and tests for Torch Tweak.
 # Run workflow on push to main and on pull requests.
-# All tests (on GPU card and on CPU) are run if relevant changes
-# are detected, and all checks have passed.
+# Tests (on GPU card and on CPU) are run if all checks have passed,
+# and for GPU tests only if relevant changes are detected.
 
 on:
   push:
     branches: [main]
   pull_request:
 
+# Keep only one workflow run per PR and all runs on push.
 concurrency:
   group: >-
     ${{ github.workflow }}-${{ github.event_name }}-
-      ${{ github.event.pull_request.number || github.ref }}
+      ${{ github.event.pull_request.number || github.sha }}
   cancel-in-progress: true
 
 permissions:
@@ -56,6 +57,3 @@ jobs:
     secrets:
       BB_GIST_TOKEN: ${{ secrets.BB_GIST_TOKEN }}
     uses: ./.github/workflows/reusable_coverage.yml
-    with:
-      event_name: ${{ github.event_name }}
-      pull_request_base_sha: ${{ github.event.pull_request.base.sha }}
