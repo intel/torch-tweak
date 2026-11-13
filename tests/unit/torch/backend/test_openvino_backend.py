@@ -5,6 +5,7 @@
 # NOTE: This file has been modified by Intel Corporation.
 """Unit tests for OpenVINOBackend."""
 
+import gc
 import shutil
 import uuid
 from types import SimpleNamespace
@@ -689,6 +690,24 @@ def test_openvino_xpu_rejects_an_input_on_the_cpu(tmp_path):
 
     with pytest.raises(ValueError, match="OpenVINO tensor args_0 is on cpu, but the model runs on xpu:0"):
         backend.infer(torch.zeros(2, 3))
+
+
+@requires_leo
+def test_openvino_xpu_releases_the_opencl_context_when_the_backend_is_collected(tmp_path, monkeypatch):
+    # Release backends that earlier tests left for the collector.
+    gc.collect()
+    release_context = xpu_remote._opencl().clReleaseContext
+    released = []
+    monkeypatch.setattr(
+        xpu_remote._opencl(), "clReleaseContext", lambda context: released.append(release_context(context))
+    )
+    sample = torch.zeros(2, 3, device="xpu")
+    backend = backend_build(OpenVINOBackend(), _DoubleModel(), [((sample,), {})], tmp_path, torch.device("xpu"))
+
+    del backend
+    gc.collect()
+
+    assert released == [0]
 
 
 @requires_xpu

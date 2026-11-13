@@ -10,6 +10,10 @@ SPDX-License-Identifier: Apache-2.0
 - feat (breaking): a module without a strategy is tuned with `tt.default_strategy(device)`.
   It measures every backend that runs on the device and keeps the fastest (#55)
 - fix (breaking): `profile` returns `ProfilingResult` with measured throughput per batch size (#64)
+- feat (breaking): OpenVINO on XPU binds PyTorch tensors as GPU remote tensors without copying them through the host (#102)
+  It needs OpenCL on Level Zero (LEO). Set `EnableLEO=1` on Battlemage, newer GPUs enable it by default.
+  Without LEO, building the backend on XPU raises `LevelZeroInteropError`.
+  Every input must be on the device the backend runs on, otherwise inference raises `ValueError`.
 
 ## 0.4.1
 

@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import ctypes
 import functools
+import weakref
 from collections.abc import Callable, Mapping, Sequence
 from pathlib import Path
 
@@ -268,6 +269,8 @@ class XpuInferRequest:
         # Tensors on XPU always carry an index, and "xpu" without one is the current device.
         self._device = device if device.index is not None else torch.device(device.type, torch.xpu.current_device())
         self._release: list[tuple[Callable[[int], None], int]] = []
+        # A finalizer that references self keeps it alive, so it never runs.
+        weakref.finalize(self, _release_all, self._release)
         try:
             self._compile(model_xml, ov_device, config, scalar_inputs)
         except BaseException:
@@ -377,6 +380,11 @@ class XpuInferRequest:
 
     def close(self) -> None:
         """Releases the infer request, the compiled model, and the OpenCL context."""
-        while self._release:
-            release, handle = self._release.pop()
-            release(handle)
+        _release_all(self._release)
+
+
+def _release_all(handles: list[tuple[Callable[[int], None], int]]) -> None:
+    """Releases ``handles`` in reverse order of creation and empties the list."""
+    while handles:
+        release, handle = handles.pop()
+        release(handle)
