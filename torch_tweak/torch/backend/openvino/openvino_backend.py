@@ -32,6 +32,12 @@ from torch_tweak.utils.permissions import secure_mkdir
 logger = logging.getLogger(__name__)
 
 
+def _port_names(ports: Sequence[ov.ConstOutput]) -> set[str]:
+    # Compilation can merge a removed node's names into a port.
+    # get_any_name may return one of them instead of the original name.
+    return {name for port in ports for name in port.get_names()}
+
+
 def openvino_device_for_xpu(core: ov.Core, device: torch.device) -> str:
     """Returns the OpenVINO GPU that is the same physical device as the PyTorch XPU ``device``.
 
@@ -128,7 +134,7 @@ class OpenVINOBackend(Backend):
         tensor_input_names = {ts.name for ts in self._graph_spec.input_spec.tensor_specs}
         scalar_inputs = staticize_extra_openvino_inputs(ov_model.inputs, tensor_input_names)
         ov_model.validate_nodes_and_infer_types()
-        self._input_names = {self._openvino_port_name(port) for port in ov_model.inputs}
+        self._input_names = _port_names(ov_model.inputs)
         compile_config = {}
         if self._config.performance_hint:
             compile_config["PERFORMANCE_HINT"] = self._config.performance_hint
@@ -182,15 +188,11 @@ class OpenVINOBackend(Backend):
         # CompiledModel reads host inputs as C-contiguous numpy arrays.
         ov_inputs = {name: tensor.detach().cpu().contiguous().numpy() for name, tensor in inputs.items()}
         ov_outputs = self._compiled_model(ov_inputs)
-        if hasattr(ov_outputs, "to_dict"):
-            ov_outputs = {(getattr(k, "any_name", None) or str(k)): v for k, v in ov_outputs.to_dict().items()}
-        elif not isinstance(ov_outputs, dict):
-            out_tensor = self._compiled_model.output(0)
-            ov_outputs = {(getattr(out_tensor, "any_name", None) or str(out_tensor)): ov_outputs}
+        output_names = _port_names(self._compiled_model.outputs)
 
         torch_outputs: dict[str, torch.Tensor] = {}
         for _locator, tensor_spec in self._graph_spec.output_spec.tensor_data:
-            if tensor_spec.name not in ov_outputs:
+            if tensor_spec.name not in output_names:
                 continue
             # The infer request reuses its output buffer on the next call.
             tensor = torch.from_numpy(np.array(ov_outputs[tensor_spec.name]))
@@ -214,20 +216,10 @@ class OpenVINOBackend(Backend):
         if output_shapes is None:
             self._shape_model.reshape({name: list(shape) for name, shape in input_shapes})
             output_shapes = {
-                self._openvino_port_name(port): list(port.get_shape()) for port in self._shape_model.outputs
+                name: list(port.get_shape()) for port in self._shape_model.outputs for name in port.get_names()
             }
             self._xpu_output_shapes[input_shapes] = output_shapes
         return output_shapes
-
-    @staticmethod
-    def _openvino_port_name(port: Any) -> str:
-        name = getattr(port, "any_name", None)
-        if name:
-            return name
-        get_any_name = getattr(port, "get_any_name", None)
-        if callable(get_any_name):
-            return get_any_name()
-        return str(port)
 
     def _prepare_inputs(self, args: tuple, kwargs: dict) -> dict[str, torch.Tensor]:
         inputs: dict[str, torch.Tensor] = {}
