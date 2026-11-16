@@ -5,7 +5,6 @@
 from __future__ import annotations
 
 import contextlib
-import inspect
 import logging
 from collections.abc import Generator, Sequence
 from pathlib import Path
@@ -24,7 +23,7 @@ from torch_tweak.torch.module.locator import Locator, ObjectType
 from torch_tweak.torch.module.recording_module import Sample
 from torch_tweak.torch.module.sample_metadata import SampleMetadata
 from torch_tweak.torch.module.tensor_spec import TensorSpec, logical_batch_bounds
-from torch_tweak.torch.utils.module import get_arguments_names
+from torch_tweak.torch.utils.module import get_arguments_names, get_var_keyword_name
 from torch_tweak.utils.permissions import secure_file, secure_mkdir
 
 OV_MODEL_XML_NAME = "model.xml"
@@ -78,7 +77,7 @@ class OpenVINOModelConverter:
         self, module: nn.Module, args: tuple, kwargs: dict, graph_spec: GraphSpec
     ) -> tuple[ov.Model, list[str]]:
         posonly_arg_names, named_kwarg_names = get_arguments_names(module.forward)
-        var_keyword = _var_keyword_name(module.forward)
+        var_keyword = get_var_keyword_name(module.forward)
         extra_kwarg_names = [name for name in kwargs if name not in named_kwarg_names] if var_keyword else []
         non_posonly_arg_names = named_kwarg_names + extra_kwarg_names
         dynamic_shapes: dict[str, Any] = _create_dynamic_shapes(
@@ -129,13 +128,6 @@ def _constants_do_not_share_temporary_copies() -> Generator[None]:
         yield
     finally:
         fx_decoder.torch_tensor_to_ov_const = pytorch_frontend_utils.torch_tensor_to_ov_const = original
-
-
-def _var_keyword_name(func: Any) -> str | None:
-    for parameter in inspect.signature(func).parameters.values():
-        if parameter.kind == inspect.Parameter.VAR_KEYWORD:
-            return parameter.name
-    return None
 
 
 def _prepare_sample(sample: Sample, input_spec: SampleMetadata) -> tuple[tuple, dict]:
