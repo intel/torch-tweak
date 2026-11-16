@@ -154,6 +154,11 @@ class _KeywordOnlyAndVarKeywordModel(nn.Module):
         return (x - kwargs["y"]) * scale
 
 
+class _VarPositionalAndKeywordOnlyModel(nn.Module):
+    def forward(self, x: torch.Tensor, *args: torch.Tensor, mask: torch.Tensor | None = None) -> torch.Tensor:
+        return x - args[0]
+
+
 def _tensor(values, device) -> torch.Tensor:
     return torch.tensor(values, device=device)
 
@@ -214,10 +219,6 @@ def test_openvino_backend_ignores_none_valued_var_keyword_input(tmp_path, torch_
     torch.testing.assert_close(actual.cpu(), torch.tensor([[4.0, 4.0]]))
 
 
-@pytest.mark.xfail(
-    strict=True,
-    reason="torch.export guards for dynamic **kwargs inputs raise NameError('L') in run_decompositions (torch 2.15)",
-)
 def test_openvino_backend_keeps_batch_dynamic_for_var_keyword_inputs(tmp_path, torch_device):
     samples = _ones_samples_over_batch_sizes(["z", "y"], [1, 4], torch_device)
     backend = _build_dynamic_backend(_VarKeywordModel(), samples, tmp_path, torch_device)
@@ -230,10 +231,6 @@ def test_openvino_backend_keeps_batch_dynamic_for_var_keyword_inputs(tmp_path, t
     torch.testing.assert_close(actual.cpu(), torch.tensor([[309.0, 618.0], [927.0, 1236.0]]))
 
 
-@pytest.mark.xfail(
-    strict=True,
-    reason="torch.export guards for dynamic **kwargs inputs raise NameError('L') in run_decompositions (torch 2.15)",
-)
 def test_openvino_backend_keeps_batch_dynamic_for_keyword_only_mixed_with_var_keyword(tmp_path, torch_device):
     samples = _ones_samples_over_batch_sizes(["scale", "y"], [1, 4], torch_device)
     backend = _build_dynamic_backend(_KeywordOnlyAndVarKeywordModel(), samples, tmp_path, torch_device)
@@ -244,6 +241,15 @@ def test_openvino_backend_keeps_batch_dynamic_for_keyword_only_mixed_with_var_ke
     actual = backend.infer(x, scale=scale, y=y)
 
     torch.testing.assert_close(actual.cpu(), torch.tensor([[20.0, 30.0], [300.0, 400.0]]))
+
+
+def test_openvino_backend_does_not_bind_var_positional_tensor_to_keyword_only_parameter(tmp_path, torch_device):
+    sample = ((_tensor([[5.0, 6.0]], torch_device), _tensor([[1.0, 2.0]], torch_device)), {})
+    backend = backend_build(OpenVINOBackend(), _VarPositionalAndKeywordOnlyModel(), [sample], tmp_path, torch_device)
+
+    actual = backend.infer(*sample[0])
+
+    torch.testing.assert_close(actual.cpu(), torch.tensor([[4.0, 4.0]]))
 
 
 def test_openvino_backend_serialization(model, sample_data, tmp_path, torch_device):

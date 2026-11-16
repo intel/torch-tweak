@@ -4,8 +4,10 @@
 
 from __future__ import annotations
 
+import inspect
 import logging
-from collections.abc import Sequence
+from collections.abc import Collection, Sequence
+from inspect import Parameter
 from pathlib import Path
 from typing import Any
 
@@ -72,19 +74,16 @@ class OpenVINOModelConverter:
     def _convert_dynamo(
         self, module: nn.Module, args: tuple, kwargs: dict, graph_spec: GraphSpec
     ) -> tuple[ov.Model, list[str]]:
-        posonly_arg_names, named_kwarg_names = get_arguments_names(module.forward)
-        var_keyword = get_var_keyword_name(module.forward)
-        extra_kwarg_names = [name for name in kwargs if name not in named_kwarg_names] if var_keyword else []
-        non_posonly_arg_names = named_kwarg_names + extra_kwarg_names
+        module = _with_var_keyword_entries_named(module, kwargs)
+        posonly_arg_names, non_posonly_arg_names = get_arguments_names(module.forward)
         dynamic_shapes: dict[str, Any] = _create_dynamic_shapes(
-            graph_spec.input_spec, (posonly_arg_names, non_posonly_arg_names)
+            graph_spec.input_spec,
+            (posonly_arg_names, non_posonly_arg_names),
+            keyword_only_names=_keyword_only_names(module.forward),
         )
         ordered_kwargs: dict[str, Any] = _ordered_kwargs_for_export(non_posonly_arg_names, kwargs)
         _fill_dynamic_shapes_for_non_tensors(non_posonly_arg_names, kwargs, dynamic_shapes)
-        passed_extra_kwarg_names = [name for name in extra_kwarg_names if name in ordered_kwargs]
-        if dynamic_shapes and passed_extra_kwarg_names:
-            # torch.export keys the shapes of **kwargs entries under the name of that parameter.
-            dynamic_shapes[var_keyword] = {name: dynamic_shapes.pop(name, None) for name in passed_extra_kwarg_names}
+        _fill_dynamic_shapes_for_var_positional(module.forward, args, dynamic_shapes)
 
         exported: torch.export.ExportedProgram = torch.export.export(
             module,
@@ -101,6 +100,51 @@ class OpenVINOModelConverter:
             example_input=example_input,
             dynamo=False,
         )
+
+
+class _NamedVarKeywordEntries(nn.Module):
+    """Wrap ``module`` so that its ``forward`` names each ``**kwargs`` entry as a keyword-only parameter.
+
+    In torch 2.15 ``run_decompositions`` raises ``NameError('L')`` for a dynamic dimension of a
+    tensor passed through ``**kwargs``. The same tensor passed as a named parameter exports.
+
+    >>> class _Model(nn.Module):
+    ...     def forward(self, x, *, scale=1, **kwargs):
+    ...         return x
+    >>> inspect.signature(_NamedVarKeywordEntries(_Model(), ["z", "y"]).forward)
+    <Signature (x, *, scale=1, z, y)>
+    """
+
+    def __init__(self, module: nn.Module, var_keyword_entries: Sequence[str]):
+        super().__init__()
+        self.module = module
+        parameters = [
+            p for p in inspect.signature(module.forward).parameters.values() if p.kind is not Parameter.VAR_KEYWORD
+        ]
+        parameters += [Parameter(name, Parameter.KEYWORD_ONLY) for name in var_keyword_entries]
+
+        def forward(*args: Any, **kwargs: Any) -> Any:
+            return self.module(*args, **kwargs)
+
+        # torch.export reads the parameter names from inspect.signature(self.forward).
+        forward.__signature__ = inspect.Signature(parameters)
+        self.forward = forward
+
+
+def _with_var_keyword_entries_named(module: nn.Module, kwargs: dict) -> nn.Module:
+    """Return *module*, wrapped in ``_NamedVarKeywordEntries`` when *kwargs* fills its ``**kwargs``.
+
+    Entries mapped to ``None`` are left out, as ``_ordered_kwargs_for_export`` skips them.
+    """
+    if get_var_keyword_name(module.forward) is None:
+        return module
+    _, named_kwarg_names = get_arguments_names(module.forward)
+    entries = [name for name, value in kwargs.items() if name not in named_kwarg_names and value is not None]
+    return _NamedVarKeywordEntries(module, entries) if entries else module
+
+
+def _keyword_only_names(func: Any) -> set[str]:
+    return {p.name for p in inspect.signature(func).parameters.values() if p.kind is Parameter.KEYWORD_ONLY}
 
 
 def _prepare_sample(sample: Sample, input_spec: SampleMetadata) -> tuple[tuple, dict]:
@@ -147,6 +191,30 @@ def _fill_dynamic_shapes_for_non_tensors(
             continue
         if kwarg not in dynamic_shapes and not isinstance(kwargs[kwarg], torch.Tensor):
             dynamic_shapes[kwarg] = {} if isinstance(kwargs[kwarg], (dict, list)) else None
+
+
+def _fill_dynamic_shapes_for_var_positional(func: Any, args: tuple, dynamic_shapes: dict[str, Any]) -> None:
+    """Give the ``*args`` tensors of *func* static shapes.
+
+    ``torch.export`` requires a key for every parameter once *dynamic_shapes* is a non-empty dict.
+
+    >>> def _forward(x, y, *rest):
+    ...     pass
+    >>> shapes = {"x": {}}
+    >>> _fill_dynamic_shapes_for_var_positional(_forward, (1, 2, 3, 4), shapes)
+    >>> shapes
+    {'x': {}, 'rest': (None, None)}
+    """
+    if not dynamic_shapes:
+        return
+    parameters = inspect.signature(func).parameters.values()
+    var_positional = next((p.name for p in parameters if p.kind is Parameter.VAR_POSITIONAL), None)
+    if var_positional is None:
+        return
+    named_positional_count = sum(
+        p.kind in (Parameter.POSITIONAL_ONLY, Parameter.POSITIONAL_OR_KEYWORD) for p in parameters
+    )
+    dynamic_shapes[var_positional] = (None,) * max(len(args) - named_positional_count, 0)
 
 
 def _example_input_for_trace(args: tuple, kwargs: dict, graph_spec: GraphSpec) -> Any:
@@ -255,7 +323,9 @@ def staticize_extra_openvino_inputs(inputs: Sequence[ov.Output], tensor_input_na
 
 
 def _create_dynamic_shapes(
-    input_spec: SampleMetadata, forward_arguments: tuple[list[str], list[str]]
+    input_spec: SampleMetadata,
+    forward_arguments: tuple[list[str], list[str]],
+    keyword_only_names: Collection[str] = (),
 ) -> dict[str, Any]:
     """Build ``torch.export`` ``dynamic_shapes`` keyed by ``forward`` parameter names.
 
@@ -280,6 +350,13 @@ def _create_dynamic_shapes(
     >>> input_spec.update_shapes_seen(SampleMetadata.from_inputs((torch.randn(6, 4),), {}, batch_size=6))
     >>> sorted(_create_dynamic_shapes(input_spec, (["x"], ["y"])))
     ['x']
+    >>> # A keyword-only parameter never takes a positional tensor.
+    >>> input_spec = SampleMetadata.from_inputs((torch.randn(2, 4), torch.randn(2, 4)), {}, batch_size=2)
+    >>> input_spec.update_shapes_seen(
+    ...     SampleMetadata.from_inputs((torch.randn(6, 4), torch.randn(6, 4)), {}, batch_size=6)
+    ... )
+    >>> sorted(_create_dynamic_shapes(input_spec, ([], ["x", "mask"]), keyword_only_names={"mask"}))
+    ['x']
     """
     forward_args: list[str]
     forward_kwargs: list[str]
@@ -290,7 +367,8 @@ def _create_dynamic_shapes(
     input_args: dict[Any, str]
     input_kwargs: dict[tuple[Any, int], tuple[Locator, str]]
     input_args, input_kwargs = _create_inputs_mapping(input_spec)
-    _rekey_positional_arguments(input_args, forward_args, forward_kwargs)
+    positional_or_keyword_names = [name for name in forward_kwargs if name not in keyword_only_names]
+    _rekey_positional_arguments(input_args, forward_args, positional_or_keyword_names)
     return _create_ordered_dynamic_shapes(forward_args, forward_kwargs, input_args, input_kwargs, dynamic_shapes)
 
 
