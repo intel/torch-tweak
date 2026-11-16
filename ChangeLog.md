@@ -12,6 +12,8 @@ SPDX-License-Identifier: Apache-2.0
 - fix (breaking): `profile` returns `ProfilingResult` with measured throughput per batch size (#64)
 - fix(openvino): inputs that compilation renames are fed again.
   A diffusers UNet ran with an unset timestep and returned wrong outputs without an error.
+- fix: bf16 and f8 weights on XPU, and non-contiguous ones on CPU, keep their values in the OpenVINO IR.
+  Before, they could hold garbage and saving the model could crash (#103)
 
 ## 0.4.1
 
