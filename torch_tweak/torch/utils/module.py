@@ -146,6 +146,36 @@ def get_arguments_names(func: Callable) -> tuple[list[str], list[str]]:
     return posonly_arg_names, therest_arg_names
 
 
+def get_var_keyword_name(func: Callable) -> str | None:
+    """Return the name of the ``**kwargs``-style parameter of a callable, or ``None``.
+
+    ``get_arguments_names`` skips this parameter, but ``torch.export`` keys the inputs passed
+    through it (and their dynamic shapes) under this name.
+
+    Examples:
+        >>> def _plain(x, y=1):
+        ...     pass
+        >>> get_var_keyword_name(_plain) is None
+        True
+        >>> def _with_kwargs(x, **kwargs):
+        ...     pass
+        >>> get_var_keyword_name(_with_kwargs)
+        'kwargs'
+        >>> def _custom_name(x, *args, mask=None, **extra):
+        ...     pass
+        >>> get_var_keyword_name(_custom_name)
+        'extra'
+        >>> def _only_varargs(x, *args):
+        ...     pass
+        >>> get_var_keyword_name(_only_varargs) is None
+        True
+    """
+    for parameter in inspect.signature(func).parameters.values():
+        if parameter.kind is Parameter.VAR_KEYWORD:
+            return parameter.name
+    return None
+
+
 def get_module_device(module: nn.Module) -> Optional["torch.device"]:
     """Get the device of the given module.
 
