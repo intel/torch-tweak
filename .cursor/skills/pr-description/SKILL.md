@@ -35,6 +35,7 @@ The description body stays on the pull request page.
 - The title follows `COMMIT_CONVENTION.md`. It becomes the commit title on `main`.
   With a single commit, keep the commit title and the pull request title the same.
 - A fact the maintainer needs later goes into a commit message as well as the description.
+  Wrap commit body lines at 72 characters. The `commit-msg` hook rejects longer lines.
 - The description may add what only matters for review: where to look, what to skip, what is still open.
 
 ## Workflow
@@ -49,7 +50,8 @@ The description body stays on the pull request page.
 ## Title
 
 Use `<type>(<scope>): <short description>` from `COMMIT_CONVENTION.md`.
-Lowercase, imperative, no trailing period, 72 characters or fewer.
+Lowercase, imperative, no trailing period. Aim for 50 characters or fewer.
+Use up to 72 only when a shorter title cannot say what the change does.
 
 The title alone tells a reader of `git log --oneline` what this change did.
 It must be specific enough to tell this change apart from its neighbors.
