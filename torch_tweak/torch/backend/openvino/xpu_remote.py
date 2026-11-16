@@ -215,8 +215,12 @@ def _opencl_gpus() -> list[int]:
     return gpus
 
 
-def _opencl_context(ze_context: int, ze_device: int) -> int:
-    """Returns an OpenCL context built on ``ze_context``, so it shares USM with Level Zero."""
+def _opencl_context(device: torch.device) -> int:
+    """Returns an OpenCL context on the Level Zero context that holds the memory of ``device``.
+
+    The context shares USM with Level Zero, so OpenVINO reads and writes PyTorch XPU memory in place.
+    """
+    ze_context, ze_device = _level_zero_handles(device)
     cl = _opencl()
     for cl_device in _opencl_gpus():
         handle = _P()
@@ -238,7 +242,7 @@ def _opencl_context(ze_context: int, ze_device: int) -> int:
 def has_level_zero_interop(device: torch.device) -> bool:
     """Returns whether OpenVINO can read and write the memory of the XPU ``device`` in place."""
     try:
-        context = _opencl_context(*_level_zero_handles(device))
+        context = _opencl_context(device)
     except LevelZeroInteropError:
         return False
     _opencl().clReleaseContext(context)
@@ -283,7 +287,7 @@ class XpuInferRequest:
 
     def _compile(self, model_xml: Path, ov_device: str, config: Mapping[str, str], scalar_inputs: Sequence[str]):
         lib = _openvino_c()
-        cl_context = self._own(_opencl().clReleaseContext, _opencl_context(*_level_zero_handles(self._device)))
+        cl_context = self._own(_opencl().clReleaseContext, _opencl_context(self._device))
 
         out = _P()
         _check(lib.ov_core_create(ctypes.byref(out)), "ov_core_create")

@@ -19,7 +19,7 @@ from transformers.modeling_outputs import BaseModelOutputWithPooling
 
 from tests.toy_models import ToyTorchModel
 from tests.utilities.helpers import LEO_MISSING, has_leo, requires_leo, requires_xpu
-from torch_tweak.torch.backend.openvino import OpenVINOBackend, OpenVINOBackendConfig, xpu_remote
+from torch_tweak.torch.backend.openvino import OpenVINOBackend, OpenVINOBackendConfig, ov_model_converter, xpu_remote
 from torch_tweak.torch.backend.openvino.openvino_backend import openvino_device_for_xpu
 from torch_tweak.torch.backend.openvino.ov_model_converter import (
     OV_MODEL_BIN_NAME,
@@ -680,6 +680,11 @@ class _DoubleModel(nn.Module):
         return x * 2
 
 
+class _ScaleModel(nn.Module):
+    def forward(self, x, scale: float = 1.0):
+        return x * scale
+
+
 @requires_leo
 def test_openvino_xpu_writes_an_int64_output(tmp_path):
     x = torch.tensor([[1.0, 5.0, 2.0], [7.0, 0.0, 3.0]], device="xpu")
@@ -730,6 +735,19 @@ def test_openvino_xpu_second_infer_with_the_same_shape_keeps_the_first_result(tm
     backend.infer(torch.tensor([[7.0, 8.0, 9.0], [10.0, 11.0, 12.0]], device="xpu"))
 
     torch.testing.assert_close(first, torch.tensor([[2.0, 4.0, 6.0], [8.0, 10.0, 12.0]], device="xpu"))
+
+
+@requires_leo
+def test_openvino_xpu_compiles_an_ir_whose_scalar_input_has_a_dynamic_rank(tmp_path, monkeypatch):
+    # The IR keeps the dynamic rank `[...]` that OVC gives `scale`, as in a checkpoint written without
+    # the converter workaround.
+    monkeypatch.setattr(ov_model_converter, "staticize_extra_openvino_inputs", lambda inputs, names: [])
+    x = torch.tensor([[1.0, 2.0, 3.0]], device="xpu")
+    backend = backend_build(OpenVINOBackend(), _ScaleModel(), [((x,), {"scale": 3.0})], tmp_path, torch.device("xpu"))
+
+    actual = backend.infer(x, scale=3.0)
+
+    torch.testing.assert_close(actual, torch.tensor([[3.0, 6.0, 9.0]], device="xpu"))
 
 
 @requires_leo
