@@ -384,6 +384,20 @@ def test_input_renamed_by_compilation_is_still_fed(tmp_path, torch_device):
     torch.testing.assert_close(backend.infer(*args), output_ref, rtol=0, atol=0)
 
 
+class _ReshapedDoubleModel(nn.Module):
+    def forward(self, x):
+        return (x * 2).reshape(2, 3)
+
+
+def test_output_renamed_by_compilation_is_still_returned(tmp_path, torch_device):
+    x = torch.tensor([[1.0, 2.0, 3.0], [4.0, 5.0, 6.0]], device=torch_device)
+    backend = backend_build(OpenVINOBackend(), _ReshapedDoubleModel(), [((x,), {})], tmp_path, torch_device)
+
+    actual = backend.infer(x)
+
+    torch.testing.assert_close(actual, torch.tensor([[2.0, 4.0, 6.0], [8.0, 10.0, 12.0]], device=torch_device))
+
+
 # ---------------------------------------------------------------------------
 # Correlated batch-dimension tests
 # ---------------------------------------------------------------------------
