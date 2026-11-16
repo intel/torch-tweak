@@ -1,5 +1,8 @@
 name: Nightly Tests
 
+# Runs long-running nightly tests on GPU configuration
+# and self-hosted runner health check.
+
 on:
   schedule:
     - cron: "0 22 * * 1-5"  # 22:00 UTC, Monday-Friday
@@ -19,8 +22,23 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  semgrep:
+    name: Semgrep Scan
+    runs-on: [BMG]
+    # run only on upstream; forks won't have the HW
+    if: github.repository == 'intel/torch-tweak'
+    container: semgrep/semgrep:latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Run Semgrep scan
+        env:
+          SEMGREP_APP_TOKEN: ${{ secrets.SEMGREP_APP_TOKEN }}
+        run: semgrep ci --code --secrets
+
   nightly:
-    name: Nightly
+    name: Long Tests/Examples
     runs-on: [BMG]
     # run only on upstream; forks won't have the HW
     if: github.repository == 'intel/torch-tweak'
@@ -73,13 +91,13 @@ jobs:
       - name: Create venv
         run: |
           python3 -m venv /opt/venv
-          echo "/opt/venv/bin" >> $GITHUB_PATH
+          echo "/opt/venv/bin" >> "$GITHUB_PATH"
 
       # Install xpu (important!) and dev dependencies (they include tests' deps plus extras for CI).
       - name: Install Torch Tweak
         working-directory: torch-tweak
         run: |
-          git config --global --add safe.directory $GITHUB_WORKSPACE
+          git config --global --add safe.directory "$GITHUB_WORKSPACE"
 
           python3 -m pip install \
             --index-url https://download.pytorch.org/whl/xpu \

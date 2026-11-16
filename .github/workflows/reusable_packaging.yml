@@ -1,4 +1,4 @@
-name: Packaging
+name: Build packages
 
 # Builds every distribution the repository can produce and checks that each one
 # carries the Apache-2.0 license text and the upstream attribution notices,
@@ -6,32 +6,11 @@ name: Packaging
 # Build backends stay silent when those files go missing, so the artifacts are
 # inspected explicitly.
 #
-# Also called by release.yml, which publishes the core distributions from the
-# uploaded "dist" artifact.
+# Called by ci.yml and release.yml; the latter publishes the core distributions
+# from the uploaded "dist" artifact.
 
 on:
   workflow_call:
-  workflow_dispatch:
-  push:
-    branches: [main]
-    paths: &packaging-paths
-      - "LICENSE"
-      - "third-party-programs.txt"
-      - "pyproject.toml"
-      - "examples/*/pyproject.toml"
-      - "examples/*/LICENSE"
-      - "examples/*/third-party-programs.txt"
-      - ".github/scripts/check_dist_licenses.py"
-      - ".github/workflows/packaging.yml"
-      - ".github/workflows/release.yml"
-  pull_request:
-    paths: *packaging-paths
-
-concurrency:
-  group: >-
-    ${{ github.workflow }}-${{ github.event_name }}-
-      ${{ github.event.pull_request.number || github.ref }}
-  cancel-in-progress: true
 
 permissions:
   contents: read
