@@ -138,8 +138,8 @@ def _with_var_keyword_entries_named(module: nn.Module, kwargs: dict) -> nn.Modul
     """
     if get_var_keyword_name(module.forward) is None:
         return module
-    _, named_kwarg_names = get_arguments_names(module.forward)
-    entries = [name for name, value in kwargs.items() if name not in named_kwarg_names and value is not None]
+    parameter_names = inspect.signature(module.forward).parameters
+    entries = [name for name, value in kwargs.items() if name not in parameter_names and value is not None]
     return _NamedVarKeywordEntries(module, entries) if entries else module
 
 
