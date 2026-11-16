@@ -49,7 +49,7 @@ class OpenVINOModelConverter:
         logger.info("Converting PyTorch module to OpenVINO IR: %s", xml_path)
         try:
             args, kwargs = _prepare_sample(sample, graph_spec.input_spec)
-            with _constants_copy_device_tensors():
+            with _constants_do_not_share_temporary_copies():
                 if self.use_dynamo:
                     ov_model, ordered_kwarg_names = self._convert_dynamo(module, args, kwargs, graph_spec)
                     ordered_input_names = _ordered_input_names_for_dynamo(graph_spec.input_spec, ordered_kwarg_names)
@@ -100,16 +100,20 @@ class OpenVINOModelConverter:
 
 
 @contextlib.contextmanager
-def _constants_copy_device_tensors() -> Generator[None]:
-    """Makes the PyTorch frontend copy the data of every constant taken from a non-CPU tensor.
+def _constants_do_not_share_temporary_copies() -> Generator[None]:
+    """Makes the PyTorch frontend copy the data of a constant unless its source is a contiguous CPU tensor.
 
-    For bf16 and f8 the frontend shares the memory of a temporary CPU copy of the tensor, and that copy
-    is freed as soon as the constant is made.
+    For bf16 and f8 the frontend shares the memory of a contiguous CPU copy of the tensor and does not
+    keep that copy alive. The copy is a new tensor when the source is on another device or is not contiguous.
+
+    Remove this function and the ``fx_decoder`` and ``pytorch_frontend_utils`` imports once the minimum
+    ``openvino`` version includes https://github.com/openvinotoolkit/openvino/pull/39510.
     """
     original = pytorch_frontend_utils.torch_tensor_to_ov_const
 
     def to_constant(tensor: torch.Tensor, shared_memory: bool = True) -> Any:
-        return original(tensor, shared_memory=shared_memory and tensor.device.type == "cpu")
+        shares_source = tensor.device.type == "cpu" and tensor.is_contiguous()
+        return original(tensor, shared_memory=shared_memory and shares_source)
 
     fx_decoder.torch_tensor_to_ov_const = pytorch_frontend_utils.torch_tensor_to_ov_const = to_constant
     try:
