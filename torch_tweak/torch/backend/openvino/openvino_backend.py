@@ -23,33 +23,13 @@ from torch_tweak.torch.backend.openvino.ov_model_converter import (
     OpenVINOModelConverter,
     staticize_extra_openvino_inputs,
 )
+from torch_tweak.torch.backend.openvino.xpu_remote import XpuInferRequest
 from torch_tweak.torch.module.graph_spec import GraphSpec
 from torch_tweak.torch.module.recording_module import Sample
 from torch_tweak.torch.utils.module import offload
 from torch_tweak.utils.permissions import secure_mkdir
 
 logger = logging.getLogger(__name__)
-
-
-def _tensor_to_numpy(tensor: torch.Tensor) -> np.ndarray:
-    if not tensor.is_contiguous():
-        tensor = tensor.contiguous()
-    return tensor.detach().cpu().numpy()
-
-
-def _ov_tensor_to_torch(ov_value: Any, device: torch.device, dtype: torch.dtype | None) -> torch.Tensor:
-    if hasattr(ov_value, "data"):
-        arr = np.array(ov_value.data)
-    else:
-        arr = np.asarray(ov_value)
-    tensor = torch.from_numpy(arr.copy())
-    if dtype is not None:
-        tensor = tensor.to(dtype=dtype)
-    if device.type == "xpu" and hasattr(torch, "xpu"):
-        tensor = tensor.to(device)
-    elif device.type == "cpu":
-        tensor = tensor.to(device)
-    return tensor
 
 
 def _port_names(ports: Sequence[ov.ConstOutput]) -> set[str]:
@@ -111,7 +91,11 @@ class OpenVINOBackend(Backend):
         self._ov_model_xml: Path | None = None
         self._graph_spec: GraphSpec | None = None
         self._output_object: Any = None
+        self._input_names: set[str] = set()
         self._compiled_model: ov.CompiledModel | None = None
+        self._xpu_request: XpuInferRequest | None = None
+        self._shape_model: ov.Model | None = None
+        self._xpu_output_shapes: dict[tuple, dict[str, list[int]]] = {}
 
     def key(self) -> str:
         """Returns the key of the backend."""
@@ -148,55 +132,99 @@ class OpenVINOBackend(Backend):
         # GraphSpec shapes are already baked into the IR; only the extra-input workaround has to be
         # re-applied here, because the IR may come from a checkpoint written without it.
         tensor_input_names = {ts.name for ts in self._graph_spec.input_spec.tensor_specs}
-        staticize_extra_openvino_inputs(ov_model.inputs, tensor_input_names)
+        scalar_inputs = staticize_extra_openvino_inputs(ov_model.inputs, tensor_input_names)
         ov_model.validate_nodes_and_infer_types()
+        self._input_names = _port_names(ov_model.inputs)
         compile_config = {}
         if self._config.performance_hint:
             compile_config["PERFORMANCE_HINT"] = self._config.performance_hint
-        ov_device = "CPU"
         if self._device.type == "xpu":
-            ov_device = openvino_device_for_xpu(core, self._device)
-        elif self._device.type != "cpu":
+            self._xpu_request = XpuInferRequest(
+                self._ov_model_xml,
+                self._device,
+                ov_device=openvino_device_for_xpu(core, self._device),
+                config=compile_config,
+                scalar_inputs=scalar_inputs,
+            )
+            self._shape_model = ov_model
+        elif self._device.type == "cpu":
+            self._compiled_model = core.compile_model(ov_model, "CPU", config=compile_config or None)
+        else:
             raise ValueError(f"Device {self._device.type} is not supported by OpenVINO backend")
-        self._compiled_model = core.compile_model(ov_model, ov_device, config=compile_config or None)
+
+    def _is_compiled(self) -> bool:
+        return self._compiled_model is not None or self._xpu_request is not None
 
     def _activate(self):
-        if self._compiled_model is None:
+        if not self._is_compiled():
             self._compile_model()
 
     def _deactivate(self):
+        if self._xpu_request is not None:
+            self._xpu_request.close()
+        self._xpu_request = None
+        self._shape_model = None
+        self._xpu_output_shapes.clear()
         self._compiled_model = None
 
     def _deploy(self):
         self._activate()
 
     def _infer(self, *args: Any, **kwargs: Any) -> Any:
-        if self._compiled_model is None:
+        if not self._is_compiled():
             raise RuntimeError("OpenVINO model is not compiled. Call build() or activate() first.")
 
         with torch.no_grad():
             inputs = self._prepare_inputs(args, kwargs)
             if not inputs:
                 raise ValueError("No input tensors provided for OpenVINO inference")
-
-            ov_inputs = {name: _tensor_to_numpy(tensor) for name, tensor in inputs.items()}
-            ov_outputs = self._compiled_model(ov_inputs)
-            output_names = _port_names(self._compiled_model.outputs)
-
-            torch_outputs: dict[str, torch.Tensor] = {}
-            for _locator, tensor_spec in self._graph_spec.output_spec.tensor_data:
-                if tensor_spec.name not in output_names:
-                    continue
-                ov_out = ov_outputs[tensor_spec.name]
-                torch_outputs[tensor_spec.name] = _ov_tensor_to_torch(ov_out, self._device, tensor_spec.dtype)
-
+            if self._xpu_request is not None:
+                torch_outputs = self._infer_on_xpu(inputs)
+            else:
+                torch_outputs = self._infer_on_host(inputs)
             return self._prepare_outputs_for_return(torch_outputs)
 
+    def _infer_on_host(self, inputs: dict[str, torch.Tensor]) -> dict[str, torch.Tensor]:
+        # CompiledModel reads host inputs as C-contiguous numpy arrays.
+        ov_inputs = {name: tensor.detach().cpu().contiguous().numpy() for name, tensor in inputs.items()}
+        ov_outputs = self._compiled_model(ov_inputs)
+        output_names = _port_names(self._compiled_model.outputs)
+
+        torch_outputs: dict[str, torch.Tensor] = {}
+        for _locator, tensor_spec in self._graph_spec.output_spec.tensor_data:
+            if tensor_spec.name not in output_names:
+                continue
+            # The infer request reuses its output buffer on the next call.
+            tensor = torch.from_numpy(np.array(ov_outputs[tensor_spec.name]))
+            torch_outputs[tensor_spec.name] = tensor.to(dtype=tensor_spec.dtype)
+        return torch_outputs
+
+    def _infer_on_xpu(self, inputs: dict[str, torch.Tensor]) -> dict[str, torch.Tensor]:
+        inputs = {name: tensor.contiguous() for name, tensor in inputs.items()}
+        output_shapes = self._output_shapes_for(inputs)
+        outputs = {
+            tensor_spec.name: torch.empty(output_shapes[tensor_spec.name], dtype=tensor_spec.dtype, device=self._device)
+            for tensor_spec in self._graph_spec.output_spec.tensor_specs
+            if tensor_spec.name in output_shapes
+        }
+        self._xpu_request.infer(inputs, outputs)
+        return outputs
+
+    def _output_shapes_for(self, inputs: dict[str, torch.Tensor]) -> dict[str, list[int]]:
+        input_shapes = tuple((name, tuple(tensor.shape)) for name, tensor in inputs.items())
+        output_shapes = self._xpu_output_shapes.get(input_shapes)
+        if output_shapes is None:
+            self._shape_model.reshape({name: list(shape) for name, shape in input_shapes})
+            output_shapes = {
+                name: list(port.get_shape()) for port in self._shape_model.outputs for name in port.get_names()
+            }
+            self._xpu_output_shapes[input_shapes] = output_shapes
+        return output_shapes
+
     def _prepare_inputs(self, args: tuple, kwargs: dict) -> dict[str, torch.Tensor]:
-        model_input_names = _port_names(self._compiled_model.inputs)
         inputs: dict[str, torch.Tensor] = {}
         for locator, tensor_spec in self._graph_spec.input_spec.tensor_data:
-            if tensor_spec.name not in model_input_names:
+            if tensor_spec.name not in self._input_names:
                 continue
             if tensor_spec.name.startswith("args"):
                 tensor = locator.get_value(args)

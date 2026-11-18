@@ -5,6 +5,8 @@
 # NOTE: This file has been modified by Intel Corporation.
 """Helper functions and classes for testing."""
 
+import importlib.util
+
 import pytest
 import torch
 
@@ -12,6 +14,19 @@ from torch_tweak.torch.module.sample_metadata import CHECKPOINTABLE_VALUE_TYPES
 from torch_tweak.torch.utils.xpu import is_available as is_xpu_available
 
 requires_xpu = pytest.mark.skipif(not is_xpu_available(), reason="XPU is not available")
+
+
+def _has_level_zero_interop() -> bool:
+    if not is_xpu_available() or importlib.util.find_spec("openvino") is None:
+        return False
+    from torch_tweak.torch.backend.openvino.xpu_remote import has_level_zero_interop
+
+    return has_level_zero_interop(torch.device("xpu"))
+
+
+has_leo = _has_level_zero_interop()
+LEO_MISSING = "The Intel GPU driver cannot run OpenCL on Level Zero (EnableLEO=1 on Battlemage)"
+requires_leo = pytest.mark.skipif(not has_leo, reason=LEO_MISSING)
 
 
 def assert_only_primitives(value):
