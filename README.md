@@ -102,8 +102,8 @@ To build and install torch-tweak from the local repository we recommend using uv
 torch-tweak and installs all required developer dependencies:
 
 ```bash
-# it uses stable PyTorch XPU stack and installs all dev dependencies
-uv sync --extra dev
+# it uses stable PyTorch XPU stack and installs TorchAO and all dev dependencies
+uv sync --extra xpu --extra dev
 ```
 
 There's also a nightly PyTorch XPU stack available in uv. For more information about switching

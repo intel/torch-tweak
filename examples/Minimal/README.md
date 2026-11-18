@@ -11,7 +11,7 @@ The XPU graph is recorded when an Intel GPU is available. CPU keeps Inductor and
 
 ## Run from the repository
 
-From the repository root, after `uv sync --extra dev`:
+From the repository root, after `uv sync --extra xpu --extra dev`:
 
 ```bash
 uv run python examples/Minimal/demo.py

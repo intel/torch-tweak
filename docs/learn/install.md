@@ -70,9 +70,17 @@ Configuration: `[dependency-groups]`, optional extra `xpu`, and `[tool.uv]` inde
 **Stable (default)** uses the project environment in `.venv`:
 
 ```bash
-uv sync --extra dev
-uv run pytest
+uv sync --extra xpu --extra dev
+uv run pytest -m "not functional and not nightly"
 ```
+
+The `xpu` extra brings TorchAO. Without it, `uv sync` removes TorchAO from `.venv`.
+Functional tests are a separate step: `uv run pytest -m functional`.
+
+On Battlemage (Intel Arc B-series), the OpenVINO backend on XPU needs `EnableLEO=1`.
+pytest sets it in the root `conftest.py`.
+A script run outside pytest needs it in its environment: `EnableLEO=1 uv run python my_script.py`.
+See [OpenVINO Backend](../guides/backends/openvino_backend.md).
 
 **CPU (optional)** installs the CPU build of PyTorch, like the CI job without an Intel GPU:
 
@@ -84,8 +92,8 @@ UV_PROJECT_ENVIRONMENT=.venv-cpu uv run pytest -m "not functional and not nightl
 **Nightly (optional)**. The recommended option is a separate environment, so stable and nightly stay installed side by side:
 
 ```bash
-UV_PROJECT_ENVIRONMENT=.venv-nightly uv sync --no-default-groups --group xpu-nightly --extra dev
-UV_PROJECT_ENVIRONMENT=.venv-nightly uv run pytest
+UV_PROJECT_ENVIRONMENT=.venv-nightly uv sync --no-default-groups --group xpu-nightly --extra torchao --extra dev
+UV_PROJECT_ENVIRONMENT=.venv-nightly uv run pytest -m "not functional and not nightly"
 ```
 
 **Nightly in the same `.venv` as stable (optional)**. `uv sync` reconciles the environment (removes packages not in the current resolution unless you pass `--inexact`).
@@ -93,18 +101,18 @@ Switching reinstalls `torch` and related wheels (the cache speeds downloads, but
 
 ```bash
 # nightly
-uv sync --no-default-groups --group xpu-nightly --extra dev
+uv sync --no-default-groups --group xpu-nightly --extra torchao --extra dev
 
 # back to stable
-uv sync --extra dev
+uv sync --extra xpu --extra dev
 ```
 
 Rules:
 
 1. Never resolve with **both** `xpu-nightly` and `xpu-stable` active (same sync invocation). Two directories (`.venv` + `.venv-nightly`) are **recommended**; one `.venv` is fine if you always use the matching sync command when you switch.
 2. Nightly sync must include `--no-default-groups --group xpu-nightly` so `default-groups = ["xpu-stable"]` is not applied. For a dedicated nightly tree, set `UV_PROJECT_ENVIRONMENT=.venv-nightly` (or any path) on `uv sync` / `uv run`.
-3. Do not use `uv sync --only-group ...` together with `--extra`. Use `--no-default-groups --group xpu-nightly --extra dev` for nightly.
-4. Do not use `uv sync --all-extras` expecting both PyTorch stacks. Do not combine the `xpu` extra with the `xpu-nightly` group in one environment (`conflicts` in `pyproject.toml`).
+3. Do not use `uv sync --only-group ...` together with `--extra`. Use `--no-default-groups --group xpu-nightly --extra torchao --extra dev` for nightly.
+4. Do not use `uv sync --all-extras` expecting both PyTorch stacks. Do not combine the `xpu` extra with the `xpu-nightly` group in one environment (`conflicts` in `pyproject.toml`). The `torchao` extra brings TorchAO to nightly without the `xpu` extra.
 
 ## Installing torch-tweak only
 
