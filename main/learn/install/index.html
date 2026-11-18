@@ -2655,31 +2655,37 @@ On a machine with an Intel GPU, <code>tune()</code> expects the XPU build. Pass 
 Configuration: <code>[dependency-groups]</code>, optional extra <code>xpu</code>, and <code>[tool.uv]</code> indexes are defined in <code>pyproject.toml</code>. You cannot install both PyTorch stacks in one resolved environment
 (see <code>conflicts</code> in <code>pyproject.toml</code>), but you may either keep two venvs (recommended) or switch stacks in a single <code>.venv</code> with the correct <code>uv sync</code> flags each time.</p>
 <p><strong>Stable (default)</strong> uses the project environment in <code>.venv</code>:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>uv<span class="w"> </span>sync<span class="w"> </span>--extra<span class="w"> </span>dev
-<a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a>uv<span class="w"> </span>run<span class="w"> </span>pytest
+<div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>uv<span class="w"> </span>sync<span class="w"> </span>--extra<span class="w"> </span>xpu<span class="w"> </span>--extra<span class="w"> </span>dev
+<a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a>uv<span class="w"> </span>run<span class="w"> </span>pytest<span class="w"> </span>-m<span class="w"> </span><span class="s2">"not functional and not nightly"</span>
 </code></pre></div>
+<p>The <code>xpu</code> extra brings TorchAO. Without it, <code>uv sync</code> removes TorchAO from <code>.venv</code>.
+Functional tests are a separate step: <code>uv run pytest -m functional</code>.</p>
+<p>On Battlemage (Intel Arc B-series), the OpenVINO backend on XPU needs <code>EnableLEO=1</code>.
+pytest sets it in the root <code>conftest.py</code>.
+A script run outside pytest needs it in its environment: <code>EnableLEO=1 uv run python my_script.py</code>.
+See <a href="../../guides/backends/openvino_backend/">OpenVINO Backend</a>.</p>
 <p><strong>CPU (optional)</strong> installs the CPU build of PyTorch, like the CI job without an Intel GPU:</p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="nv">UV_PROJECT_ENVIRONMENT</span><span class="o">=</span>.venv-cpu<span class="w"> </span>uv<span class="w"> </span>sync<span class="w"> </span>--no-default-groups<span class="w"> </span>--group<span class="w"> </span>cpu<span class="w"> </span>--extra<span class="w"> </span>torchao<span class="w"> </span>--extra<span class="w"> </span>dev
 <a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a><span class="nv">UV_PROJECT_ENVIRONMENT</span><span class="o">=</span>.venv-cpu<span class="w"> </span>uv<span class="w"> </span>run<span class="w"> </span>pytest<span class="w"> </span>-m<span class="w"> </span><span class="s2">"not functional and not nightly"</span>
 </code></pre></div>
 <p><strong>Nightly (optional)</strong>. The recommended option is a separate environment, so stable and nightly stay installed side by side:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a><span class="nv">UV_PROJECT_ENVIRONMENT</span><span class="o">=</span>.venv-nightly<span class="w"> </span>uv<span class="w"> </span>sync<span class="w"> </span>--no-default-groups<span class="w"> </span>--group<span class="w"> </span>xpu-nightly<span class="w"> </span>--extra<span class="w"> </span>dev
-<a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a><span class="nv">UV_PROJECT_ENVIRONMENT</span><span class="o">=</span>.venv-nightly<span class="w"> </span>uv<span class="w"> </span>run<span class="w"> </span>pytest
+<div class="highlight"><pre><span></span><code><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a><span class="nv">UV_PROJECT_ENVIRONMENT</span><span class="o">=</span>.venv-nightly<span class="w"> </span>uv<span class="w"> </span>sync<span class="w"> </span>--no-default-groups<span class="w"> </span>--group<span class="w"> </span>xpu-nightly<span class="w"> </span>--extra<span class="w"> </span>torchao<span class="w"> </span>--extra<span class="w"> </span>dev
+<a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a><span class="nv">UV_PROJECT_ENVIRONMENT</span><span class="o">=</span>.venv-nightly<span class="w"> </span>uv<span class="w"> </span>run<span class="w"> </span>pytest<span class="w"> </span>-m<span class="w"> </span><span class="s2">"not functional and not nightly"</span>
 </code></pre></div>
 <p><strong>Nightly in the same <code>.venv</code> as stable (optional)</strong>. <code>uv sync</code> reconciles the environment (removes packages not in the current resolution unless you pass <code>--inexact</code>).
 Switching reinstalls <code>torch</code> and related wheels (the cache speeds downloads, but it is not instant):</p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a><span class="c1"># nightly</span>
-<a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a>uv<span class="w"> </span>sync<span class="w"> </span>--no-default-groups<span class="w"> </span>--group<span class="w"> </span>xpu-nightly<span class="w"> </span>--extra<span class="w"> </span>dev
+<a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a>uv<span class="w"> </span>sync<span class="w"> </span>--no-default-groups<span class="w"> </span>--group<span class="w"> </span>xpu-nightly<span class="w"> </span>--extra<span class="w"> </span>torchao<span class="w"> </span>--extra<span class="w"> </span>dev
 <a id="__codelineno-6-3" name="__codelineno-6-3" href="#__codelineno-6-3"></a>
 <a id="__codelineno-6-4" name="__codelineno-6-4" href="#__codelineno-6-4"></a><span class="c1"># back to stable</span>
-<a id="__codelineno-6-5" name="__codelineno-6-5" href="#__codelineno-6-5"></a>uv<span class="w"> </span>sync<span class="w"> </span>--extra<span class="w"> </span>dev
+<a id="__codelineno-6-5" name="__codelineno-6-5" href="#__codelineno-6-5"></a>uv<span class="w"> </span>sync<span class="w"> </span>--extra<span class="w"> </span>xpu<span class="w"> </span>--extra<span class="w"> </span>dev
 </code></pre></div>
 <p>Rules:</p>
 <ol>
 <li>Never resolve with <strong>both</strong> <code>xpu-nightly</code> and <code>xpu-stable</code> active (same sync invocation). Two directories (<code>.venv</code> + <code>.venv-nightly</code>) are <strong>recommended</strong>; one <code>.venv</code> is fine if you always use the matching sync command when you switch.</li>
 <li>Nightly sync must include <code>--no-default-groups --group xpu-nightly</code> so <code>default-groups = ["xpu-stable"]</code> is not applied. For a dedicated nightly tree, set <code>UV_PROJECT_ENVIRONMENT=.venv-nightly</code> (or any path) on <code>uv sync</code> / <code>uv run</code>.</li>
-<li>Do not use <code>uv sync --only-group ...</code> together with <code>--extra</code>. Use <code>--no-default-groups --group xpu-nightly --extra dev</code> for nightly.</li>
-<li>Do not use <code>uv sync --all-extras</code> expecting both PyTorch stacks. Do not combine the <code>xpu</code> extra with the <code>xpu-nightly</code> group in one environment (<code>conflicts</code> in <code>pyproject.toml</code>).</li>
+<li>Do not use <code>uv sync --only-group ...</code> together with <code>--extra</code>. Use <code>--no-default-groups --group xpu-nightly --extra torchao --extra dev</code> for nightly.</li>
+<li>Do not use <code>uv sync --all-extras</code> expecting both PyTorch stacks. Do not combine the <code>xpu</code> extra with the <code>xpu-nightly</code> group in one environment (<code>conflicts</code> in <code>pyproject.toml</code>). The <code>torchao</code> extra brings TorchAO to nightly without the <code>xpu</code> extra.</li>
 </ol>
 <h2 id="installing-torch-tweak-only">Installing torch-tweak only</h2>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a>git<span class="w"> </span>clone<span class="w"> </span>https://github.com/intel/torch-tweak
