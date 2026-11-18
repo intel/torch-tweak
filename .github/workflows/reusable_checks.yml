@@ -97,10 +97,11 @@ jobs:
         env:
           EVENT_NAME: ${{ github.event_name }}
           BASE_SHA: ${{ github.event.pull_request.base.sha || github.event.before }}
+        # No GPU test reads Markdown, including the READMEs under examples/.
         run: |
           if [ -z "${BASE_SHA}" ] \
               || [ "${BASE_SHA}" = "0000000000000000000000000000000000000000" ] \
-              || ! changed="$(git diff --name-only "${BASE_SHA}" HEAD)"; then
+              || ! changed="$(git diff --name-only "${BASE_SHA}" HEAD -- . ':(exclude)*.md')"; then
             run=true
           elif printf '%s\n' "${changed}" | grep -Eq \
               '^(torch_tweak/|examples/|tests/|pyproject\.toml$|conftest\.py$|uv\.lock$|\.github/workflows/(ci|reusable_tests_gpu|reusable_coverage)\.yml$|\.github/scripts/coverage_summary\.py$)'; then
