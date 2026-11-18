@@ -54,7 +54,7 @@ jobs:
       - name: Resolve runtime dependencies
         run: |
           mkdir -p "$RUNNER_TEMP/tt-sca"
-          uv pip compile --python-version 3.12 --torch-backend cpu pyproject.toml \
+          uv pip compile --extra xpu --extra dev pyproject.toml \
             -o "$RUNNER_TEMP/tt-sca/requirements.txt"
 
       - name: Scan resolved dependencies with Trivy
@@ -71,7 +71,7 @@ jobs:
           version: v0.76.2
           skip-setup-trivy: true
 
-      - name: Upload dependency scan report
+      - name: Upload Trivy reports
         if: ${{ always() }}
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
@@ -83,17 +83,17 @@ jobs:
           if-no-files-found: warn
           retention-days: 30
 
-      - name: Fail on high or critical vulnerabilities
+      - name: Fail on high or critical findings
         if: ${{ !cancelled() && steps.trivy-filesystem.outcome == 'success' && steps.trivy-dependencies.outcome == 'success' }}
         run: |
-          set +e
-          trivy fs --scanners vuln --severity HIGH,CRITICAL --exit-code 1 "$RUNNER_TEMP/tt-sca"
-          resolved_status=$?
-          trivy fs --scanners vuln --severity HIGH,CRITICAL --exit-code 1 --skip-dirs .venv .
-          repository_status=$?
-          if [ "$resolved_status" -ne 0 ] || [ "$repository_status" -ne 0 ]; then
-            exit 1
-          fi
+          jq -s '[.[].Results[]? | .Target as $target
+                  | ((.Vulnerabilities // [])[] | {target: $target, id: .VulnerabilityID, pkg: .PkgName,
+                                                   version: .InstalledVersion, severity: .Severity}),
+                    ((.Secrets // [])[] | {target: $target, id: .RuleID, severity: .Severity})
+                  | select(.severity == "HIGH" or .severity == "CRITICAL")]' \
+            "$RUNNER_TEMP/trivy-filesystem.json" "$RUNNER_TEMP/trivy-dependencies.json" > "$RUNNER_TEMP/trivy-blocking.json"
+          jq -r '.[] | [.severity, .id, .target, .pkg // "-", .version // "-"] | @tsv' "$RUNNER_TEMP/trivy-blocking.json"
+          jq -e 'length == 0' "$RUNNER_TEMP/trivy-blocking.json" > /dev/null
 
   semgrep:
     name: Semgrep Scan
