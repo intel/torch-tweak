@@ -842,6 +842,17 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#xpu" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        XPU
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#configuration" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -2434,6 +2445,17 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#xpu" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        XPU
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#configuration" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -2500,11 +2522,22 @@ SPDX-License-Identifier: Apache-2.0
 <a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a><span class="n">tt</span><span class="o">.</span><span class="n">tune</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">input_data</span><span class="p">)</span>
 </code></pre></div>
 <p><code>OpenVINOBackend()</code> with no config uses <code>torch.export</code> and the <code>LATENCY</code> hint.</p>
+<h2 id="xpu">XPU</h2>
+<p>On <code>xpu</code> the backend binds PyTorch tensors as OpenVINO GPU tensors.
+Inputs and outputs stay in device memory and nothing is copied through the host.</p>
+<p>This needs the Intel GPU driver to run OpenCL on Level Zero (LEO).</p>
+<p>On Battlemage (Intel Arc B-series), LEO is off by default.
+Start the process with <code>EnableLEO=1</code>:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="nv">EnableLEO</span><span class="o">=</span><span class="m">1</span><span class="w"> </span>python<span class="w"> </span>my_pipeline.py
+</code></pre></div>
+<p>The driver reads the variable when the process first uses OpenCL, so setting it later has no effect.
+Without LEO, building the backend on XPU raises <code>LevelZeroInteropError</code>.</p>
+<p>On newer Intel GPUs (driver 26.35 or newer), the driver enables LEO by default and the variable is not needed.</p>
 <h2 id="configuration">Configuration</h2>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="n">config</span> <span class="o">=</span> <span class="n">OpenVINOBackendConfig</span><span class="p">(</span>
-<a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>    <span class="n">use_dynamo</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>              <span class="c1"># False selects the legacy trace conversion</span>
-<a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a>    <span class="n">performance_hint</span><span class="o">=</span><span class="s2">"THROUGHPUT"</span><span class="p">,</span>
-<a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a><span class="p">)</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="n">config</span> <span class="o">=</span> <span class="n">OpenVINOBackendConfig</span><span class="p">(</span>
+<a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a>    <span class="n">use_dynamo</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>  <span class="c1"># False selects the legacy trace conversion</span>
+<a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a>    <span class="n">performance_hint</span><span class="o">=</span><span class="s2">"THROUGHPUT"</span><span class="p">,</span>
+<a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a><span class="p">)</span>
 </code></pre></div>
 <p>Use <code>use_dynamo=False</code> when <code>torch.export</code> cannot capture the module.</p>
 <h2 id="next-steps">Next Steps</h2>

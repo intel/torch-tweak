@@ -2536,6 +2536,7 @@ legacy trace-based conversion and optionally change the compile hint:</p>
 <a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a>
 <a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a><span class="n">backend</span> <span class="o">=</span> <span class="n">OpenVINOBackend</span><span class="p">(</span><span class="n">OpenVINOBackendConfig</span><span class="p">(</span><span class="n">use_dynamo</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">performance_hint</span><span class="o">=</span><span class="s2">"THROUGHPUT"</span><span class="p">))</span>
 </code></pre></div>
+<p>On XPU, OpenVINO reads and writes PyTorch device memory in place, which needs LEO in the Intel GPU driver. Without LEO, the backend raises an error. On Battlemage, start the process with <code>EnableLEO=1</code>; newer GPUs do not need it.</p>
 <p>Guide: <a href="../../guides/backends/openvino_backend/">OpenVINO Backend</a>.</p>
 <h2 id="torch-eager-backend">Torch Eager Backend</h2>
 <p>The Torch Eager backend runs the module with no compilation and no conversion. It is the baseline <code>HighestThroughputStrategy</code> compares the other backends against.</p>

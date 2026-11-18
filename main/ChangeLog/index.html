@@ -2460,8 +2460,8 @@ SPDX-License-Identifier: Apache-2.0
 <li>fix (breaking): <code>profile</code> returns <code>ProfilingResult</code> with measured throughput per batch size (#64)</li>
 <li>fix(openvino): inputs that compilation renames are fed again.
   A diffusers UNet ran with an unset timestep and returned wrong outputs without an error.</li>
-<li>fix: bf16 and f8 weights on XPU, and non-contiguous ones on CPU, keep their values in the OpenVINO IR.
-  Before, they could hold garbage and saving the model could crash (#103)</li>
+<li>fix: bf16 and f8 weights on XPU, and non-contiguous ones on CPU, keep their values in the OpenVINO IR (#103)</li>
+<li>feat (breaking): OpenVINO on XPU binds PyTorch tensors as GPU remote tensors without copying them through the host (#102)</li>
 </ul>
 <h2 id="041">0.4.1</h2>
 <ul>
