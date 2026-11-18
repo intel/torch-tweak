@@ -17,20 +17,47 @@ Use this workflow for **local** installs, demos, and tests.
 From the repository root. **Do not** set `UV_PROJECT_ENVIRONMENT` (uv uses **`.venv`**).
 
 ```bash
-uv sync --extra dev
-uv run pytest
+uv sync --extra xpu --extra dev
+uv run pytest -m "not functional and not nightly"
 ```
 
-Example:
-```bash
-uv sync --extra dev
-```
+The GPU test job in `.github/workflows/reusable_tests_gpu.yml` runs this sync, then unit tests with this marker.
+Functional tests are the next step in that job: `uv run pytest -m functional`.
+Checks run `uv sync --extra dev --no-default-groups`.
+The CPU job uses the `cpu` group and `--extra torchao`, because the `xpu` extra conflicts with that group.
+The `xpu` extra brings `torchao`.
+`uv sync --extra dev` alone removes `torchao`, and the TorchAO tests fail at collection.
 
 ```bash
 uv run ruff check --fix && uv run ruff format
 ```
 
-Prefer `uv run …` over manually activating `.venv/bin/activate`.
+Prefer `uv run ...` over manually activating `.venv/bin/activate`.
+
+## The venv itself
+
+- `pyvenv.cfg` must say `include-system-site-packages = false`.
+  With `true`, Ubuntu packages in `/usr/lib/python3/dist-packages` (an old `scipy`) shadow missing ones,
+  and `transformers` and `diffusers` imports fail.
+  `uv sync` reuses the venv and keeps the flag.
+  Delete that venv directory and run its sync command again.
+- A new venv uses Python 3.14, the version CI jobs use.
+  Pass `--python 3.14` on the sync that creates it.
+  OpenVINO has wheels for 3.11 through 3.14 and none for 3.15.
+  An existing venv on 3.11, 3.12, or 3.13 already has an OpenVINO wheel.
+
+## OpenVINO on XPU
+
+`OpenVINOBackend` on XPU needs OpenCL on Level Zero (LEO) in the Intel GPU driver.
+Battlemage enables it only with `EnableLEO=1`.
+Driver 26.35 or newer enables it by default.
+
+The root `conftest.py` sets `EnableLEO=1` for pytest.
+The GPU test job and the nightly workflow set it in their environment, so examples get it too.
+A script or `python -` run outside pytest needs `EnableLEO=1` in its environment, or the build raises `LevelZeroInteropError`.
+The driver reads the variable at the first OpenCL call in the process, so setting `os.environ` later has no effect.
+
+Tests that need LEO carry `requires_leo` from `tests/utilities/helpers.py` and skip without it.
 
 ## uv - nightly environment (optional)
 
@@ -40,39 +67,41 @@ Use nightly only when the task needs **PyTorch XPU nightly** wheels. Keep nightl
 |---|--------|---------|
 | Venv path | `.venv` (default) | `.venv-nightly` |
 | `UV_PROJECT_ENVIRONMENT` | unset | `.venv-nightly` |
-| Sync | `uv sync --extra dev` | `uv sync --no-default-groups --group xpu-nightly --extra dev` |
+| Sync | `uv sync --extra xpu --extra dev` | `uv sync --no-default-groups --group xpu-nightly --extra torchao --extra dev` |
 | Every `uv run` | no extra env var | `UV_PROJECT_ENVIRONMENT=.venv-nightly` |
 
 **Install / refresh nightly:**
 
 ```bash
-UV_PROJECT_ENVIRONMENT=.venv-nightly uv sync --no-default-groups --group xpu-nightly --extra dev
+UV_PROJECT_ENVIRONMENT=.venv-nightly uv sync --no-default-groups --group xpu-nightly --extra torchao --extra dev
 ```
 
 **Run tests on nightly:**
 
 ```bash
-UV_PROJECT_ENVIRONMENT=.venv-nightly uv run pytest
+UV_PROJECT_ENVIRONMENT=.venv-nightly uv run pytest -m "not functional and not nightly"
 ```
 
 ### Nightly rules (do not break resolution)
 
 1. Never activate **`xpu-nightly` and `xpu-stable` in the same `uv sync`** (conflicts in `pyproject.toml`).
 2. Nightly sync **must** include **`--no-default-groups --group xpu-nightly`** so `default-groups = ["xpu-stable"]` is not applied.
-3. Do **not** use `uv sync --only-group xpu-nightly --extra dev` - use `--no-default-groups --group xpu-nightly --extra dev` instead.
-4. Set **`UV_PROJECT_ENVIRONMENT=.venv-nightly`** on **both** `uv sync` and `uv run` when working in the nightly tree.
-5. Switching nightly ↔ stable in a **single** `.venv` is possible but reinstalls `torch`; prefer two directories (`.venv` + `.venv-nightly`).
+3. Do **not** use `uv sync --only-group xpu-nightly --extra dev` - use `--no-default-groups --group xpu-nightly --extra torchao --extra dev` instead.
+4. Do **not** add `--extra xpu` to a nightly sync. It conflicts with `xpu-nightly`. `--extra torchao` brings `torchao` without it.
+5. Set **`UV_PROJECT_ENVIRONMENT=.venv-nightly`** on **both** `uv sync` and `uv run` when working in the nightly tree.
+   Pass it per command. An `export` leaks into every later command in the same shell, including stable ones.
+6. Switching between nightly and stable in a **single** `.venv` is possible but reinstalls `torch`; prefer two directories (`.venv` + `.venv-nightly`).
 
 **Back to stable** (from repo root, default venv):
 
 ```bash
-uv sync --extra dev
+uv sync --extra xpu --extra dev
 ```
 
 ## Agent rules
 
 1. When diagnosing failures, **reproduce the exact command** (stable vs nightly, `UV_PROJECT_ENVIRONMENT`, and uv flags) before changing code.
-2. Default to **stable** (`.venv`, `uv sync --extra dev`). Use **nightly** only when the user or task explicitly requires nightly PyTorch.
+2. Default to **stable** (`.venv`, `uv sync --extra xpu --extra dev`). Use **nightly** only when the user or task explicitly requires nightly PyTorch.
 3. If you add Python packages for a demo or test, update **`pyproject.toml`** in the same change and run **`uv lock`** + **`uv sync`** (with the correct stable or nightly flags).
 4. Don't commit a non-standard ascii characters in the code, especially in the comments (unless specifically specified by the user). Example: avoid dashes, use simple hyphens, avoid arrows etc. Keep it simple and readable.
 
@@ -80,11 +109,12 @@ uv sync --extra dev
 
 | Task | Command |
 |------|---------|
-| Stable: install deps | `uv sync --extra dev` |
-| Stable: unit tests | `uv run pytest` |
+| Stable: install deps | `uv sync --extra xpu --extra dev` |
+| Stable: unit tests | `uv run pytest -m "not functional and not nightly"` |
 | Stable: OpenVINO tests | `uv run pytest tests/unit/torch/backend/test_openvino_backend.py -v` |
-| Nightly: install deps | `UV_PROJECT_ENVIRONMENT=.venv-nightly uv sync --no-default-groups --group xpu-nightly --extra dev` |
-| Nightly: unit tests | `UV_PROJECT_ENVIRONMENT=.venv-nightly uv run pytest` |
+| Stable: script with OpenVINO on XPU | `EnableLEO=1 uv run python <script>` |
+| Nightly: install deps | `UV_PROJECT_ENVIRONMENT=.venv-nightly uv sync --no-default-groups --group xpu-nightly --extra torchao --extra dev` |
+| Nightly: unit tests | `UV_PROJECT_ENVIRONMENT=.venv-nightly uv run pytest -m "not functional and not nightly"` |
 | CPU build: install deps | `UV_PROJECT_ENVIRONMENT=.venv-cpu uv sync --no-default-groups --group cpu --extra torchao --extra dev` |
 | CPU build: unit tests | `UV_PROJECT_ENVIRONMENT=.venv-cpu uv run pytest -m "not functional and not nightly"` |
 | Ruff (lint + fix) | `uv run ruff check --fix && uv run ruff format` |

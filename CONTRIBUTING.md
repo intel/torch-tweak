@@ -37,10 +37,10 @@ uv setup, including the optional PyTorch XPU nightly environment. For
 everyday development, run this from the repository root:
 
 ```bash
-uv sync --extra dev
+uv sync --extra xpu --extra dev
 ```
 
-This creates `.venv` with stable PyTorch XPU wheels and all development
+This creates `.venv` with stable PyTorch XPU wheels, TorchAO, and all development
 dependencies (for tests, docs, linters). Prefer `uv run ...` over activating the
 virtual environment manually.
 
@@ -51,7 +51,7 @@ the lock file and re-sync:
 
 ```bash
 uv lock
-uv sync --extra dev
+uv sync --extra xpu --extra dev
 ```
 
 Commit `pyproject.toml` and `uv.lock` together.
@@ -131,7 +131,7 @@ pip install .    # pip path, checked by the nightly workflow in a representative
 
 ### Building the docs locally
 
-If you already ran `uv sync --extra dev`, the doc dependencies are installed
+If you already ran `uv sync --extra xpu --extra dev`, the doc dependencies are installed
 and you can skip the first step.
 
 Install only the doc dependencies (the same setup CI uses):
