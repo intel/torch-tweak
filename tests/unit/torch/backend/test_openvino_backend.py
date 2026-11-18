@@ -213,6 +213,23 @@ def test_openvino_backend_keeps_the_bf16_weights_of_a_non_contiguous_cpu_paramet
     torch.testing.assert_close(actual, torch.full((1, 1024), 2.0))
 
 
+class _VarPositionalAndKeywordOnlyModel(nn.Module):
+    def forward(self, x: torch.Tensor, *args: torch.Tensor, mask: torch.Tensor | None = None) -> torch.Tensor:
+        return x - args[0]
+
+
+def test_openvino_backend_does_not_bind_var_positional_tensor_to_keyword_only_parameter(tmp_path, torch_device):
+    sample = (
+        (torch.tensor([[5.0, 6.0]], device=torch_device), torch.tensor([[1.0, 2.0]], device=torch_device)),
+        {},
+    )
+    backend = backend_build(OpenVINOBackend(), _VarPositionalAndKeywordOnlyModel(), [sample], tmp_path, torch_device)
+
+    actual = backend.infer(*sample[0])
+
+    torch.testing.assert_close(actual.cpu(), torch.tensor([[4.0, 4.0]]))
+
+
 def test_openvino_backend_serialization(model, sample_data, tmp_path, torch_device):
     backend = backend_build(
         OpenVINOBackend(OpenVINOBackendConfig(use_dynamo=False)), model, sample_data, tmp_path, torch_device
