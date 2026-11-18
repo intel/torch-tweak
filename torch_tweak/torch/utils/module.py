@@ -149,8 +149,7 @@ def get_arguments_names(func: Callable) -> tuple[list[str], list[str]]:
 def get_var_keyword_name(func: Callable) -> str | None:
     """Return the name of the ``**kwargs``-style parameter of a callable, or ``None``.
 
-    ``get_arguments_names`` skips this parameter, but ``torch.export`` keys the inputs passed
-    through it (and their dynamic shapes) under this name.
+    ``get_arguments_names`` skips this parameter.
 
     Examples:
         >>> def _plain(x, y=1):

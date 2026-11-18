@@ -228,6 +228,11 @@ class _KeywordOnlyAndVarKeywordModel(nn.Module):
         return (x - kwargs["y"]) * scale
 
 
+class _OnlyVarKeywordModel(nn.Module):
+    def forward(self, **kwargs: torch.Tensor) -> torch.Tensor:
+        return kwargs["x"] - kwargs["y"]
+
+
 def _tensor(values, device) -> torch.Tensor:
     return torch.tensor(values, device=device)
 
@@ -244,7 +249,7 @@ def _build_dynamic_backend(model, samples, tmp_path, torch_device):
     model = model.to(torch_device).eval()
     graph_spec: GraphSpec | None = None
     for args, kwargs in samples:
-        batch_size = args[0].shape[0]
+        batch_size = pytree.tree_leaves((args, kwargs))[0].shape[0]
         in_meta = SampleMetadata.from_inputs(args, kwargs, batch_size=batch_size)
         out_meta = SampleMetadata.from_outputs(model(*args, **kwargs), batch_size=batch_size)
         if graph_spec is None:
@@ -288,10 +293,6 @@ def test_openvino_backend_ignores_none_valued_var_keyword_input(tmp_path, torch_
     torch.testing.assert_close(actual.cpu(), torch.tensor([[4.0, 4.0]]))
 
 
-@pytest.mark.xfail(
-    strict=True,
-    reason="torch.export guards for dynamic **kwargs inputs raise NameError('L') in run_decompositions (torch 2.15)",
-)
 def test_openvino_backend_keeps_batch_dynamic_for_var_keyword_inputs(tmp_path, torch_device):
     samples = _ones_samples_over_batch_sizes(["z", "y"], [1, 4], torch_device)
     backend = _build_dynamic_backend(_VarKeywordModel(), samples, tmp_path, torch_device)
@@ -304,10 +305,6 @@ def test_openvino_backend_keeps_batch_dynamic_for_var_keyword_inputs(tmp_path, t
     torch.testing.assert_close(actual.cpu(), torch.tensor([[309.0, 618.0], [927.0, 1236.0]]))
 
 
-@pytest.mark.xfail(
-    strict=True,
-    reason="torch.export guards for dynamic **kwargs inputs raise NameError('L') in run_decompositions (torch 2.15)",
-)
 def test_openvino_backend_keeps_batch_dynamic_for_keyword_only_mixed_with_var_keyword(tmp_path, torch_device):
     samples = _ones_samples_over_batch_sizes(["scale", "y"], [1, 4], torch_device)
     backend = _build_dynamic_backend(_KeywordOnlyAndVarKeywordModel(), samples, tmp_path, torch_device)
@@ -318,6 +315,29 @@ def test_openvino_backend_keeps_batch_dynamic_for_keyword_only_mixed_with_var_ke
     actual = backend.infer(x, scale=scale, y=y)
 
     torch.testing.assert_close(actual.cpu(), torch.tensor([[20.0, 30.0], [300.0, 400.0]]))
+
+
+def test_openvino_backend_builds_forward_with_only_var_keyword(tmp_path, torch_device):
+    sample = ((), {"x": _tensor([[5.0, 6.0]], torch_device), "y": _tensor([[1.0, 2.0]], torch_device)})
+    backend = backend_build(OpenVINOBackend(), _OnlyVarKeywordModel(), [sample], tmp_path, torch_device)
+
+    actual = backend.infer(**sample[1])
+
+    torch.testing.assert_close(actual.cpu(), torch.tensor([[4.0, 4.0]]))
+
+
+def test_openvino_backend_keeps_batch_dynamic_for_forward_with_only_var_keyword(tmp_path, torch_device):
+    samples = [
+        ((), {"x": torch.ones(1, 2, device=torch_device), "y": torch.ones(1, 2, device=torch_device)}),
+        ((), {"x": torch.ones(4, 2, device=torch_device), "y": torch.ones(4, 2, device=torch_device)}),
+    ]
+    backend = _build_dynamic_backend(_OnlyVarKeywordModel(), samples, tmp_path, torch_device)
+    x = _tensor([[5.0, 6.0], [7.0, 8.0]], torch_device)
+    y = _tensor([[1.0, 2.0], [3.0, 4.0]], torch_device)
+
+    actual = backend.infer(x=x, y=y)
+
+    torch.testing.assert_close(actual.cpu(), torch.tensor([[4.0, 4.0], [4.0, 4.0]]))
 
 
 def test_openvino_backend_serialization(model, sample_data, tmp_path, torch_device):
