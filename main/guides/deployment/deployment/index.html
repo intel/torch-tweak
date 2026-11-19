@@ -2733,6 +2733,14 @@ NOTE: This file has been modified by Intel Corporation.
 <li><code>checkpoints/model_sha256_sums.txt</code>: SHA256 checksums</li>
 <li><code>checkpoints/model/</code>: Decompressed artifacts (after first load)</li>
 </ul>
+<p>The <code>.tt</code> file starts with a format version and a record of the tuning environment:
+CPU, accelerator models and their drivers, and the versions of Python, torch-tweak, torch, and the backend libraries.
+<code>tt.load</code> raises <code>tt.IncompatibleCheckpointError</code> before it reads the tuned modules when the format version differs.
+A newer format version comes from a newer torch-tweak. Upgrade torch-tweak to load it.
+For an older format version, tune the model again.</p>
+<p>When the environment differs, <code>tt.load</code> logs a warning that lists the differences and loads the checkpoint.
+The backends are rebuilt on the target machine, but the ones chosen during tuning may not be the fastest there.
+To reject such a checkpoint instead, load it with <code>LocalTorchStorage(strict_environment=True)</code>.</p>
 <h3 id="with-custom-storage">With Custom Storage</h3>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">torch_tweak.torch</span><span class="w"> </span><span class="kn">import</span> <span class="n">LocalTorchStorage</span>
 <a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a>
