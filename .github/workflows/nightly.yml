@@ -54,7 +54,7 @@ jobs:
       - name: Resolve runtime dependencies
         run: |
           mkdir -p "$RUNNER_TEMP/tt-sca"
-          uv pip compile --extra xpu --extra dev pyproject.toml \
+          uv pip compile --extra xpu pyproject.toml \
             -o "$RUNNER_TEMP/tt-sca/requirements.txt"
 
       - name: Scan resolved dependencies with Trivy
