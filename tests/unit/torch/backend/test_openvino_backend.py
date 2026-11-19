@@ -7,6 +7,7 @@
 
 import shutil
 import uuid
+from dataclasses import asdict
 from types import SimpleNamespace
 
 import openvino as ov
@@ -18,7 +19,7 @@ from transformers.modeling_outputs import BaseModelOutputWithPooling
 
 from tests.toy_models import ToyTorchModel
 from tests.utilities.helpers import requires_xpu
-from torch_tweak.torch.backend.openvino import OpenVINOBackend, OpenVINOBackendConfig
+from torch_tweak.torch.backend.openvino import OpenVINOBackend, OpenVINOBackendConfig, openvino_backend
 from torch_tweak.torch.backend.openvino.openvino_backend import openvino_device_for_xpu
 from torch_tweak.torch.backend.openvino.ov_model_converter import (
     OV_MODEL_BIN_NAME,
@@ -602,3 +603,29 @@ def test_module_stays_on_xpu_when_offload_module_is_false(model, tmp_path):
     backend_build(backend, model, data, tmp_path, device)
 
     assert next(model.parameters()).device.type == "xpu"
+
+
+def test_module_is_offloaded_to_cpu_by_default(model, sample_data, tmp_path, torch_device, monkeypatch):
+    offloaded = []
+    monkeypatch.setattr(openvino_backend, "offload", lambda module, device: offloaded.append((module, device)))
+    backend = OpenVINOBackend(OpenVINOBackendConfig(use_dynamo=False))
+
+    backend_build(backend, model, sample_data, tmp_path, torch_device)
+
+    assert offloaded == [(model, "cpu")]
+
+
+def test_module_is_not_offloaded_when_offload_module_is_false(model, sample_data, tmp_path, torch_device, monkeypatch):
+    offloaded = []
+    monkeypatch.setattr(openvino_backend, "offload", lambda module, device: offloaded.append((module, device)))
+    backend = OpenVINOBackend(OpenVINOBackendConfig(use_dynamo=False, offload_module=False))
+
+    backend_build(backend, model, sample_data, tmp_path, torch_device)
+
+    assert offloaded == []
+
+
+def test_offload_module_survives_config_round_trip():
+    config = OpenVINOBackendConfig(offload_module=False)
+
+    assert OpenVINOBackendConfig.from_dict(asdict(config)) == config
