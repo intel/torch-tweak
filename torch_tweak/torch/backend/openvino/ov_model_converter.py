@@ -5,8 +5,10 @@
 from __future__ import annotations
 
 import contextlib
+import inspect
 import logging
 from collections.abc import Generator, Sequence
+from inspect import Parameter
 from pathlib import Path
 from typing import Any
 
@@ -23,7 +25,7 @@ from torch_tweak.torch.module.locator import Locator, ObjectType
 from torch_tweak.torch.module.recording_module import Sample
 from torch_tweak.torch.module.sample_metadata import SampleMetadata
 from torch_tweak.torch.module.tensor_spec import TensorSpec, logical_batch_bounds
-from torch_tweak.torch.utils.module import get_arguments_names
+from torch_tweak.torch.utils.module import get_arguments_names, get_var_keyword_name
 from torch_tweak.utils.permissions import secure_file, secure_mkdir
 
 OV_MODEL_XML_NAME = "model.xml"
@@ -76,12 +78,13 @@ class OpenVINOModelConverter:
     def _convert_dynamo(
         self, module: nn.Module, args: tuple, kwargs: dict, graph_spec: GraphSpec
     ) -> tuple[ov.Model, list[str]]:
-        arg_names: tuple[list[str], list[str]] = get_arguments_names(module.forward)
-        dynamic_shapes: dict[str, Any] = _create_dynamic_shapes(graph_spec.input_spec, arg_names)
-        non_posonly_arg_names: list[str] = arg_names[1]
+        module = _with_var_keyword_entries_named(module, kwargs)
+        posonly_arg_names, non_posonly_arg_names = get_arguments_names(module.forward)
+        dynamic_shapes: dict[str, Any] = _create_dynamic_shapes(
+            graph_spec.input_spec, (posonly_arg_names, non_posonly_arg_names)
+        )
         ordered_kwargs: dict[str, Any] = _ordered_kwargs_for_export(non_posonly_arg_names, kwargs)
         _fill_dynamic_shapes_for_non_tensors(non_posonly_arg_names, kwargs, dynamic_shapes)
-
         exported: torch.export.ExportedProgram = torch.export.export(
             module,
             args=args,
@@ -120,6 +123,47 @@ def _constants_do_not_share_temporary_copies() -> Generator[None]:
         yield
     finally:
         fx_decoder.torch_tensor_to_ov_const = pytorch_frontend_utils.torch_tensor_to_ov_const = original
+
+
+class _NamedVarKeywordEntries(nn.Module):
+    """Wrap ``module`` so that its ``forward`` names each ``**kwargs`` entry as a keyword-only parameter.
+
+    In torch 2.15 ``run_decompositions`` raises ``NameError('L')`` for a dynamic dimension of a
+    tensor passed through ``**kwargs``. The same tensor passed as a named parameter exports.
+
+    >>> class _Model(nn.Module):
+    ...     def forward(self, x, *, scale=1, **kwargs):
+    ...         return x
+    >>> inspect.signature(_NamedVarKeywordEntries(_Model(), ["z", "y"]).forward)
+    <Signature (x, *, scale=1, z, y)>
+    """
+
+    def __init__(self, module: nn.Module, var_keyword_entries: Sequence[str]):
+        super().__init__()
+        self.module = module
+        parameters = [
+            p for p in inspect.signature(module.forward).parameters.values() if p.kind is not Parameter.VAR_KEYWORD
+        ]
+        parameters += [Parameter(name, Parameter.KEYWORD_ONLY) for name in var_keyword_entries]
+
+        def forward(*args: Any, **kwargs: Any) -> Any:
+            return self.module(*args, **kwargs)
+
+        # torch.export reads the parameter names from inspect.signature(self.forward).
+        forward.__signature__ = inspect.Signature(parameters)
+        self.forward = forward
+
+
+def _with_var_keyword_entries_named(module: nn.Module, kwargs: dict) -> nn.Module:
+    """Return *module*, wrapped in ``_NamedVarKeywordEntries`` when *kwargs* fills its ``**kwargs``.
+
+    Entries mapped to ``None`` are left out, as ``_ordered_kwargs_for_export`` skips them.
+    """
+    if get_var_keyword_name(module.forward) is None:
+        return module
+    parameter_names = inspect.signature(module.forward).parameters
+    entries = [name for name, value in kwargs.items() if name not in parameter_names and value is not None]
+    return _NamedVarKeywordEntries(module, entries) if entries else module
 
 
 def _prepare_sample(sample: Sample, input_spec: SampleMetadata) -> tuple[tuple, dict]:
