@@ -30,13 +30,15 @@ _UINT32 = struct.Struct("<I")
 
 _ZIP_SIGNATURE = b"PK\x03\x04"
 
+_MAX_ENVIRONMENT_RECORD_LENGTH = 64 * 1024
+
 _LIBRARIES = ("torch", "openvino", "torchao", "triton", "triton-xpu", "intel-sycl-rt")
 
 logger = logging.getLogger(__name__)
 
 
 class IncompatibleCheckpointError(ValueError):
-    """The checkpoint has another format version, or was tuned in another environment and loading is strict."""
+    """The checkpoint is not this format, or was tuned in another environment and loading is strict."""
 
 
 def tuning_environment() -> dict[str, str]:
@@ -74,20 +76,35 @@ def read_header(fp: BinaryIO, environment: dict[str, str], strict: bool = False)
 
     Raises:
         IncompatibleCheckpointError: If the format version is not :data:`TT_FORMAT_VERSION`,
-            or *strict* is set and the recorded environment differs from *environment*.
+            the header is truncated, the environment record is longer than 64 KiB or is not
+            a JSON object of strings, or *strict* is set and the recorded environment differs
+            from *environment*.
     """
     format_bytes = fp.read(_UINT32.size)
     if format_bytes == _ZIP_SIGNATURE:
         raise IncompatibleCheckpointError(
             "Checkpoint has no format version, it was saved by an older torch-tweak. Tune the model again."
         )
-    format_version = _UINT32.unpack(format_bytes)[0] if len(format_bytes) == _UINT32.size else None
+    format_version = _uint32(format_bytes)
+    if format_version > TT_FORMAT_VERSION:
+        raise IncompatibleCheckpointError(
+            f"Checkpoint format version {format_version} is newer than {TT_FORMAT_VERSION},"
+            " it was saved by a newer torch-tweak. Upgrade torch-tweak to load it."
+        )
     if format_version != TT_FORMAT_VERSION:
         raise IncompatibleCheckpointError(
             f"Checkpoint format version {format_version} is not {TT_FORMAT_VERSION}. Tune the model again."
         )
-    record_length = _UINT32.unpack(fp.read(_UINT32.size))[0]
-    recorded = json.loads(fp.read(record_length).decode("utf-8"))
+    record_length = _uint32(fp.read(_UINT32.size))
+    if record_length > _MAX_ENVIRONMENT_RECORD_LENGTH:
+        raise IncompatibleCheckpointError(
+            f"Checkpoint environment record is {record_length} bytes,"
+            f" the limit is {_MAX_ENVIRONMENT_RECORD_LENGTH}. Tune the model again."
+        )
+    record = fp.read(record_length)
+    if len(record) != record_length:
+        raise IncompatibleCheckpointError("Checkpoint header is truncated. Tune the model again.")
+    recorded = _environment_record(record)
     differences = [
         f"{key}: tuned with {recorded.get(key)!r}, running {environment.get(key)!r}"
         for key in sorted(recorded.keys() | environment.keys())
@@ -102,6 +119,26 @@ def read_header(fp: BinaryIO, environment: dict[str, str], strict: bool = False)
             "Checkpoint was tuned in another environment, its backends may not be the fastest here. "
             "Tune the model again on this machine for the best performance.\n%s",
             "\n".join(differences),
+        )
+    return recorded
+
+
+def _uint32(raw: bytes) -> int:
+    if len(raw) != _UINT32.size:
+        raise IncompatibleCheckpointError("Checkpoint header is truncated. Tune the model again.")
+    return _UINT32.unpack(raw)[0]
+
+
+def _environment_record(raw: bytes) -> dict[str, str]:
+    try:
+        recorded = json.loads(raw.decode("utf-8"))
+    except (UnicodeDecodeError, json.JSONDecodeError) as exc:
+        raise IncompatibleCheckpointError(
+            "Checkpoint environment record is not UTF-8 JSON. Tune the model again."
+        ) from exc
+    if not isinstance(recorded, dict) or any(not isinstance(value, str) for value in recorded.values()):
+        raise IncompatibleCheckpointError(
+            "Checkpoint environment record is not an object of strings. Tune the model again."
         )
     return recorded
 
@@ -128,9 +165,15 @@ def _accelerators() -> dict[str, str]:
         return {}
     device_type = torch.accelerator.current_accelerator().type
     device_module = getattr(torch, device_type)
-    descriptions = set()
+    if not hasattr(device_module, "get_device_properties"):
+        return {"accelerator": device_type}
+    names = set()
+    drivers = set()
     for index in range(torch.accelerator.device_count()):
         properties = device_module.get_device_properties(index)
-        driver = getattr(properties, "driver_version", None) or torch.version.cuda or torch.version.hip
-        descriptions.add(f"{properties.name}, driver {driver}")
-    return {device_type: "; ".join(sorted(descriptions))}
+        names.add(properties.name)
+        drivers.add(getattr(properties, "driver_version", None) or torch.version.cuda or torch.version.hip or "unknown")
+    return {
+        "accelerator": f"{device_type}: {'; '.join(sorted(names))}",
+        "driver": "; ".join(sorted(drivers)),
+    }

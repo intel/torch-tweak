@@ -61,7 +61,8 @@ This creates:
 The `.tt` file starts with a format version and a record of the tuning environment:
 CPU, accelerator models and their drivers, and the versions of Python, torch-tweak, torch, and the backend libraries.
 `tt.load` raises `tt.IncompatibleCheckpointError` before it reads the tuned modules when the format version differs.
-Tune the model again in that case.
+A newer format version comes from a newer torch-tweak. Upgrade torch-tweak to load it.
+For an older format version, tune the model again.
 
 When the environment differs, `tt.load` logs a warning that lists the differences and loads the checkpoint.
 The backends are rebuilt on the target machine, but the ones chosen during tuning may not be the fastest there.
