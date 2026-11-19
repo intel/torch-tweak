@@ -31,6 +31,7 @@ class LocalTorchStorage(Storage):
         overwrite_checkpoint_on_tune: bool = True,
         remove_checkpoint_after_tune: bool = False,
         sha_type: Literal["256", "512"] = "256",
+        strict_environment: bool = False,
     ):
         """Initialize the storage.
 
@@ -41,6 +42,8 @@ class LocalTorchStorage(Storage):
                 if the checkpoint folder already exists.
             remove_checkpoint_after_tune: Whether to remove the checkpoint folder after tuning.
             sha_type: The SHA type to use for hashing. Must be either "256" or "512".
+            strict_environment: Whether loading a compressed checkpoint tuned in another environment raises
+                ``IncompatibleCheckpointError``. Otherwise it logs a warning with the differences.
 
         Note: if the checkpoint folder is removed, it will be recreated from ai tune checkpoint at first load.
         """
@@ -54,7 +57,7 @@ class LocalTorchStorage(Storage):
                 RemoveFolderTask() if remove_checkpoint_after_tune else None,
             ],
             load_tasks=[
-                UnzipLoadTask() if compress_checkpoint else None,
+                UnzipLoadTask(strict_environment=strict_environment) if compress_checkpoint else None,
                 ShaSumsLoadTask(sha_type=sha_type) if compress_checkpoint else None,
                 TorchLoadTask(),
             ],
