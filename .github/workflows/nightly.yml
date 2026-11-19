@@ -1,7 +1,8 @@
 name: Nightly Tests
 
 # Runs long-running nightly tests on GPU configuration
-# and self-hosted runner health check.
+# and self-hosted runner health check. It also runs extra checks
+# that are not required on per-PR runs.
 
 on:
   schedule:
@@ -22,6 +23,78 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  extra-checks:
+    name: Extra checks
+    runs-on: ${{ github.repository_owner == 'intel' && 'intel-ubuntu-latest' || 'ubuntu-latest' }}
+    timeout-minutes: 20
+    steps:
+      - name: Checkout Torch Tweak repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Run Trivy filesystem scan
+        id: trivy-filesystem
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
+        with:
+          scan-type: fs
+          scan-ref: .
+          scanners: vuln,secret
+          format: json
+          output: ${{ runner.temp }}/trivy-filesystem.json
+          exit-code: "0"
+          version: v0.76.2
+
+      - name: Set up Python
+        uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        with:
+          python-version: "3.12"
+
+      - name: Set up uv
+        uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2 # v10.3.3
+
+      - name: Resolve runtime dependencies
+        run: |
+          mkdir -p "$RUNNER_TEMP/tt-sca"
+          uv pip compile --extra xpu pyproject.toml \
+            -o "$RUNNER_TEMP/tt-sca/requirements.txt"
+
+      - name: Scan resolved dependencies with Trivy
+        id: trivy-dependencies
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
+        with:
+          scan-type: fs
+          scan-ref: ${{ runner.temp }}/tt-sca
+          scanners: vuln
+          format: json
+          list-all-pkgs: "true"
+          output: ${{ runner.temp }}/trivy-dependencies.json
+          exit-code: "0"
+          version: v0.76.2
+          skip-setup-trivy: true
+
+      - name: Upload Trivy reports
+        if: ${{ always() }}
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: trivy-reports
+          path: |
+            ${{ runner.temp }}/trivy-filesystem.json
+            ${{ runner.temp }}/trivy-dependencies.json
+            ${{ runner.temp }}/tt-sca/requirements.txt
+          if-no-files-found: warn
+          retention-days: 30
+
+      - name: Fail on high or critical findings
+        if: ${{ !cancelled() && steps.trivy-filesystem.outcome == 'success' && steps.trivy-dependencies.outcome == 'success' }}
+        run: |
+          jq -s '[.[].Results[]? | .Target as $target
+                  | ((.Vulnerabilities // [])[] | {target: $target, id: .VulnerabilityID, pkg: .PkgName,
+                                                   version: .InstalledVersion, severity: .Severity}),
+                    ((.Secrets // [])[] | {target: $target, id: .RuleID, severity: .Severity})
+                  | select(.severity == "HIGH" or .severity == "CRITICAL")]' \
+            "$RUNNER_TEMP/trivy-filesystem.json" "$RUNNER_TEMP/trivy-dependencies.json" > "$RUNNER_TEMP/trivy-blocking.json"
+          jq -r '.[] | [.severity, .id, .target, .pkg // "-", .version // "-"] | @tsv' "$RUNNER_TEMP/trivy-blocking.json"
+          jq -e 'length == 0' "$RUNNER_TEMP/trivy-blocking.json" > /dev/null
+
   semgrep:
     name: Semgrep Scan
     runs-on: [BMG]
