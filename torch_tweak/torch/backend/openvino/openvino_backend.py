@@ -59,10 +59,17 @@ class OpenVINOBackendConfig(BackendConfig):
     Attributes:
         use_dynamo: Use ``torch.export`` (True) or legacy trace conversion (False) in OVC.
         performance_hint: OpenVINO compile hint (LATENCY, THROUGHPUT, CUMULATIVE_THROUGHPUT).
+        offload_module: Move the module to CPU after conversion.
+            The compiled model holds its own copy of the weights, so the module's copy on the device is not needed.
+            Set False when the module is still used after the build: its owner keeps calling it, or other
+            backends built on it hold the addresses of its weights. The module and its weights then stay on
+            the build device, and the weights take device memory twice.
+            The compiled model does not see later changes to the module's weights. Build it again after them.
     """
 
     use_dynamo: bool = True
     performance_hint: str = "LATENCY"
+    offload_module: bool = True
 
     @classmethod
     def from_dict(cls, state_dict: dict):
@@ -118,7 +125,8 @@ class OpenVINOBackend(Backend):
         self._ov_model_dir = model_dir
         converter = OpenVINOModelConverter(output_dir=model_dir, use_dynamo=self._config.use_dynamo)
         self._ov_model_xml = converter.convert(module=module, sample=data[0], graph_spec=graph_spec)
-        offload(module, device="cpu")
+        if self._config.offload_module:
+            offload(module, device="cpu")
 
         self._activate()
         logger.info("OpenVINO backend build finished, model: %s", self._ov_model_xml)

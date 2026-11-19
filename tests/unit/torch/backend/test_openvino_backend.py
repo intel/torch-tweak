@@ -8,6 +8,7 @@
 import gc
 import shutil
 import uuid
+from dataclasses import asdict
 from types import SimpleNamespace
 
 import openvino as ov
@@ -19,7 +20,12 @@ from transformers.modeling_outputs import BaseModelOutputWithPooling
 
 from tests.toy_models import ToyTorchModel
 from tests.utilities.helpers import LEO_MISSING, has_leo, requires_leo, requires_xpu
-from torch_tweak.torch.backend.openvino import OpenVINOBackend, OpenVINOBackendConfig, ov_model_converter, xpu_remote
+from torch_tweak.torch.backend.openvino import (
+    OpenVINOBackend,
+    OpenVINOBackendConfig,
+    ov_model_converter,
+    xpu_remote,
+)
 from torch_tweak.torch.backend.openvino.openvino_backend import openvino_device_for_xpu
 from torch_tweak.torch.backend.openvino.ov_model_converter import (
     OV_MODEL_BIN_NAME,
@@ -993,3 +999,31 @@ def test_openvino_xpu_backend_without_leo_is_rejected(tmp_path, monkeypatch):
 def test_ov_element_type_rejects_a_dtype_openvino_cannot_bind():
     with pytest.raises(ValueError, match="complex64"):
         ov_element_type(torch.complex64)
+
+
+@requires_leo
+def test_openvino_xpu_build_moves_the_module_to_the_cpu(tmp_path):
+    model = nn.Linear(_KWARG_DIM, _KWARG_OUT).to("xpu").eval()
+    x = torch.ones(2, _KWARG_DIM, device="xpu")
+
+    backend_build(OpenVINOBackend(), model, [((x,), {})], tmp_path, torch.device("xpu"))
+
+    assert model.weight.device.type == "cpu"
+
+
+@requires_leo
+def test_openvino_xpu_build_with_offload_module_false_keeps_the_weights_in_place(tmp_path):
+    model = nn.Linear(_KWARG_DIM, _KWARG_OUT).to("xpu").eval()
+    weight_address = model.weight.data_ptr()
+    x = torch.ones(2, _KWARG_DIM, device="xpu")
+    backend = OpenVINOBackend(OpenVINOBackendConfig(offload_module=False))
+
+    backend_build(backend, model, [((x,), {})], tmp_path, torch.device("xpu"))
+
+    assert model.weight.data_ptr() == weight_address
+
+
+def test_offload_module_survives_config_round_trip():
+    config = OpenVINOBackendConfig(offload_module=False)
+
+    assert OpenVINOBackendConfig.from_dict(asdict(config)) == config

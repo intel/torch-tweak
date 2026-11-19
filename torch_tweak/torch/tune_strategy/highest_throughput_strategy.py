@@ -222,7 +222,7 @@ class HighestThroughputStrategy(TuneStrategyFindMaxBatchSizeExtension):
         error: Exception | None = None
         for candidate in sorted(profiled, key=attrgetter("throughput"), reverse=True):
             # A later build can move `module`.
-            # `OpenVINOBackend._build` offloads it to CPU.
+            # `OpenVINOBackend._build` offloads it to CPU unless `offload_module=False`.
             # `activate` rebuilds `candidate.backend` on the weights `module` holds now.
             module.to(device)
             try:
