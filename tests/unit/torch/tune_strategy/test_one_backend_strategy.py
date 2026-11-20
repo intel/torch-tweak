@@ -125,8 +125,10 @@ def test_tune_starts_without_the_memory_a_failed_tune_held(tmp_path):
     probing.enable_find_max_batch_size(False)
     torch.xpu.empty_cache()
     reserved_before = torch.xpu.memory_reserved()
-    with pytest.raises(RuntimeError, match="Capture failed"):
+    with pytest.raises(NoCorrectBackendError) as raised:
         failing.tune(model, "test", graph_spec, data, torch.device("xpu"), tmp_path)
+    assert "Capture failed" in str(raised.value.__cause__)
+    del raised  # the traceback of the failed tune holds its memory
 
     probing.tune(model, "test", graph_spec, data, torch.device("xpu"), tmp_path)
 

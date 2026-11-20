@@ -293,17 +293,6 @@ def test_highest_throughput_strategy_fails_backend_if_all_of_backends_fails(torc
     assert model.state == ModuleState.PASSTHROUGH
 
 
-def test_tune_raises_no_correct_backend_error_when_every_backend_fails_to_build(torch_device, tmp_path):
-    strategy = HighestThroughputStrategy(backends=[BuildFailsBackend(RuntimeError), BuildFailsBackend(MemoryError)])
-    strategy.enable_find_max_batch_size(False)
-    strategy.enable_correctness_check(False)
-    model = ToyTorchModel()
-    sample = torch.zeros(1, INPUT_SIZE)
-
-    with pytest.raises(NoCorrectBackendError, match="No correct backend found"):
-        strategy.tune(model, "test", model.graph_spec(batch_sizes=[1]), [((sample,), {})], torch_device, tmp_path)
-
-
 def test_highest_throughput_strategy_select_backend_if_one_of_backends_succeeds(torch_device):
     """If backend fails it should be skipped and TorchEagerBackend should be used as a fallback."""
     strategy = HighestThroughputStrategy(

@@ -45,6 +45,7 @@ class FirstWinsStrategy(TuneStrategyFindMaxBatchSizeExtension):
     ) -> Backend:
         """Tunes given torch module with provided graph_spec and data."""
         selected_backend = None
+        last_error: Exception | None = None
         log(
             "⏳ Executing strategy `%s` on module `%s` (graph: %s)",
             self.__class__.__name__,
@@ -71,6 +72,7 @@ class FirstWinsStrategy(TuneStrategyFindMaxBatchSizeExtension):
                     selected_backend = backend
                     break
                 except Exception as exc:
+                    last_error = self._summarize_failure(exc)
                     if backend.is_active:
                         backend.deactivate()
                     self._log_failure(exc, log_file)
@@ -84,7 +86,9 @@ class FirstWinsStrategy(TuneStrategyFindMaxBatchSizeExtension):
             log("✅ Selected backend: %s", selected_backend.describe(), sink=self._sink)
             return selected_backend
 
-        raise NoCorrectBackendError(f"There is no valid backend for a module: {name}, graph_spec: {graph_spec}")
+        raise NoCorrectBackendError(
+            f"There is no valid backend for a module: {name}, graph_spec: {graph_spec}"
+        ) from last_error
 
     def _describe_parts(self) -> list[str]:
         """Returns the parts of the description."""

@@ -29,7 +29,12 @@ from torch_tweak.utils.timer import Timer
 
 
 class NoCorrectBackendError(RuntimeError):
-    """None of the backends of a strategy builds, validates, and activates for the graph."""
+    """None of the backends of a strategy builds, validates, and activates for the graph.
+
+    `__cause__` describes why the last backend failed.
+    `OneBackendStrategy` sets the original error. The other strategies set a summary (type and message) of it.
+    Errors of every backend are logged.
+    """
 
 
 class TuneStrategy(ABC):
@@ -159,7 +164,7 @@ class TuneStrategy(ABC):
             The tuned and activated backend.
 
         Raises:
-            RuntimeError: if the backend fails any check.
+            NoCorrectBackendError: if none of the backends builds, validates, and activates.
         """
         ...
 
@@ -224,6 +229,15 @@ class TuneStrategy(ABC):
         secure_mkdir(cache_dir)
         log_file = cache_dir / filename
         return log_file
+
+    @staticmethod
+    def _summarize_failure(exc: Exception) -> Exception:
+        """Returns an error with the type and message of `exc`, without its traceback.
+
+        The traceback of `exc` keeps the frames, and so the device memory, of a failed backend alive.
+        The strategy keeps the summary until it has tried every backend.
+        """
+        return RuntimeError(f"{type(exc).__name__}: {exc}")
 
     def _log_failure(self, exc: Exception, log_file: Path) -> None:
         """Appends the traceback of `exc` to `log_file` and reports the first line of its message."""
