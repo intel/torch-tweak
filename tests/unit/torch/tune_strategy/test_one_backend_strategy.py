@@ -95,6 +95,22 @@ def test_tune_backend_fails(mock_backend, mock_module, mock_graph_spec, torch_de
     mock_backend.build.assert_called_once()
 
 
+def test_tune_writes_the_backend_traceback_to_the_build_log(
+    mock_backend, mock_module, mock_graph_spec, torch_device, mock_sample, tmp_path
+):
+    strategy = OneBackendStrategy(mock_backend)
+    strategy._describe = MagicMock()
+    strategy.enable_find_max_batch_size(False)
+    strategy.enable_correctness_check(False)
+    mock_backend.__deepcopy__ = lambda _: mock_backend
+    mock_backend.build.side_effect = ValueError("Backend failed")
+    with pytest.raises(ValueError):
+        strategy.tune(mock_module, "test_module", mock_graph_spec, [mock_sample], torch_device, tmp_path)
+
+    [log_file] = tmp_path.rglob("build.log")
+    assert "ValueError: Backend failed" in log_file.read_text()
+
+
 @requires_xpu
 def test_backend_builds_without_the_memory_find_max_batch_size_held(tmp_path):
     model, data, graph_spec = toy_on_xpu()
