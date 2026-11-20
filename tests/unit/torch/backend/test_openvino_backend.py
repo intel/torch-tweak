@@ -8,7 +8,6 @@
 import gc
 import shutil
 import uuid
-from dataclasses import asdict
 from types import SimpleNamespace
 
 import openvino as ov
@@ -1023,7 +1022,10 @@ def test_openvino_xpu_build_with_offload_module_false_keeps_the_weights_in_place
     assert model.weight.data_ptr() == weight_address
 
 
-def test_offload_module_survives_config_round_trip():
-    config = OpenVINOBackendConfig(offload_module=False)
+def test_offload_module_survives_a_checkpoint(model, sample_data, tmp_path, torch_device):
+    config = OpenVINOBackendConfig(use_dynamo=False, offload_module=False)
+    backend = backend_build(OpenVINOBackend(config), model, sample_data, tmp_path, torch_device)
 
-    assert OpenVINOBackendConfig.from_dict(asdict(config)) == config
+    loaded = _save_and_load(model, backend.to_dict(), tmp_path)
+
+    assert loaded.describe() == "OpenVINOBackend(use_dynamo=False,offload_module=False)"
