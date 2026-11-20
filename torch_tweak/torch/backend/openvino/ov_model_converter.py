@@ -4,8 +4,11 @@
 
 from __future__ import annotations
 
+import contextlib
+import inspect
 import logging
-from collections.abc import Sequence
+from collections.abc import Generator, Sequence
+from inspect import Parameter
 from pathlib import Path
 from typing import Any
 
@@ -13,6 +16,8 @@ import openvino as ov
 import torch
 import torch.nn as nn
 from openvino import PartialShape, serialize
+from openvino.frontend.pytorch import fx_decoder
+from openvino.frontend.pytorch import utils as pytorch_frontend_utils
 from openvino.tools.ovc import convert_model
 
 from torch_tweak.torch.module.graph_spec import GraphSpec
@@ -20,7 +25,7 @@ from torch_tweak.torch.module.locator import Locator, ObjectType
 from torch_tweak.torch.module.recording_module import Sample
 from torch_tweak.torch.module.sample_metadata import SampleMetadata
 from torch_tweak.torch.module.tensor_spec import TensorSpec, logical_batch_bounds
-from torch_tweak.torch.utils.module import get_arguments_names
+from torch_tweak.torch.utils.module import get_arguments_names, get_var_keyword_name
 from torch_tweak.utils.permissions import secure_file, secure_mkdir
 
 OV_MODEL_XML_NAME = "model.xml"
@@ -46,12 +51,13 @@ class OpenVINOModelConverter:
         logger.info("Converting PyTorch module to OpenVINO IR: %s", xml_path)
         try:
             args, kwargs = _prepare_sample(sample, graph_spec.input_spec)
-            if self.use_dynamo:
-                ov_model, ordered_kwarg_names = self._convert_dynamo(module, args, kwargs, graph_spec)
-                ordered_input_names = _ordered_input_names_for_dynamo(graph_spec.input_spec, ordered_kwarg_names)
-            else:
-                ov_model = self._convert_trace(module, args, kwargs, graph_spec)
-                ordered_input_names = None
+            with _constants_do_not_share_temporary_copies():
+                if self.use_dynamo:
+                    ov_model, ordered_kwarg_names = self._convert_dynamo(module, args, kwargs, graph_spec)
+                    ordered_input_names = _ordered_input_names_for_dynamo(graph_spec.input_spec, ordered_kwarg_names)
+                else:
+                    ov_model = self._convert_trace(module, args, kwargs, graph_spec)
+                    ordered_input_names = None
 
             _apply_graph_spec_io(ov_model, graph_spec, ordered_input_names)
             serialize(ov_model, xml_path.as_posix(), bin_path.as_posix())
@@ -72,12 +78,13 @@ class OpenVINOModelConverter:
     def _convert_dynamo(
         self, module: nn.Module, args: tuple, kwargs: dict, graph_spec: GraphSpec
     ) -> tuple[ov.Model, list[str]]:
-        arg_names: tuple[list[str], list[str]] = get_arguments_names(module.forward)
-        dynamic_shapes: dict[str, Any] = _create_dynamic_shapes(graph_spec.input_spec, arg_names)
-        non_posonly_arg_names: list[str] = arg_names[1]
+        module = _with_var_keyword_entries_named(module, kwargs)
+        posonly_arg_names, non_posonly_arg_names = get_arguments_names(module.forward)
+        dynamic_shapes: dict[str, Any] = _create_dynamic_shapes(
+            graph_spec.input_spec, (posonly_arg_names, non_posonly_arg_names)
+        )
         ordered_kwargs: dict[str, Any] = _ordered_kwargs_for_export(non_posonly_arg_names, kwargs)
         _fill_dynamic_shapes_for_non_tensors(non_posonly_arg_names, kwargs, dynamic_shapes)
-
         exported: torch.export.ExportedProgram = torch.export.export(
             module,
             args=args,
@@ -93,6 +100,70 @@ class OpenVINOModelConverter:
             example_input=example_input,
             dynamo=False,
         )
+
+
+@contextlib.contextmanager
+def _constants_do_not_share_temporary_copies() -> Generator[None]:
+    """Makes the PyTorch frontend copy the data of a constant unless its source is a contiguous CPU tensor.
+
+    For bf16 and f8 the frontend shares the memory of a contiguous CPU copy of the tensor and does not
+    keep that copy alive. The copy is a new tensor when the source is on another device or is not contiguous.
+
+    Remove this function and the ``fx_decoder`` and ``pytorch_frontend_utils`` imports once the minimum
+    ``openvino`` version includes https://github.com/openvinotoolkit/openvino/pull/39510.
+    """
+    original = pytorch_frontend_utils.torch_tensor_to_ov_const
+
+    def to_constant(tensor: torch.Tensor, shared_memory: bool = True) -> Any:
+        shares_source = tensor.device.type == "cpu" and tensor.is_contiguous()
+        return original(tensor, shared_memory=shared_memory and shares_source)
+
+    fx_decoder.torch_tensor_to_ov_const = pytorch_frontend_utils.torch_tensor_to_ov_const = to_constant
+    try:
+        yield
+    finally:
+        fx_decoder.torch_tensor_to_ov_const = pytorch_frontend_utils.torch_tensor_to_ov_const = original
+
+
+class _NamedVarKeywordEntries(nn.Module):
+    """Wrap ``module`` so that its ``forward`` names each ``**kwargs`` entry as a keyword-only parameter.
+
+    In torch 2.15 ``run_decompositions`` raises ``NameError('L')`` for a dynamic dimension of a
+    tensor passed through ``**kwargs``. The same tensor passed as a named parameter exports.
+
+    >>> class _Model(nn.Module):
+    ...     def forward(self, x, *, scale=1, **kwargs):
+    ...         return x
+    >>> inspect.signature(_NamedVarKeywordEntries(_Model(), ["z", "y"]).forward)
+    <Signature (x, *, scale=1, z, y)>
+    """
+
+    def __init__(self, module: nn.Module, var_keyword_entries: Sequence[str]):
+        super().__init__()
+        self.module = module
+        parameters = [
+            p for p in inspect.signature(module.forward).parameters.values() if p.kind is not Parameter.VAR_KEYWORD
+        ]
+        parameters += [Parameter(name, Parameter.KEYWORD_ONLY) for name in var_keyword_entries]
+
+        def forward(*args: Any, **kwargs: Any) -> Any:
+            return self.module(*args, **kwargs)
+
+        # torch.export reads the parameter names from inspect.signature(self.forward).
+        forward.__signature__ = inspect.Signature(parameters)
+        self.forward = forward
+
+
+def _with_var_keyword_entries_named(module: nn.Module, kwargs: dict) -> nn.Module:
+    """Return *module*, wrapped in ``_NamedVarKeywordEntries`` when *kwargs* fills its ``**kwargs``.
+
+    Entries mapped to ``None`` are left out, as ``_ordered_kwargs_for_export`` skips them.
+    """
+    if get_var_keyword_name(module.forward) is None:
+        return module
+    parameter_names = inspect.signature(module.forward).parameters
+    entries = [name for name, value in kwargs.items() if name not in parameter_names and value is not None]
+    return _NamedVarKeywordEntries(module, entries) if entries else module
 
 
 def _prepare_sample(sample: Sample, input_spec: SampleMetadata) -> tuple[tuple, dict]:
@@ -227,12 +298,16 @@ def _apply_graph_spec_io(
     ov_model.validate_nodes_and_infer_types()
 
 
-def staticize_extra_openvino_inputs(inputs: Sequence[ov.Output], tensor_input_names: set[str]) -> None:
+def staticize_extra_openvino_inputs(inputs: Sequence[ov.Output], tensor_input_names: set[str]) -> list[str]:
     """Give non-tensor trace/export inputs (e.g. ``return_dict=False``) static scalar shapes.
 
     ``torch.export`` + OVC can expose bool/scalar kwargs as extra parameters with fully dynamic
     rank (``[...]``). Intel GPU compile rejects those; GraphSpec only tracks tensor inputs.
+
+    Returns:
+        Names of the inputs that now have a static scalar shape.
     """
+    staticized: list[str] = []
     port: ov.Output
     for port in inputs:
         name: str = port.get_any_name()
@@ -244,6 +319,8 @@ def staticize_extra_openvino_inputs(inputs: Sequence[ov.Output], tensor_input_na
             )
             node: ov.Node = port.get_node()
             node.set_partial_shape(PartialShape([]))
+            staticized.append(name)
+    return staticized
 
 
 def _create_dynamic_shapes(

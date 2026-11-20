@@ -6,8 +6,52 @@
 """Simple accelerator utilities (Intel XPU-first)."""
 
 import re
+from logging import getLogger
+from pathlib import Path
 
 import torch
+
+from torch_tweak.troubleshooting import COMMON_ISSUES_URL, XPU_TORCH_INSTALL
+
+logger = getLogger(__name__)
+
+DRM_DIR = Path("/sys/class/drm")
+_INTEL_PCI_VENDOR = "0x8086"
+_RUN_ON_CPU = (
+    'To tune on CPU instead, or if PyTorch XPU does not support this GPU, pass device="cpu" to tune() '
+    "or set TORCH_TWEAK_DEVICE=cpu."
+)
+
+
+def has_intel_gpu() -> bool:
+    """Check if the system has an Intel GPU, whether or not PyTorch can use it.
+
+    Returns:
+        bool: True if a DRM render node in `DRM_DIR` belongs to a device with the Intel PCI vendor id.
+    """
+    return any(
+        vendor.read_text(encoding="utf-8").strip() == _INTEL_PCI_VENDOR
+        for vendor in DRM_DIR.glob("renderD*/device/vendor")
+    )
+
+
+def auto_device() -> torch.device:
+    """Pick the device for `device="auto"`.
+
+    An XPU build of PyTorch or an Intel GPU in the system selects xpu:0. Otherwise the device is cpu.
+
+    Returns:
+        torch.device: xpu:0 or cpu.
+
+    Raises:
+        RuntimeError: If xpu:0 is selected but XPU is not available.
+    """
+    if torch.version.xpu is None and not has_intel_gpu():
+        logger.info("No Intel GPU and no XPU build of PyTorch found. Tuning on CPU.")
+        return torch.device("cpu")
+
+    assert_is_available()
+    return torch.device("xpu:0")
 
 
 def assert_is_available():
@@ -20,9 +64,20 @@ def assert_is_available():
     Raises:
         RuntimeError: If XPU is not available.
     """
-    xpu = getattr(torch, "xpu", None)
-    if xpu is None or not xpu.is_available():
-        raise RuntimeError("XPU is not available. Please check your oneAPI / PyTorch XPU installation.")
+    if torch.version.xpu is None:
+        raise RuntimeError(
+            f"PyTorch {torch.__version__} has no XPU support, so Torch Tweak cannot use an Intel GPU.\n"
+            f"Install the XPU build of PyTorch:\n    {XPU_TORCH_INSTALL}\n"
+            f"{_RUN_ON_CPU}\n"
+            f"See {COMMON_ISSUES_URL}"
+        )
+    if not torch.xpu.is_available():
+        raise RuntimeError(
+            f"PyTorch {torch.__version__} supports XPU, but no Intel GPU is visible.\n"
+            "Check the GPU driver and membership in the render group.\n"
+            f"{_RUN_ON_CPU}\n"
+            f"See {COMMON_ISSUES_URL}"
+        )
 
 
 def is_available():

@@ -295,7 +295,7 @@ class TunableModule(wrapt.CallableObjectProxy):
                 strategy.tune_dry_run(self.__wrapped__, self._self_name, graph_spec, data, device, cache_dir)
             else:
                 # Tuning this graph can move the weights an earlier backend was built on.
-                # `OpenVINOBackend._build` offloads the module to CPU.
+                # `OpenVINOBackend._build` offloads the module to CPU unless `offload_module=False`.
                 # Earlier backends are rebuilt after the loop.
                 # That rebuild has no fallback to the next profiled backend:
                 # https://github.com/intel/torch-tweak/issues/82

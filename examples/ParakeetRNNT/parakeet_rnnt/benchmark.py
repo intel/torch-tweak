@@ -29,7 +29,12 @@ def benchmark(model, test_files, num_runs=1):
         return model.transcribe(
             *args,
             **kwargs,
-            override_config=TranscribeConfig(_internal=InternalTranscribeConfig(device=torch.device("xpu"))),
+            override_config=TranscribeConfig(
+                # TranscribeConfig.num_workers defaults to None, so NeMo starts DataLoader workers.
+                # Python 3.14's forkserver cannot pickle the tokenizer into those workers.
+                num_workers=0,
+                _internal=InternalTranscribeConfig(device=torch.device("xpu")),
+            ),
             verbose=False,
         )
 

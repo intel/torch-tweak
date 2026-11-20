@@ -11,12 +11,16 @@ NOTE: This file has been modified by Intel Corporation.
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](LICENSE)
 [![Python](https://img.shields.io/badge/python-3.11+-blue.svg)](https://www.python.org/downloads/)
 [![PyTorch](https://img.shields.io/badge/PyTorch-2.13+-blue.svg)](https://pytorch.org/)
-[![Tests](https://github.com/intel/torch-tweak/actions/workflows/tests.yml/badge.svg)](https://github.com/intel/torch-tweak/actions/workflows/tests.yml)
+[![CI](https://github.com/intel/torch-tweak/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/intel/torch-tweak/actions/workflows/ci.yml)
 [![Nightly Tests](https://github.com/intel/torch-tweak/actions/workflows/nightly.yml/badge.svg?event=schedule)](https://github.com/intel/torch-tweak/actions/workflows/nightly.yml)
+[![Docs Deploy](https://github.com/intel/torch-tweak/actions/workflows/deploy_docs.yml/badge.svg?branch=main)](https://github.com/intel/torch-tweak/actions/workflows/deploy_docs.yml)
 [![OpenSSF Scorecard](https://api.securityscorecards.dev/projects/github.com/intel/torch-tweak/badge)](https://securityscorecards.dev/viewer/?uri=github.com/intel/torch-tweak)
-[![Coverage](https://gist.githubusercontent.com/bb-ur/cfa745c6e219d84dec39841a981daea7/raw/tt_coverage_badge.svg)](https://github.com/intel/torch-tweak/actions/workflows/tests.yml?query=branch%3Amain)
+[![Coverage](https://gist.githubusercontent.com/bb-ur/cfa745c6e219d84dec39841a981daea7/raw/tt_coverage_badge.svg)](https://github.com/intel/torch-tweak/actions/workflows/ci.yml?query=branch%3Amain)
 
 **Torch Tweak** is an inference toolkit designed for tuning and deploying Deep Learning models with a focus on Intel XPU (GPU) accelerators.
+
+**Note: To enable XPU capabilities, please follow the [Install](#install) instructions below.**
+
 It provides model tuning capabilities through compilation and conversion paths that can significantly improve inference speed and efficiency
 across various AI workloads including Computer Vision, Natural Language Processing, Speech Recognition, and Generative AI.
 
@@ -91,13 +95,15 @@ pip install \
     "torch_tweak[xpu]"
 ```
 
+Without an Intel GPU, see [CPU only](docs/learn/install.md#cpu-only) in the install guide.
+
 To build and install torch-tweak from the local repository we recommend using uv
 (with stable PyTorch XPU wheels). This simple command builds the local version of
 torch-tweak and installs all required developer dependencies:
 
 ```bash
-# it uses stable PyTorch XPU stack and installs all dev dependencies
-uv sync --extra dev
+# it uses stable PyTorch XPU stack and installs TorchAO and all dev dependencies
+uv sync --extra xpu --extra dev
 ```
 
 There's also a nightly PyTorch XPU stack available in uv. For more information about switching

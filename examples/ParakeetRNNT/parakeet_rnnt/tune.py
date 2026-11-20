@@ -67,6 +67,9 @@ def tune_model(
             override_config=TranscribeConfig(
                 batch_size=batch_size,
                 verbose=False,
+                # TranscribeConfig.num_workers defaults to None, so NeMo starts DataLoader workers.
+                # Python 3.14's forkserver cannot pickle the tokenizer into those workers.
+                num_workers=0,
                 _internal=InternalTranscribeConfig(device=torch.device("xpu")),
             ),
         )

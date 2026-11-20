@@ -10,6 +10,15 @@ SPDX-License-Identifier: Apache-2.0
 - feat (breaking): a module without a strategy is tuned with `tt.default_strategy(device)`.
   It measures every backend that runs on the device and keeps the fastest (#55)
 - fix (breaking): `profile` returns `ProfilingResult` with measured throughput per batch size (#64)
+- fix(openvino): inputs that compilation renames are fed again.
+  A diffusers UNet ran with an unset timestep and returned wrong outputs without an error.
+- fix: bf16 and f8 weights on XPU, and non-contiguous ones on CPU, keep their values in the OpenVINO IR (#103)
+- feat (breaking): OpenVINO on XPU binds PyTorch tensors as GPU remote tensors without copying them through the host (#102)
+- feat: `OpenVINOBackendConfig(offload_module=False)` leaves the module on its device after conversion,
+  for a module that a framework keeps calling. The weights then exist twice on the device (#117)
+- feat: `OnlineTunedModule` tunes every new input shape on its first call,
+  for a module that a framework owns and keeps calling.
+  Only the backend of the last call stays active, so tuned shapes do not each keep a copy of the weights (#87)
 - feat (breaking): every strategy raises `NoCorrectBackendError` when none of its backends works for a graph.
   The error of the last failed backend is its cause.
 

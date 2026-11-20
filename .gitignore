@@ -336,11 +336,12 @@ version.yaml
 cache/
 
 
-# Cursor IDE (track shared agent rules; ignore other local state)
+# Cursor IDE (track shared agent rules and skills; ignore other local state)
 .cursor/*
 !.cursor/rules/
 .cursor/rules/*
 !.cursor/rules/*.mdc
+!.cursor/skills/
 demo/
 tmp/
 *.mk

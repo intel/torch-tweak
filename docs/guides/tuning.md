@@ -107,7 +107,7 @@ tt.tune(
     dataset=input_data,  # Dataset to use for tuning (list, Dataset, DataLoaderFactory, or Tensor)
     batch_sizes=[1, 4, 8],  # Optional: Multiple batch sizes. Defaults to [1, 2]
     max_num_batches_per_batch_size=10,  # Max batches per size. Defaults to None (all)
-    device="xpu",  # Device for tuning. Defaults to "xpu:0"
+    device="xpu",  # Device for tuning. Defaults to "auto"
     dry_run=False,  # Set True to test without tuning
     disable_external_logging=False,  # Disable third-party logs
     clear_cache=False,  # Clear Torch Tweak cache before tuning
@@ -120,7 +120,9 @@ tt.tune(
 - **dataset**: Dataset for tuning. It can be a list of samples, `torch.utils.data.Dataset`, `DataLoaderFactory`,  `Tensor` or sequence of tensors, dictionaries, strings
 - **batch_sizes**: List of batch sizes to tune against. If not specified, values [1, 2] will be used
 - **max_num_batches_per_batch_size**: Maximum number of batches per batch size. If None, all batches will be used
-- **device**: Device to use for tuning. Defaults to "xpu:0"
+- **device**: Device to use for tuning. Defaults to "auto", which you can override with `TORCH_TWEAK_DEVICE`.
+  "auto" selects "xpu:0" when PyTorch has XPU support or the system has an Intel GPU, and "cpu" otherwise.
+  When "auto" selects "xpu:0" and XPU is not available, `tune` raises an error. Pass "cpu" to tune on CPU anyway.
 - **dry_run**: If True, performs a dry run without actual tuning
 - **disable_external_logging**: Disable logging from external libraries
 - **clear_cache**: Clear Torch Tweak cache before tuning
@@ -215,6 +217,32 @@ See backend-specific documentation:
 
 - [Torch-Inductor Backend](backends/torch_inductor_backend.md)
 - [TorchAO Backend](backends/torchao_backend.md)
+
+## Tuning on the First Call
+
+`OnlineTunedModule` serves a module that a framework owns and keeps calling, such as the diffusion model in ComfyUI.
+It has no separate tuning step.
+The first call with new input shapes runs the module, then tunes those shapes.
+Later calls with the same shapes run the selected backend.
+
+```python
+import torch
+from torch import nn
+
+import torch_tweak.torch as tt
+
+model = nn.Sequential(nn.Linear(32, 32), nn.ReLU(), nn.Linear(32, 8)).eval().to("xpu")
+module = tt.OnlineTunedModule(model, name="mlp")
+with torch.no_grad():
+    module(torch.randn(4, 32, device="xpu"))  # runs the model, then tunes shape [4, 32]
+    module(torch.randn(4, 32, device="xpu"))  # runs the selected backend
+```
+
+Only the backend of the last call stays active.
+Returning to other shapes activates their backend again, which can recompile it.
+The module stays on its device and keeps its `forward`.
+All its weights must already be on the device.
+Call `reset()` after the owner changes the weights in any way: moves them, replaces them, or patches their values in place. A backend serves the weights it was built on.
 
 ## Dry Run Mode
 

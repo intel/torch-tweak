@@ -29,16 +29,42 @@ tt.tune(model, input_data)
 
 `OpenVINOBackend()` with no config uses `torch.export` and the `LATENCY` hint.
 
+## XPU
+
+On `xpu` the backend binds PyTorch tensors as OpenVINO GPU tensors.
+Inputs and outputs stay in device memory and nothing is copied through the host.
+
+This needs the Intel GPU driver to run OpenCL on Level Zero (LEO).
+
+On Battlemage (Intel Arc B-series), LEO is off by default.
+Start the process with `EnableLEO=1`:
+
+```bash
+EnableLEO=1 python my_pipeline.py
+```
+
+The driver reads the variable when the process first uses OpenCL, so setting it later has no effect.
+Without LEO, building the backend on XPU raises `LevelZeroInteropError`.
+
+On newer Intel GPUs (driver 26.35 or newer), the driver enables LEO by default and the variable is not needed.
+
 ## Configuration
 
 ```python
 config = OpenVINOBackendConfig(
-    use_dynamo=True,              # False selects the legacy trace conversion
+    use_dynamo=True,  # False selects the legacy trace conversion
     performance_hint="THROUGHPUT",
 )
 ```
 
 Use `use_dynamo=False` when `torch.export` cannot capture the module.
+
+The backend moves the module to CPU after conversion, since the compiled model holds its own copy of the weights.
+`offload_module=False` leaves the module on its device, for a framework that keeps calling it.
+The weights then exist twice on the device: in the module and in the compiled model.
+
+The flag controls only the backend build.
+`TunableModule` replaces the module's forward, so after tuning it still moves the module to `config.device_after_tuning`.
 
 ## Next Steps
 

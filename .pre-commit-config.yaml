@@ -21,7 +21,7 @@ repos:
         pass_filenames: false
   - repo: https://github.com/astral-sh/ruff-pre-commit
     # Keep this rev equal to the ruff pin in pyproject.toml. Lint fails when they differ.
-    rev: v0.17.3
+    rev: v0.17.5
     hooks:
       - id: ruff-check
         args: [ --fix ]
@@ -65,6 +65,13 @@ repos:
     hooks:
     - id: check-dependabot
     - id: check-github-workflows
+
+  - repo: https://github.com/Mateusz-Grzelinski/actionlint-py
+    rev: v1.7.12.25
+    hooks:
+      - id: actionlint
+        additional_dependencies:
+          - shellcheck-py==0.11.0.1
 
   # Strip output from Jupyter and IPython notebooks
   - repo: https://github.com/kynan/nbstripout

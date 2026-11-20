@@ -21,6 +21,7 @@ from torch_tweak.torch.checkpoint.storage_tasks import is_weights_only_safe
 from torch_tweak.torch.module.graph_spec import GraphSpec
 from torch_tweak.torch.module.recording_module import Sample
 from torch_tweak.torch.utils.memory import free_device_memory
+from torch_tweak.torch.utils.xpu import assert_is_available
 from torch_tweak.utils.hashing import hash_string
 from torch_tweak.utils.permissions import secure_file
 from torch_tweak.utils.trace import annotate
@@ -404,6 +405,9 @@ class Backend(ABC):
         """
         if device.type not in self._devices:
             raise ValueError(f"Device {device.type} is not supported by the backend {self.name}")
+
+        if device.type == "xpu":
+            assert_is_available()
 
     def _set_device(self, device: torch.device):
         """Set the device of the backend.
