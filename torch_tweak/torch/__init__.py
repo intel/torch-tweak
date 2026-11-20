@@ -30,6 +30,7 @@ from torch_tweak.torch.module.online_tuned_module import OnlineTunedModule
 from torch_tweak.torch.tune_strategy import (
     FirstWinsStrategy,
     HighestThroughputStrategy,
+    NoCorrectBackendError,
     OneBackendStrategy,
     TuneStrategy,
     default_strategy,
@@ -47,6 +48,7 @@ __all__ = [
     "TunableModule",
     "OnlineTunedModule",
     "TuneStrategy",
+    "NoCorrectBackendError",
     "OneBackendStrategy",
     "FirstWinsStrategy",
     "HighestThroughputStrategy",

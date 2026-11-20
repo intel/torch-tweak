@@ -17,7 +17,7 @@ from torch_tweak.torch.config import torch_tweak_cache_dir
 from torch_tweak.torch.module.graph_spec import GraphSpec
 from torch_tweak.torch.module.sample_metadata import SampleMetadata
 from torch_tweak.torch.module.tunable_module import sanitize_model_name
-from torch_tweak.torch.tune_strategy import HighestThroughputStrategy
+from torch_tweak.torch.tune_strategy import HighestThroughputStrategy, NoCorrectBackendError
 from torch_tweak.torch.tune_strategy.default_backends import default_backends
 from torch_tweak.torch.tune_strategy.tune_strategy import TuneStrategy
 from torch_tweak.torch.utils.module import get_module_device
@@ -62,8 +62,9 @@ class OnlineTunedModule:
     Every parameter of `module` must already be on `device`, since the backends build on that device and leave the
     module there.
 
-    When tuning a shape fails, the call still returns the module output.
+    When no backend of `strategy` runs a shape, the call still returns the module output.
     The error is logged, and later calls with that shape run `module` without a backend.
+    Any other error from tuning reaches the caller, and the next call with that shape tunes again.
 
     Not thread safe: call it from one thread at a time.
     """
@@ -124,8 +125,8 @@ class OnlineTunedModule:
             # A strategy can update the shapes of the spec it gets, so the dict key must not be that object.
             inputs = SampleMetadata.from_inputs(*sample, strict=True)
             backend = self._tune(sample, inputs, SampleMetadata.from_outputs(output, strict=True))
-        except Exception:
-            logger.warning("Tuning %s failed. This shape runs the module without a backend.", self._name, exc_info=True)
+        except NoCorrectBackendError:
+            logger.warning("No backend runs %s for this shape. It runs without a backend.", self._name, exc_info=True)
             self._failed.add(key)
         else:
             self._active = self._backends[key] = backend
