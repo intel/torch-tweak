@@ -13,3 +13,10 @@ NOTE: This file has been modified by Intel Corporation.
     options:
       show_root_heading: true
       heading_level: 3
+
+## OnlineTunedModule
+
+::: torch_tweak.torch.OnlineTunedModule
+    options:
+      show_root_heading: true
+      heading_level: 3

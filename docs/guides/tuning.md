@@ -218,6 +218,32 @@ See backend-specific documentation:
 - [Torch-Inductor Backend](backends/torch_inductor_backend.md)
 - [TorchAO Backend](backends/torchao_backend.md)
 
+## Tuning on the First Call
+
+`OnlineTunedModule` serves a module that a framework owns and keeps calling, such as the diffusion model in ComfyUI.
+It has no separate tuning step.
+The first call with new input shapes runs the module, then tunes those shapes.
+Later calls with the same shapes run the selected backend.
+
+```python
+import torch
+from torch import nn
+
+import torch_tweak.torch as tt
+
+model = nn.Sequential(nn.Linear(32, 32), nn.ReLU(), nn.Linear(32, 8)).eval().to("xpu")
+module = tt.OnlineTunedModule(model, name="mlp")
+with torch.no_grad():
+    module(torch.randn(4, 32, device="xpu"))  # runs the model, then tunes shape [4, 32]
+    module(torch.randn(4, 32, device="xpu"))  # runs the selected backend
+```
+
+Only the backend of the last call stays active.
+Returning to other shapes activates their backend again, which can recompile it.
+The module stays on its device and keeps its `forward`.
+All its weights must already be on the device.
+Call `reset()` after the owner changes the weights in any way: moves them, replaces them, or patches their values in place. A backend serves the weights it was built on.
+
 ## Dry Run Mode
 
 You can run tuning in dry-run mode. It records samples of data, detects batch and dynamic axes, and detects graphs of execution but does not call the actual backend to tune. This allows debugging if everything is working as expected.
