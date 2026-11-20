@@ -4,6 +4,7 @@
 # NOTE: This file has been modified by Intel Corporation.
 """PyTorch module utilities for parameter counting, device management, and memory offloading."""
 
+import hashlib
 import inspect
 from collections.abc import Callable, ValuesView
 from inspect import Parameter
@@ -41,6 +42,37 @@ def format_num_parameters(num: int) -> str:
         return f"{num / 1_000:.1f}K"
     else:
         return f"{num}"
+
+
+WEIGHT_SAMPLES_PER_TENSOR = 16
+
+
+def weights_fingerprint(module: nn.Module) -> str:
+    """Hashes the name, shape, dtype, and evenly spaced values of every tensor in `module.state_dict()`.
+
+    The sampled values tell apart checkpoints of one architecture, such as two finetunes of one model.
+
+    >>> layer = nn.Linear(2, 2)
+    >>> before = weights_fingerprint(layer)
+    >>> before == weights_fingerprint(layer)
+    True
+    >>> with torch.no_grad():
+    ...     _ = layer.weight.add_(1.0)
+    >>> before == weights_fingerprint(layer)
+    False
+    """
+    digest = hashlib.sha256()
+    samples = []
+    for name, tensor in module.state_dict().items():
+        digest.update(f"{name}:{tuple(tensor.shape)}:{tensor.dtype};".encode())
+        flat = tensor.detach().reshape(-1)
+        if flat.numel():
+            steps = torch.arange(WEIGHT_SAMPLES_PER_TENSOR, device=flat.device)
+            index = steps * (flat.numel() - 1) // (WEIGHT_SAMPLES_PER_TENSOR - 1)
+            samples.append(flat[index].float().cpu())
+    if samples:
+        digest.update(torch.cat(samples).numpy().tobytes())
+    return digest.hexdigest()[:16]
 
 
 def count_parameters(module: nn.Module) -> int:

@@ -27,6 +27,7 @@ from torch_tweak.torch.task.profiling.profiling_stop_strategy import (
 )
 from torch_tweak.torch.tune_strategy.extension import TuneStrategyFindMaxBatchSizeExtension
 from torch_tweak.torch.tune_strategy.highest_throughput_strategy import HighestThroughputStrategy
+from torch_tweak.torch.tune_strategy.tune_strategy import NoCorrectBackendError
 from torch_tweak.torch.tuning import tune
 
 
@@ -228,10 +229,10 @@ def test_tune_fails_with_the_last_error_when_no_backend_reactivates(torch_device
     model = ToyTorchModel()
     sample = torch.zeros(1, INPUT_SIZE)
 
-    with pytest.raises(RuntimeError, match="No profiled backend could be activated") as raised:
+    with pytest.raises(NoCorrectBackendError, match="No profiled backend could be activated") as raised:
         strategy.tune(model, "test", model.graph_spec(batch_sizes=[1]), [((sample,), {})], torch_device, tmp_path)
 
-    assert str(raised.value.__cause__) == "Reactivate failed"
+    assert str(raised.value.__cause__) == "RuntimeError: Reactivate failed"
 
 
 class InferFailsBackend(SleepBackend):

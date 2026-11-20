@@ -28,6 +28,15 @@ from torch_tweak.utils.system_monitor import SystemMonitor
 from torch_tweak.utils.timer import Timer
 
 
+class NoCorrectBackendError(RuntimeError):
+    """None of the backends of a strategy builds, validates, and activates for the graph.
+
+    `__cause__` is a `RuntimeError` with the type and message of the last backend failure.
+    It has no traceback, so a caught error does not keep the device memory of a failed backend.
+    A failed build writes its traceback to the build log of its backend.
+    """
+
+
 class TuneStrategy(ABC):
     """Base class for tune strategy."""
 
@@ -155,7 +164,7 @@ class TuneStrategy(ABC):
             The tuned and activated backend.
 
         Raises:
-            RuntimeError: if the backend fails any check.
+            NoCorrectBackendError: if none of the backends builds, validates, and activates.
         """
         ...
 
@@ -163,6 +172,10 @@ class TuneStrategy(ABC):
     def _describe_parts(self) -> list[str]:
         """Returns the parts of the description."""
         ...
+
+    def candidate_backends(self, device: torch.device) -> list[Backend]:
+        """The unbuilt backends this strategy chooses from on `device`. Empty when it does not choose among backends."""
+        return []
 
     @staticmethod
     def _count_layers(module: nn.Module) -> int:
@@ -220,6 +233,15 @@ class TuneStrategy(ABC):
         secure_mkdir(cache_dir)
         log_file = cache_dir / filename
         return log_file
+
+    @staticmethod
+    def _summarize_failure(exc: Exception) -> Exception:
+        """Returns an error with the type and message of `exc`, without its traceback.
+
+        The traceback of `exc` keeps the frames, and so the device memory, of a failed backend alive.
+        The strategy keeps the summary until it has tried every backend.
+        """
+        return RuntimeError(f"{type(exc).__name__}: {exc}")
 
     def _log_failure(self, exc: Exception, log_file: Path) -> None:
         """Appends the traceback of `exc` to `log_file` and reports the first line of its message."""
