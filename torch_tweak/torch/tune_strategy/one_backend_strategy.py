@@ -63,7 +63,7 @@ class OneBackendStrategy(TuneStrategyFindMaxBatchSizeExtension):
                 return backend
             except Exception as exception:
                 log("❌ backend failed (log file: %s)", log_file, depth=2, sink=self._sink)
-                raise NoCorrectBackendError(f"{self._backend.describe()} failed: {exception}") from exception
+                raise NoCorrectBackendError(f"Backend failed: {self._backend.describe()}") from exception
 
     def _describe_parts(self):
         """Describes the tuning."""

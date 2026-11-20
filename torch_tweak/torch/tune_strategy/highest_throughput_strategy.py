@@ -131,6 +131,7 @@ class HighestThroughputStrategy(TuneStrategyFindMaxBatchSizeExtension):
         max_batch_size = graph_spec.get_max_batch_size()
 
         profiled: list[_ProfiledBackend] = []
+        last_error: Exception | None = None
 
         backends = list(self._backends or default_backends(device))
 
@@ -181,6 +182,7 @@ class HighestThroughputStrategy(TuneStrategyFindMaxBatchSizeExtension):
                     backend.deactivate()
 
                 except Exception as exc:
+                    last_error = self._summarize_failure(exc)
                     if backend.is_active:
                         backend.deactivate()
                     self._log_failure(exc, log_file)
@@ -195,7 +197,7 @@ class HighestThroughputStrategy(TuneStrategyFindMaxBatchSizeExtension):
                 ", ".join([backend.describe() for backend in backends]),
                 sink=self._sink,
             )
-            raise NoCorrectBackendError("No correct backend found")
+            raise NoCorrectBackendError("No correct backend found") from last_error
 
         self.results.append(
             HighestThroughputStrategyResult(
