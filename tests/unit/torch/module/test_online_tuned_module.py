@@ -4,13 +4,25 @@
 
 import torch
 
-from tests.toy_backends import SleepBackend
+from tests.toy_backends import BuildFailsBackend, SleepBackend
 from tests.utilities.helpers import requires_xpu
 from torch_tweak.torch import HighestThroughputStrategy, OnlineTunedModule
 
 
-def sleep_strategy() -> HighestThroughputStrategy:
-    strategy = HighestThroughputStrategy(backends=[SleepBackend()])
+class CountingStrategy(HighestThroughputStrategy):
+    """Counts how many times it tunes."""
+
+    def __init__(self, backends):
+        super().__init__(backends=backends)
+        self.tune_calls = 0
+
+    def tune(self, *args, **kwargs):
+        self.tune_calls += 1
+        return super().tune(*args, **kwargs)
+
+
+def sleep_strategy(backends=None) -> CountingStrategy:
+    strategy = CountingStrategy(backends=backends or [SleepBackend()])
     strategy.enable_find_max_batch_size(False)
     strategy.enable_correctness_check(False)
     return strategy
@@ -93,6 +105,66 @@ def test_reset_drops_the_tuned_shapes():
     online.reset()
 
     assert online.backends == {}
+
+
+def test_tuned_shapes_are_not_tuned_again():
+    strategy = sleep_strategy()
+    online = OnlineTunedModule(doubling(), "doubling", strategy=strategy)
+
+    online(torch.tensor([[1.0, 3.0]]))
+    online(torch.tensor([[4.0, 5.0]]))
+    online(torch.tensor([[6.0, 7.0]]))
+
+    assert strategy.tune_calls == 1
+
+
+def test_call_after_reset_tunes_again():
+    strategy = sleep_strategy()
+    online = OnlineTunedModule(doubling(), "doubling", strategy=strategy)
+    online(torch.tensor([[1.0, 3.0]]))
+    online.reset()
+
+    online(torch.tensor([[1.0, 3.0]]))
+
+    assert strategy.tune_calls == 2
+
+
+def test_same_shape_with_another_dtype_is_tuned_apart():
+    online = OnlineTunedModule(torch.nn.ReLU(), "relu", strategy=sleep_strategy(), device=torch.device("cpu"))
+
+    online(torch.tensor([[1.0, -3.0]]))
+    online(torch.tensor([[1.0, -3.0]], dtype=torch.bfloat16))
+
+    assert len(online.backends) == 2
+
+
+def test_same_shape_in_a_keyword_is_tuned_apart_from_a_positional_one():
+    online = OnlineTunedModule(doubling(), "doubling", strategy=sleep_strategy())
+
+    online(torch.tensor([[1.0, 3.0]]))
+    online(input=torch.tensor([[1.0, 3.0]]))
+
+    assert len(online.backends) == 2
+
+
+def test_failed_tuning_still_returns_the_module_output():
+    strategy = sleep_strategy(backends=[BuildFailsBackend(RuntimeError)])
+    online = OnlineTunedModule(doubling(), "doubling", strategy=strategy)
+
+    actual = online(torch.tensor([[1.0, 3.0]]))
+
+    torch.testing.assert_close(actual, torch.tensor([[2.0, 6.0]]))
+
+
+def test_shape_that_failed_tuning_is_not_tuned_again():
+    strategy = sleep_strategy(backends=[BuildFailsBackend(RuntimeError)])
+    online = OnlineTunedModule(doubling(), "doubling", strategy=strategy)
+    online(torch.tensor([[1.0, 3.0]]))
+
+    actual = online(torch.tensor([[4.0, 5.0]]))
+
+    torch.testing.assert_close(actual, torch.tensor([[8.0, 10.0]]))
+    assert (strategy.tune_calls, online.backends) == (1, {})
 
 
 @requires_xpu

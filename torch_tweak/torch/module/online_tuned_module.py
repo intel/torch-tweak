@@ -53,7 +53,15 @@ class OnlineTunedModule:
 
     The module stays where it is and keeps its `forward`. Its owner can keep calling and patching it.
     Call `reset` after the owner moves or replaces the weights, since some backends hold their addresses.
+
+    When tuning a shape fails, the call still returns the module output.
+    The error is logged, and later calls with that shape run `module` without a backend.
+
+    Not thread safe: call it from one thread at a time.
     """
+
+    # Shared by every instance, so two modules with the same name never write to one graph directory.
+    _graph_counter = itertools.count()
 
     def __init__(
         self,
@@ -68,6 +76,8 @@ class OnlineTunedModule:
             module: Module with its weights loaded on `device`.
             name: Names the cache directory of the tuned graphs.
             strategy: Tunes each new shape. Defaults to `borrowed_module_strategy(device)`.
+                Its backends must leave `module` and its weights on `device`.
+                `OpenVINOBackendConfig(offload_module=False)` does that, and `TorchAOBackend` does not.
             device: Device to tune and run on. Defaults to the device of the module parameters.
         """
         self._module = module
@@ -76,7 +86,7 @@ class OnlineTunedModule:
         self._strategy = strategy or borrowed_module_strategy(self._device)
         self._backends: dict[Hashable, Backend] = {}
         self._active: Backend | None = None
-        self._graph_counter = itertools.count()
+        self._failed: set[Hashable] = set()
 
     @property
     def backends(self) -> dict[Hashable, Backend]:
@@ -94,18 +104,27 @@ class OnlineTunedModule:
                 backend.activate()
                 self._active = backend
             return backend.infer(*args, **kwargs)
+        if key in self._failed:
+            return self._module(*args, **kwargs)
         sample = deepcopy((args, kwargs))
         output = self._module(*args, **kwargs)
         self._deactivate_active()
-        self._active = self._backends[key] = self._tune(
-            sample, metadata, SampleMetadata.from_outputs(output, strict=True)
-        )
+        try:
+            # A strategy can update the shapes of the spec it gets, so the dict key must not be that object.
+            inputs = SampleMetadata.from_inputs(*sample, strict=True)
+            backend = self._tune(sample, inputs, SampleMetadata.from_outputs(output, strict=True))
+        except Exception:
+            logger.warning("Tuning %s failed. This shape runs the module without a backend.", self._name, exc_info=True)
+            self._failed.add(key)
+        else:
+            self._active = self._backends[key] = backend
         return output
 
     def reset(self) -> None:
         """Drops every tuned shape. The next call with any shape tunes again."""
         self._deactivate_active()
         self._backends.clear()
+        self._failed.clear()
 
     def _deactivate_active(self) -> None:
         if self._active is not None:
