@@ -4,6 +4,7 @@
 
 import gc
 import weakref
+from collections.abc import Callable
 
 import pytest
 import torch
@@ -19,22 +20,35 @@ from torch_tweak.torch.tune_strategy import (
 )
 from torch_tweak.torch.utils import memory
 
-FAILED_STATE: list[weakref.ref] = []
-
 
 class _FailedState:
     """Stands for the device memory a failed backend holds."""
 
 
-class _KeepsStateAndFailsBuild(SleepBackend):
-    def _build(self, module, graph_spec, data, cache_dir):
+class _KeepsStateAndFails(SleepBackend):
+    """Keeps a `_FailedState` on itself and passes a weak reference to it to `on_state`.
+
+    `copy.deepcopy` keeps a bound `list.append` as the same object, so the copy a strategy builds appends to the
+    caller's list.
+    """
+
+    def __init__(self, on_state: Callable[[weakref.ref], None]):
+        super().__init__()
+        self.on_state = on_state
+
+    def _keep_state(self):
         state = _FailedState()
-        FAILED_STATE.append(weakref.ref(state))
+        self.on_state(weakref.ref(state))
         self._state = state
+
+
+class _KeepsStateAndFailsBuild(_KeepsStateAndFails):
+    def _build(self, module, graph_spec, data, cache_dir):
+        self._keep_state()
         raise ValueError("Export failed")
 
 
-class _KeepsStateAndFailsReactivate(SleepBackend):
+class _KeepsStateAndFailsReactivate(_KeepsStateAndFails):
     """Builds without activating and fails every activate after the build."""
 
     def _build(self, module, graph_spec, data, cache_dir):
@@ -42,9 +56,7 @@ class _KeepsStateAndFailsReactivate(SleepBackend):
         return self
 
     def _activate(self):
-        state = _FailedState()
-        FAILED_STATE.append(weakref.ref(state))
-        self._state = state
+        self._keep_state()
         raise RuntimeError("Reactivate failed")
 
 
@@ -63,14 +75,25 @@ def _one_backend():
 STRATEGIES = [_first_wins, _highest_throughput, _one_backend]
 
 STRATEGIES_WITH_FAILED_STATE = [
-    pytest.param(lambda: FirstWinsStrategy(backends=[_KeepsStateAndFailsBuild()]), id="first_wins"),
-    pytest.param(lambda: HighestThroughputStrategy(backends=[_KeepsStateAndFailsBuild()]), id="highest_throughput"),
+    pytest.param(lambda keep: FirstWinsStrategy(backends=[_KeepsStateAndFailsBuild(keep)]), id="first_wins"),
     pytest.param(
-        lambda: HighestThroughputStrategy(backends=[_KeepsStateAndFailsReactivate()]),
+        lambda keep: HighestThroughputStrategy(backends=[_KeepsStateAndFailsBuild(keep)]), id="highest_throughput"
+    ),
+    pytest.param(
+        lambda keep: HighestThroughputStrategy(backends=[_KeepsStateAndFailsReactivate(keep)]),
         id="highest_throughput_reactivate",
     ),
-    pytest.param(lambda: OneBackendStrategy(_KeepsStateAndFailsBuild()), id="one_backend"),
+    pytest.param(lambda keep: OneBackendStrategy(_KeepsStateAndFailsBuild(keep)), id="one_backend"),
 ]
+
+
+@pytest.fixture
+def no_garbage_collection(monkeypatch):
+    """Leaves only reference counting to free objects, so a reference cycle stays alive."""
+    monkeypatch.setattr(memory, "free_device_memory", lambda device: None)
+    gc.disable()
+    yield
+    gc.enable()
 
 
 def _tune(strategy, device, cache_dir):
@@ -101,17 +124,13 @@ def test_error_outside_backends_is_not_wrapped(make_strategy, torch_device, tmp_
 
 
 @pytest.mark.parametrize("make_strategy", STRATEGIES_WITH_FAILED_STATE)
-def test_caught_error_does_not_keep_the_failed_backend_alive(make_strategy, torch_device, tmp_path, monkeypatch):
-    # `release_device_memory` collects garbage, which would free a reference cycle that holds the failed state.
-    monkeypatch.setattr(memory, "free_device_memory", lambda device: None)
-    FAILED_STATE.clear()
-    gc.disable()
-    try:
-        with pytest.raises(NoCorrectBackendError) as raised:
-            _tune(make_strategy(), torch_device, tmp_path)
+def test_caught_error_does_not_keep_the_failed_backend_alive(
+    make_strategy, torch_device, tmp_path, no_garbage_collection
+):
+    states = []
 
-        assert raised.value.__cause__ is not None
-        assert FAILED_STATE
-        assert all(state() is None for state in FAILED_STATE)
-    finally:
-        gc.enable()
+    # `raised` keeps the caught error alive during the assert.
+    with pytest.raises(NoCorrectBackendError) as raised:  # noqa: F841
+        _tune(make_strategy(states.append), torch_device, tmp_path)
+
+    assert [state() for state in states] == [None]
