@@ -44,6 +44,7 @@ class _KeepsStateAndFailsReactivate(SleepBackend):
     def _activate(self):
         state = _FailedState()
         FAILED_STATE.append(weakref.ref(state))
+        self._state = state
         raise RuntimeError("Reactivate failed")
 
 

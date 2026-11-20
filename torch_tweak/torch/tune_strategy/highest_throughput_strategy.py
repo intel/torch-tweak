@@ -235,6 +235,9 @@ class HighestThroughputStrategy(TuneStrategyFindMaxBatchSizeExtension):
                 log("❌ %s failed to activate: %s", candidate.backend.describe(), error, sink=self._sink)
             else:
                 return candidate
+        # The traceback of the raised error keeps this frame and the frame of `_tune`, which share `profiled`.
+        profiled.clear()
+        del candidate
         raise NoCorrectBackendError("No profiled backend could be activated") from error
 
     def _get_profiling_config(self, batching: bool, max_batch_size: int) -> ProfilingConfig:
