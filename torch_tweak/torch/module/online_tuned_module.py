@@ -43,6 +43,10 @@ def borrowed_module_strategy(device: torch.device) -> HighestThroughputStrategy:
     return strategy
 
 
+def _is_on(weight: torch.Tensor, device: torch.device) -> bool:
+    return weight.device.type == device.type and device.index in (None, weight.device.index)
+
+
 class OnlineTunedModule:
     """Calls `module` through the backend tuned for the exact shapes of each call.
 
@@ -52,7 +56,11 @@ class OnlineTunedModule:
     Returning to other shapes activates their backend again, which can recompile it.
 
     The module stays where it is and keeps its `forward`. Its owner can keep calling and patching it.
-    Call `reset` after the owner moves or replaces the weights, since some backends hold their addresses.
+    Call `reset` after the owner changes the weights in any way: moves them, replaces them, or patches their
+    values in place. A backend serves the weights it was built on. OpenVINO keeps a snapshot
+    of their values, and other backends hold their addresses.
+    Every parameter of `module` must already be on `device`, since the backends build on that device and leave the
+    module there.
 
     When tuning a shape fails, the call still returns the module output.
     The error is logged, and later calls with that shape run `module` without a backend.
@@ -73,7 +81,7 @@ class OnlineTunedModule:
         """Initializes module.
 
         Args:
-            module: Module with its weights loaded on `device`.
+            module: Module with all its parameters on `device`.
             name: Names the cache directory of the tuned graphs.
             strategy: Tunes each new shape. Defaults to `borrowed_module_strategy(device)`.
                 Its backends must leave `module` and its weights on `device`.
@@ -83,6 +91,9 @@ class OnlineTunedModule:
         self._module = module
         self._name = sanitize_model_name(name)
         self._device = device or get_module_device(module)
+        misplaced = [name for name, weight in module.named_parameters() if not _is_on(weight, self._device)]
+        if misplaced:
+            raise ValueError(f"Every parameter must be on {self._device} before tuning. Not on it: {misplaced[:3]}")
         self._strategy = strategy or borrowed_module_strategy(self._device)
         self._backends: dict[Hashable, Backend] = {}
         self._active: Backend | None = None

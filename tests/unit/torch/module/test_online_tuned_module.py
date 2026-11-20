@@ -2,10 +2,11 @@
 # SPDX-License-Identifier: Apache-2.0
 """Tests for OnlineTunedModule."""
 
+import pytest
 import torch
 
 from tests.toy_backends import BuildFailsBackend, SleepBackend
-from tests.utilities.helpers import requires_xpu
+from tests.utilities.helpers import requires_leo
 from torch_tweak.torch import HighestThroughputStrategy, OnlineTunedModule
 
 
@@ -167,7 +168,7 @@ def test_shape_that_failed_tuning_is_not_tuned_again():
     assert (strategy.tune_calls, online.backends) == (1, {})
 
 
-@requires_xpu
+@requires_leo
 def test_default_strategy_leaves_the_weights_where_they_are():
     module = doubling().to("xpu")
     weight = module.weight.data_ptr()
@@ -176,3 +177,20 @@ def test_default_strategy_leaves_the_weights_where_they_are():
     online(torch.tensor([[1.0, 3.0]], device="xpu"))
 
     assert (module.weight.device.type, module.weight.data_ptr()) == ("xpu", weight)
+
+
+def test_module_with_a_weight_on_another_device_is_rejected():
+    module = torch.nn.Linear(2, 2, device="meta")
+
+    with pytest.raises(ValueError, match="weight"):
+        OnlineTunedModule(module, "linear", strategy=sleep_strategy(), device=torch.device("cpu"))
+
+
+def test_instances_with_one_name_use_separate_graph_directories(torch_tweak_cache_dir):
+    first = OnlineTunedModule(doubling(), "doubling", strategy=sleep_strategy())
+    second = OnlineTunedModule(doubling(), "doubling", strategy=sleep_strategy())
+
+    first(torch.tensor([[1.0, 3.0]]))
+    second(torch.tensor([[1.0, 3.0]]))
+
+    assert len(list((torch_tweak_cache_dir / "doubling").iterdir())) == 2
