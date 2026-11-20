@@ -19,6 +19,15 @@ SPDX-License-Identifier: Apache-2.0
 - feat: `OnlineTunedModule` tunes every new input shape on its first call,
   for a module that a framework owns and keeps calling.
   Only the backend of the last call stays active, so tuned shapes do not each keep a copy of the weights (#87)
+- feat (breaking): every strategy raises `NoCorrectBackendError`, a `RuntimeError`, when none of its backends works
+  for a graph (#97).
+  `OneBackendStrategy` no longer raises the error of its backend. Catch `NoCorrectBackendError` instead.
+  `__cause__` is a `RuntimeError` with the type and message of the last backend failure.
+  `OnlineTunedModule` runs a shape without a backend only on this error. Any other tuning error reaches the caller.
+- feat: `OnlineTunedModule` saves the selected backend per weights and shapes, and a later process restores it without tuning.
+  `OpenVINOBackendConfig(reuse_ir=True)` compiles the saved IR instead of converting the module again (#88)
+- feat: `HighestThroughputStrategy` measures a backend again when another process computed on the device during the measurement.
+  `OnlineTunedModule` does not save a selection tuned on a shared device (#89)
 
 ## 0.4.1
 

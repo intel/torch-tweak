@@ -13,6 +13,7 @@ import torch
 
 from tests.toy_backends import AllocateThenFailBackend, BuildFailsBackend, MemoryProbeBackend, SleepBackend
 from tests.toy_models.torch_models import INPUT_SIZE, ToyTorchModel, toy_on_xpu
+from tests.utilities.device_probes import ScriptedProbe
 from tests.utilities.helpers import requires_xpu
 from torch_tweak.torch import TunableModule
 from torch_tweak.torch.backend import Backend
@@ -27,6 +28,7 @@ from torch_tweak.torch.task.profiling.profiling_stop_strategy import (
 )
 from torch_tweak.torch.tune_strategy.extension import TuneStrategyFindMaxBatchSizeExtension
 from torch_tweak.torch.tune_strategy.highest_throughput_strategy import HighestThroughputStrategy
+from torch_tweak.torch.tune_strategy.tune_strategy import NoCorrectBackendError
 from torch_tweak.torch.tuning import tune
 
 
@@ -182,6 +184,48 @@ def test_highest_throughput_strategy_stable_window(torch_device):
     assert len(strategy.results[0].highest_throughput_results[0].throughput_per_batch_size) >= 1
 
 
+def _tune_with_probe(backends, probe, torch_device, tmp_path):
+    strategy = HighestThroughputStrategy(backends=backends, device_probe=probe)
+    strategy.enable_find_max_batch_size(False)
+    strategy.enable_correctness_check(False)
+    model = ToyTorchModel()
+    sample = torch.zeros(1, INPUT_SIZE)
+    strategy.tune(model, "test", model.graph_spec(batch_sizes=[1]), [((sample,), {})], torch_device, tmp_path)
+    return strategy
+
+
+def test_a_measurement_on_a_quiet_device_runs_once(torch_device, tmp_path):
+    probe = ScriptedProbe([1.0, 1.0])
+
+    _tune_with_probe([SleepBackend()], probe, torch_device, tmp_path)
+
+    assert probe.calls == 2
+
+
+def test_a_measurement_on_a_shared_device_runs_again(torch_device, tmp_path):
+    probe = ScriptedProbe([1.0, 20.0, 1.0, 1.0])
+
+    strategy = _tune_with_probe([SleepBackend()], probe, torch_device, tmp_path)
+
+    assert (probe.calls, strategy.tuned_on_quiet_device) == (4, True)
+
+
+def test_a_device_shared_in_every_attempt_is_reported(torch_device, tmp_path):
+    probe = ScriptedProbe([1.0, 20.0, 1.0, 20.0, 1.0, 20.0])
+
+    strategy = _tune_with_probe([SleepBackend()], probe, torch_device, tmp_path)
+
+    assert strategy.tuned_on_quiet_device is False
+
+
+def test_a_device_that_gets_quieter_after_a_measurement_is_reported(torch_device, tmp_path):
+    probe = ScriptedProbe([20.0, 20.0, 1.0, 1.0])
+
+    strategy = _tune_with_probe([SleepBackend(), SleepBackend()], probe, torch_device, tmp_path)
+
+    assert strategy.tuned_on_quiet_device is False
+
+
 class ActivateFailsBackend(SleepBackend):
     def __init__(self):
         super().__init__()
@@ -228,10 +272,10 @@ def test_tune_fails_with_the_last_error_when_no_backend_reactivates(torch_device
     model = ToyTorchModel()
     sample = torch.zeros(1, INPUT_SIZE)
 
-    with pytest.raises(RuntimeError, match="No profiled backend could be activated") as raised:
+    with pytest.raises(NoCorrectBackendError, match="No profiled backend could be activated") as raised:
         strategy.tune(model, "test", model.graph_spec(batch_sizes=[1]), [((sample,), {})], torch_device, tmp_path)
 
-    assert str(raised.value.__cause__) == "Reactivate failed"
+    assert str(raised.value.__cause__) == "RuntimeError: Reactivate failed"
 
 
 class InferFailsBackend(SleepBackend):
