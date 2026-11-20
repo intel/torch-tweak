@@ -14,6 +14,8 @@ SPDX-License-Identifier: Apache-2.0
   A diffusers UNet ran with an unset timestep and returned wrong outputs without an error.
 - fix: bf16 and f8 weights on XPU, and non-contiguous ones on CPU, keep their values in the OpenVINO IR (#103)
 - feat (breaking): OpenVINO on XPU binds PyTorch tensors as GPU remote tensors without copying them through the host (#102)
+- feat: `OpenVINOBackendConfig(offload_module=False)` leaves the module on its device after conversion,
+  for a module that a framework keeps calling. The weights then exist twice on the device (#117)
 
 ## 0.4.1
 
