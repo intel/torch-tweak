@@ -24,6 +24,7 @@ SPDX-License-Identifier: Apache-2.0
   `OneBackendStrategy` no longer raises the error of its backend. Catch `NoCorrectBackendError` instead.
   `__cause__` is a `RuntimeError` with the type and message of the last backend failure.
   `OnlineTunedModule` runs a shape without a backend only on this error. Any other tuning error reaches the caller.
+
 ## 0.4.1
 
 - feat: add an XPU graph backend (#33)
