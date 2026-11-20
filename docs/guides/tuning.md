@@ -241,7 +241,8 @@ with torch.no_grad():
 Only the backend of the last call stays active.
 Returning to other shapes activates their backend again, which can recompile it.
 The module stays on its device and keeps its `forward`.
-Call `reset()` after moving or replacing its weights.
+All its weights must already be on the device.
+Call `reset()` after the owner changes the weights in any way: moves them, replaces them, or patches their values in place. A backend serves the weights it was built on.
 
 ## Dry Run Mode
 

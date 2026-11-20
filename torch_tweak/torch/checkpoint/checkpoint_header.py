@@ -27,8 +27,6 @@ from torch_tweak.__version__ import __version__ as torch_tweak_version
 # Bump at most once per release, with the first change after a release that breaks loading between
 # that release and this code, such as a new field in a saved backend config.
 # Unreleased changes share the version of the next release.
-# TODO: Keep a sample checkpoint of TT_FORMAT_VERSION in the tests and check that it still loads.
-#  Regenerate the sample when TT_FORMAT_VERSION is bumped.
 TT_FORMAT_VERSION = 1
 
 _UINT32 = struct.Struct("<I")
