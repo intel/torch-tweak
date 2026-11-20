@@ -9,6 +9,9 @@
 2. Runs all backends with given max batch size.
 3. Finds the highest throughput for each backend.
 4. Returns the backend with the highest throughput that activates again.
+
+A probe before and after each measurement shows whether another process used the device.
+A measurement on a shared device runs again, up to `QUIET_DEVICE_ATTEMPTS` times.
 """
 
 from collections.abc import Iterable
@@ -41,9 +44,13 @@ from torch_tweak.torch.task.profiling import (
 )
 from torch_tweak.torch.tune_strategy.default_backends import default_backends
 from torch_tweak.torch.tune_strategy.extension import TuneStrategyFindMaxBatchSizeExtension
+from torch_tweak.torch.tune_strategy.tune_strategy import NoCorrectBackendError
+from torch_tweak.torch.utils.device_load import DeviceLoadProbe, is_quiet
 from torch_tweak.torch.utils.memory import release_device_memory
 from torch_tweak.utils.logging import control_output, log
 from torch_tweak.utils.timer import Timer
+
+QUIET_DEVICE_ATTEMPTS = 3
 
 
 @dataclass
@@ -81,6 +88,7 @@ class HighestThroughputStrategy(TuneStrategyFindMaxBatchSizeExtension):
         backends: Iterable[Backend] | None = None,
         measurement_stop_strategy: MeasuringStopStrategy | None = None,
         profiling_stop_strategy: ProfilingStopStrategy | None = None,
+        device_probe: DeviceLoadProbe | None = None,
         **kwargs: Any,
     ):
         """Initializes strategy.
@@ -89,6 +97,7 @@ class HighestThroughputStrategy(TuneStrategyFindMaxBatchSizeExtension):
             backends: List of backends to tune. Without it, `default_backends(device)` for the tuning device.
             measurement_stop_strategy: Measurement stop strategy.
             profiling_stop_strategy: Profiling stop strategy.
+            device_probe: Times a fixed workload around each measurement. Defaults to `DeviceLoadProbe()`.
             kwargs: Additional arguments for the parent class
         """
         super().__init__(**kwargs)
@@ -101,6 +110,7 @@ class HighestThroughputStrategy(TuneStrategyFindMaxBatchSizeExtension):
             throughput_cutoff_threshold=DEFAULT_THROUGHPUT_CUTOFF_THRESHOLD,
             throughput_backoff_limit=DEFAULT_THROUGHPUT_BACKOFF_LIMIT,
         )
+        self._device_probe = device_probe or DeviceLoadProbe()
         self.results: list[HighestThroughputStrategyResult] = []
 
     def _tune(
@@ -130,8 +140,11 @@ class HighestThroughputStrategy(TuneStrategyFindMaxBatchSizeExtension):
         max_batch_size = graph_spec.get_max_batch_size()
 
         profiled: list[_ProfiledBackend] = []
+        last_error: Exception | None = None
+        probes: list[float] = []
+        measured_windows: list[tuple[float, float]] = []
 
-        backends = list(self._backends or default_backends(device))
+        backends = self.candidate_backends(device)
 
         # Run all backends with given max batch size.
         for backend in backends:
@@ -148,8 +161,15 @@ class HighestThroughputStrategy(TuneStrategyFindMaxBatchSizeExtension):
                     log("✅ backend built", depth=2, sink=self._sink)
                     self.check_correctness(backend, name, graph_spec, data)
                     log("✅ backend validated", depth=2, sink=self._sink)
-                    batch_size, throughput, throughput_per_batch_size = calculate_highest_throughput_for_backend(
-                        backend, name, graph_spec, data, self._get_profiling_config(batching, max_batch_size)
+                    batch_size, throughput, throughput_per_batch_size = self._measure_on_quiet_device(
+                        backend,
+                        name,
+                        graph_spec,
+                        data,
+                        self._get_profiling_config(batching, max_batch_size),
+                        device,
+                        probes,
+                        measured_windows,
                     )
                     highest_throughput_results.append(
                         HighestThroughputResult(
@@ -180,6 +200,7 @@ class HighestThroughputStrategy(TuneStrategyFindMaxBatchSizeExtension):
                     backend.deactivate()
 
                 except Exception as exc:
+                    last_error = self._summarize_failure(exc)
                     if backend.is_active:
                         backend.deactivate()
                     self._log_failure(exc, log_file)
@@ -187,6 +208,10 @@ class HighestThroughputStrategy(TuneStrategyFindMaxBatchSizeExtension):
             # `profiled` keeps each deactivated copy. A failed copy must be unreachable before the cache is emptied.
             del backend
             release_device_memory(device, self._sink)
+        self._device_probe.release()
+        self.tuned_on_quiet_device = all(is_quiet(window, min(probes)) for window in measured_windows)
+        if not self.tuned_on_quiet_device:
+            log("⚠️ another process used the device while backends were measured", sink=self._sink)
 
         if not profiled:
             log(
@@ -194,7 +219,7 @@ class HighestThroughputStrategy(TuneStrategyFindMaxBatchSizeExtension):
                 ", ".join([backend.describe() for backend in backends]),
                 sink=self._sink,
             )
-            raise RuntimeError("No correct backend found")
+            raise NoCorrectBackendError("No correct backend found") from last_error
 
         self.results.append(
             HighestThroughputStrategyResult(
@@ -215,6 +240,42 @@ class HighestThroughputStrategy(TuneStrategyFindMaxBatchSizeExtension):
 
         return best.backend
 
+    def _measure_on_quiet_device(
+        self,
+        backend: Backend,
+        name: str,
+        graph_spec: GraphSpec,
+        data: list[Sample],
+        profiling_config: ProfilingConfig,
+        device: torch.device,
+        probes: list[float],
+        measured_windows: list[tuple[float, float]],
+    ) -> tuple[int, float, dict[int, float]]:
+        """Measures `backend` until the probes around the measurement show a quiet device.
+
+        Appends every probe to `probes` and the probes around the kept measurement to `measured_windows`.
+        """
+        for attempt in range(1, QUIET_DEVICE_ATTEMPTS + 1):
+            before = self._device_probe.seconds(device)
+            measured = calculate_highest_throughput_for_backend(backend, name, graph_spec, data, profiling_config)
+            window = (before, self._device_probe.seconds(device))
+            probes.extend(window)
+            if is_quiet(window, min(probes)):
+                break
+            log(
+                "⚠️ another process used the device during measurement %d of %d: probes took %.1f and %.1f ms, "
+                "the fastest %.1f ms",
+                attempt,
+                QUIET_DEVICE_ATTEMPTS,
+                window[0] * 1e3,
+                window[1] * 1e3,
+                min(probes) * 1e3,
+                depth=2,
+                sink=self._sink,
+            )
+        measured_windows.append(window)
+        return measured
+
     def _activate_fastest(
         self, module: nn.Module, device: torch.device, profiled: list[_ProfiledBackend]
     ) -> _ProfiledBackend:
@@ -228,11 +289,14 @@ class HighestThroughputStrategy(TuneStrategyFindMaxBatchSizeExtension):
             try:
                 candidate.backend.activate()
             except Exception as exc:
-                log("❌ %s failed to activate: %s", candidate.backend.describe(), exc, sink=self._sink)
-                error = exc
+                error = self._summarize_failure(exc)
+                log("❌ %s failed to activate: %s", candidate.backend.describe(), error, sink=self._sink)
             else:
                 return candidate
-        raise RuntimeError("No profiled backend could be activated") from error
+        # The traceback of the raised error keeps this frame and the frame of `_tune`, which share `profiled`.
+        profiled.clear()
+        del candidate
+        raise NoCorrectBackendError("No profiled backend could be activated") from error
 
     def _get_profiling_config(self, batching: bool, max_batch_size: int) -> ProfilingConfig:
         """Gets profiling configuration."""
@@ -243,6 +307,10 @@ class HighestThroughputStrategy(TuneStrategyFindMaxBatchSizeExtension):
             measurement_stop_strategy=self._measurement_stop_strategy,
             profiling_stop_strategy=self._profiling_stop_strategy,
         )
+
+    def candidate_backends(self, device: torch.device) -> list[Backend]:
+        """The backends this strategy measures on `device`."""
+        return list(self._backends or default_backends(device))
 
     def _describe_parts(self) -> list[str]:
         """Returns the parts of the description."""

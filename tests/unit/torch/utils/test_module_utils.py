@@ -11,7 +11,7 @@ import torch
 import torch.nn as nn
 
 from tests.utilities.helpers import requires_xpu
-from torch_tweak.torch.utils.module import count_parameters, format_num_parameters, offload
+from torch_tweak.torch.utils.module import count_parameters, format_num_parameters, offload, weights_fingerprint
 
 
 @pytest.mark.parametrize(
@@ -37,6 +37,22 @@ def test_format_num_parameters(num_params, expected):
     result = format_num_parameters(num_params)
 
     assert result == expected
+
+
+def _holding(tensor: torch.Tensor) -> nn.Module:
+    module = nn.Module()
+    module.register_buffer("weight", tensor)
+    return module
+
+
+def test_weights_fingerprint_samples_the_last_value_of_a_tensor_too_long_for_float32_indices():
+    zeros = torch.zeros(16_777_218, dtype=torch.uint8)
+    last_one = zeros.clone()
+    last_one[-1] = 1
+
+    fingerprints = (weights_fingerprint(_holding(zeros)), weights_fingerprint(_holding(last_one)))
+
+    assert fingerprints[0] != fingerprints[1]
 
 
 @pytest.fixture

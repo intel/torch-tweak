@@ -17,6 +17,7 @@ from torch_tweak.torch.module.graph_spec import GraphSpec
 from torch_tweak.torch.module.recording_module import Sample
 from torch_tweak.torch.tune_strategy.default_backends import default_backends
 from torch_tweak.torch.tune_strategy.extension import TuneStrategyFindMaxBatchSizeExtension
+from torch_tweak.torch.tune_strategy.tune_strategy import NoCorrectBackendError
 from torch_tweak.torch.utils.memory import release_device_memory
 from torch_tweak.utils.logging import control_output, log
 from torch_tweak.utils.timer import Timer
@@ -44,6 +45,7 @@ class FirstWinsStrategy(TuneStrategyFindMaxBatchSizeExtension):
     ) -> Backend:
         """Tunes given torch module with provided graph_spec and data."""
         selected_backend = None
+        last_error: Exception | None = None
         log(
             "⏳ Executing strategy `%s` on module `%s` (graph: %s)",
             self.__class__.__name__,
@@ -53,7 +55,7 @@ class FirstWinsStrategy(TuneStrategyFindMaxBatchSizeExtension):
         )
 
         # Run backend by backend until first working backend is found
-        for backend in self._backends or default_backends(device):
+        for backend in self.candidate_backends(device):
             backend_cache_dir = cache_dir / backend.key()
             log_file = self._log_file(backend_cache_dir, "build.log")
 
@@ -70,6 +72,7 @@ class FirstWinsStrategy(TuneStrategyFindMaxBatchSizeExtension):
                     selected_backend = backend
                     break
                 except Exception as exc:
+                    last_error = self._summarize_failure(exc)
                     if backend.is_active:
                         backend.deactivate()
                     self._log_failure(exc, log_file)
@@ -83,7 +86,13 @@ class FirstWinsStrategy(TuneStrategyFindMaxBatchSizeExtension):
             log("✅ Selected backend: %s", selected_backend.describe(), sink=self._sink)
             return selected_backend
 
-        raise RuntimeError(f"There is no valid backend for a module: {name}, graph_spec: {graph_spec}")
+        raise NoCorrectBackendError(
+            f"There is no valid backend for a module: {name}, graph_spec: {graph_spec}"
+        ) from last_error
+
+    def candidate_backends(self, device: torch.device) -> list[Backend]:
+        """The backends this strategy tries on `device`, in order."""
+        return list(self._backends or default_backends(device))
 
     def _describe_parts(self) -> list[str]:
         """Returns the parts of the description."""

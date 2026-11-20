@@ -20,6 +20,7 @@ from torch_tweak.torch.backend import Backend
 from torch_tweak.torch.module.graph_spec import GraphSpec
 from torch_tweak.torch.module.tunable_module import ModuleState
 from torch_tweak.torch.tune_strategy.first_wins_strategy import FirstWinsStrategy
+from torch_tweak.torch.tune_strategy.tune_strategy import NoCorrectBackendError
 
 
 @pytest.fixture
@@ -150,7 +151,7 @@ def test_tune_all_backends_fail(mock_module, mock_graph_spec, mock_sample, torch
     strategy.enable_correctness_check(False)
 
     # Execute and verify
-    with pytest.raises(RuntimeError) as exc_info:
+    with pytest.raises(NoCorrectBackendError) as exc_info:
         strategy.tune(mock_module, "test_module", mock_graph_spec, [mock_sample], torch_device, tmp_path)
 
     expected_error = f"There is no valid backend for a module: test_module, graph_spec: {mock_graph_spec}"
