@@ -19,7 +19,9 @@ message explains problem you're solving and/or fully describes enhancements, wit
 - `(<scope>)` is optional but strongly encouraged when the change targets a
   specific area of the codebase.
 - `<short description>` is a concise, lowercase imperative phrase (no trailing
-  period). Aim for 72 characters or fewer for the whole title.
+  period). Aim for 50 characters or fewer for the whole title. Most commits
+  should fit in 50. Go up to 72 characters only when the title cannot say what
+  the change does in fewer. The `commit-msg` hook rejects titles over 72.
 
 ---
 
@@ -88,7 +90,11 @@ scope that accurately describes the change.
 ## Body and footer (optional)
 
 When the title alone is not enough, add a blank line followed by a longer
-description. Close issues or reference PRs in the footer:
+description. Wrap every body and footer line at 72 characters (URLs and
+indented code lines are exempt). The `commit-msg` hook in
+`.pre-commit-config.yaml` enforces this limit and the 72 character title limit.
+Install it with `uv run pre-commit install`. Close issues or reference PRs in
+the footer:
 
 ```
 fix(checkpoint): check zip file paths before extracting

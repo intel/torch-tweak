@@ -3,9 +3,15 @@
 # SPDX-License-Identifier: Apache-2.0
 #
 # NOTE: This file has been modified by Intel Corporation.
+default_install_hook_types: [pre-commit, commit-msg]
 repos:
   - repo: local
     hooks:
+      - id: check-commit-message
+        name: check commit message length
+        entry: python3 .github/scripts/check_commit_message.py
+        language: system
+        stages: [commit-msg]
       - id: fix-copyright-headers
         name: fix missing SPDX copyright headers
         entry: python3 .github/scripts/check_licenses.py --fix
