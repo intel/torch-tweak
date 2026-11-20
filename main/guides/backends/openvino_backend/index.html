@@ -2540,6 +2540,11 @@ Without LEO, building the backend on XPU raises <code>LevelZeroInteropError</cod
 <a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a><span class="p">)</span>
 </code></pre></div>
 <p>Use <code>use_dynamo=False</code> when <code>torch.export</code> cannot capture the module.</p>
+<p>The backend moves the module to CPU after conversion, since the compiled model holds its own copy of the weights.
+<code>offload_module=False</code> leaves the module on its device, for a framework that keeps calling it.
+The weights then exist twice on the device: in the module and in the compiled model.</p>
+<p>The flag controls only the backend build.
+<code>TunableModule</code> replaces the module's forward, so after tuning it still moves the module to <code>config.device_after_tuning</code>.</p>
 <h2 id="next-steps">Next Steps</h2>
 <ul>
 <li>Compare with the <a href="../torch_inductor_backend/">Torch Inductor backend</a></li>
