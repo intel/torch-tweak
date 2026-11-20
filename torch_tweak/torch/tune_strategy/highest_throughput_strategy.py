@@ -231,8 +231,8 @@ class HighestThroughputStrategy(TuneStrategyFindMaxBatchSizeExtension):
             try:
                 candidate.backend.activate()
             except Exception as exc:
-                log("❌ %s failed to activate: %s", candidate.backend.describe(), exc, sink=self._sink)
-                error = exc
+                error = self._summarize_failure(exc)
+                log("❌ %s failed to activate: %s", candidate.backend.describe(), error, sink=self._sink)
             else:
                 return candidate
         raise NoCorrectBackendError("No profiled backend could be activated") from error

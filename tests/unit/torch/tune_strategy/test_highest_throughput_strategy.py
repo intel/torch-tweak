@@ -232,7 +232,7 @@ def test_tune_fails_with_the_last_error_when_no_backend_reactivates(torch_device
     with pytest.raises(NoCorrectBackendError, match="No profiled backend could be activated") as raised:
         strategy.tune(model, "test", model.graph_spec(batch_sizes=[1]), [((sample,), {})], torch_device, tmp_path)
 
-    assert str(raised.value.__cause__) == "Reactivate failed"
+    assert str(raised.value.__cause__) == "RuntimeError: Reactivate failed"
 
 
 class InferFailsBackend(SleepBackend):

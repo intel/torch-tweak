@@ -31,9 +31,9 @@ from torch_tweak.utils.timer import Timer
 class NoCorrectBackendError(RuntimeError):
     """None of the backends of a strategy builds, validates, and activates for the graph.
 
-    `__cause__` describes why the last backend failed.
-    `OneBackendStrategy` sets the original error. The other strategies set a summary (type and message) of it.
-    Errors of every backend are logged.
+    `__cause__` is a `RuntimeError` with the type and message of the last backend failure.
+    It has no traceback, so a caught error does not keep the device memory of a failed backend.
+    A failed build writes its traceback to the build log of its backend.
     """
 
 

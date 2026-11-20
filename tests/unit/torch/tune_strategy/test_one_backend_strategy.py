@@ -92,7 +92,7 @@ def test_tune_backend_fails(mock_backend, mock_module, mock_graph_spec, torch_de
     with pytest.raises(NoCorrectBackendError) as exc_info:
         strategy.tune(mock_module, "test_module", mock_graph_spec, [mock_sample], torch_device, tmp_path)
 
-    assert str(exc_info.value.__cause__) == "Backend failed"
+    assert str(exc_info.value.__cause__) == "Exception: Backend failed"
     mock_backend.build.assert_called_once()
 
 
@@ -128,7 +128,6 @@ def test_tune_starts_without_the_memory_a_failed_tune_held(tmp_path):
     with pytest.raises(NoCorrectBackendError) as raised:
         failing.tune(model, "test", graph_spec, data, torch.device("xpu"), tmp_path)
     assert "Capture failed" in str(raised.value.__cause__)
-    del raised  # the traceback of the failed tune holds its memory
 
     probing.tune(model, "test", graph_spec, data, torch.device("xpu"), tmp_path)
 
