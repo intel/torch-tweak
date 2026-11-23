@@ -6,8 +6,9 @@ import pytest
 import torch
 
 from tests.toy_backends import BuildFailsBackend, OffloadingBackend, SleepBackend
-from tests.utilities.helpers import requires_leo
+from tests.utilities.helpers import requires_leo, requires_xpu
 from torch_tweak.torch import HighestThroughputStrategy, OneBackendStrategy, OnlineTunedModule
+from torch_tweak.torch.backend.torchao_backend import TorchAOBackend, TorchAOBackendConfig
 from torch_tweak.torch.module import online_tuned_module
 
 
@@ -199,6 +200,17 @@ def test_default_strategy_leaves_the_weights_where_they_are():
     online(torch.tensor([[1.0, 3.0]], device="xpu"))
 
     assert (module.weight.device.type, module.weight.data_ptr()) == ("xpu", weight)
+
+
+@requires_xpu
+def test_new_shape_after_torchao_without_offload_returns_the_module_output():
+    config = TorchAOBackendConfig(quantization="int8wo", offload_module=False)
+    online = OnlineTunedModule(doubling().to("xpu"), "doubling", strategy=OneBackendStrategy(TorchAOBackend(config)))
+    online(torch.tensor([[1.0, 3.0]], device="xpu"))
+
+    actual = online(torch.tensor([[1.0, 3.0], [2.0, 4.0]], device="xpu"))
+
+    torch.testing.assert_close(actual, torch.tensor([[2.0, 6.0], [4.0, 8.0]], device="xpu"))
 
 
 def test_module_with_a_weight_on_another_device_is_rejected():

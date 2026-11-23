@@ -29,6 +29,7 @@ from torchao.quantization import (
 from torch_tweak.torch.backend.backend import Backend, BackendConfig, BackendState, samples_for_checkpoint
 from torch_tweak.torch.module.graph_spec import GraphSpec
 from torch_tweak.torch.module.recording_module import Sample
+from torch_tweak.torch.utils.module import offload
 from torch_tweak.utils.trace import annotate
 
 logger = getLogger(__name__)
@@ -147,10 +148,21 @@ warnings.filterwarnings(
 
 @dataclass
 class TorchAOBackendConfig(BackendConfig):
-    """Configuration for TorchAOBackend."""
+    """Configuration for TorchAOBackend.
+
+    Attributes:
+        quantization: A predefined quantization type.
+        quantization_config: A torchao config, instead of ``quantization``.
+        offload_module: Move the module to CPU after copying it for quantization.
+            The quantized copy holds its own weights, so the module's copy on the device is not needed.
+            Set False when the module is still used after the build, for example by its owner.
+            The module and its weights then stay on their device, and the weights take device memory twice.
+            The quantized copy sees later changes to the module's weights only after the next activation.
+    """
 
     quantization: QuantizationType | None = None
     quantization_config: AOBaseConfig | None = None
+    offload_module: bool = True
 
     _QUANTIZATION_CONFIGS = {
         "int8wo": Int8WeightOnlyConfig(),
@@ -181,12 +193,16 @@ class TorchAOBackendConfig(BackendConfig):
             self.quantization_config.__class__(*kwargs),
             include=list(kwargs.keys()),
         )
-        return f"quantization_config={self.quantization_config.__class__.__name__}({','.join(changed_fields)})"
+        description = f"quantization_config={self.quantization_config.__class__.__name__}({','.join(changed_fields)})"
+        if not self.offload_module:
+            description += ",offload_module=False"
+        return description
 
     def to_dict(self):
         """Convert TorchAOBackendConfig to dict built only from primitive values."""
         return {
             "quantization_config": config_to_dict(self.quantization_config),
+            "offload_module": self.offload_module,
         }
 
     @classmethod
@@ -203,8 +219,7 @@ class TorchAOBackendConfig(BackendConfig):
         """
         raw = state_dict["quantization_config"]
         _assert_ao_config_payload(raw)
-        quantization_config = config_from_dict(raw)
-        return cls(quantization_config=quantization_config)
+        return cls(quantization_config=config_from_dict(raw), offload_module=state_dict["offload_module"])
 
     def _get_quantization_config(self, quantization):
         if quantization not in self._QUANTIZATION_CONFIGS:
@@ -331,7 +346,8 @@ class TorchAOBackend(Backend):
 
     def _do_torchao_quantization(self):
         model = copy.deepcopy(self._orig_module)
-        self._orig_module.to("cpu")
+        if self._config.offload_module:
+            offload(self._orig_module, device="cpu")
 
         quantize_(model, config=self._config.quantization_config, device=self._device)
         self._quant_module = torch.compile(model=model, mode="default")
