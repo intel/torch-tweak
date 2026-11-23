@@ -114,6 +114,8 @@ Skip a part that has nothing to say.
 5. **Limits.** What this change does not fix, what stays slow, which case is still open. Name the follow-up issue.
 6. **Evidence.** What you ran and what it showed. See below.
 
+After the opening sentence and the links, add the section `## Why it matters`, described below.
+
 Be concrete.
 "Improves accuracy" says nothing.
 "The UNet was off by 1.97 at an output scale of 4.2; after this change the outputs match eager" says what happened.
@@ -121,6 +123,31 @@ Be concrete.
 Name identifiers exactly: `HighestThroughputStrategy`, not "the strategy"; `torch.export`, not "the exporter".
 Spell out a term the first time if a newcomer to the module would not know it.
 Avoid "this", "it", and "the issue" when the referent is more than one sentence away.
+
+## Why it matters
+
+This section is for a big-picture reader.
+The reader knows the goal of the project and its architecture at the level of a diagram.
+The reader does not read code.
+
+- Start with the goal of the project in one or two sentences, and the condition it puts on this change.
+- List the scenarios this change improves, at most five, most important first.
+- Number each scenario and open it with a bold headline that names what a user saw.
+- Then say what happened and why it hurt the user, and what happens after this change.
+- Use plain words: an image, a model, the card, the disk. No identifiers, no file names, no backend names.
+- Close with one or two sentences that compare before and after.
+- Claim only what this pull request delivers. Name the pull request that fixes a related scenario.
+
+When the change has no visible effect, write that in one sentence and stop.
+A refactor, a test, or an internal cleanup often has none.
+Do not invent a scenario to fill the section.
+
+```
+## Why it matters
+
+This change has no effect a user can see.
+It moves the export code into its own module so #120 can reuse it.
+```
 
 ## Evidence
 
@@ -240,6 +267,7 @@ Remove the workaround once the minimum `openvino` version includes it.
 
 - [ ] The title follows `COMMIT_CONVENTION.md` and says specifically what the change does.
 - [ ] The first body sentence states the result for a user.
+- [ ] `## Why it matters` explains the change to a big-picture reader, or says in one sentence that it has no visible effect.
 - [ ] Every claim about behavior says whether it holds before or after the change. No bare "now".
 - [ ] The cause is explained, not only the fix.
 - [ ] Decisions and limits the code does not show are written down.
