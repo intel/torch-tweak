@@ -317,8 +317,16 @@ def test_module_with_a_weight_on_another_device_is_rejected():
 def test_tuning_that_moves_the_weights_is_rejected():
     online = OnlineTunedModule(doubling(), "doubling", strategy=OneBackendStrategy(OffloadingBackend()))
 
-    with pytest.raises(ValueError, match=r"Tuning moved parameters off cpu: \['weight'\]"):
+    with pytest.raises(ValueError, match=r"Tuning moved parameters or buffers off cpu: \['weight'\]"):
         online(torch.tensor([[1.0, 3.0]]))
+
+
+def test_module_with_a_buffer_on_another_device_is_rejected():
+    module = doubling()
+    module.register_buffer("scale", torch.ones(2, device="meta"))
+
+    with pytest.raises(ValueError, match="scale"):
+        OnlineTunedModule(module, "doubling", strategy=sleep_strategy())
 
 
 def test_instances_with_one_name_use_separate_graph_directories(torch_tweak_cache_dir):

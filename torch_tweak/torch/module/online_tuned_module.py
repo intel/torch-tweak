@@ -43,12 +43,13 @@ def borrowed_module_strategy(device: torch.device) -> HighestThroughputStrategy:
     return strategy
 
 
-def _is_on(weight: torch.Tensor, device: torch.device) -> bool:
-    return weight.device.type == device.type and device.index in (None, weight.device.index)
+def _is_on(tensor: torch.Tensor, device: torch.device) -> bool:
+    return tensor.device.type == device.type and device.index in (None, tensor.device.index)
 
 
 def _misplaced(module: nn.Module, device: torch.device) -> list[str]:
-    return [name for name, weight in module.named_parameters() if not _is_on(weight, device)]
+    tensors = itertools.chain(module.named_parameters(), module.named_buffers())
+    return [name for name, tensor in tensors if not _is_on(tensor, device)]
 
 
 def _shapes_key(metadata: SampleMetadata) -> Hashable:
@@ -73,8 +74,8 @@ class OnlineTunedModule:
     Call `reset` after the owner changes the weights in any way: moves them, replaces them, or patches their
     values in place. A backend serves the weights it was built on. OpenVINO keeps a snapshot
     of their values, and other backends hold their addresses.
-    Every parameter of `module` must already be on `device`, since the backends build on that device and leave the
-    module there.
+    Every parameter and buffer of `module` must already be on `device`, since the backends build on that device and
+    leave the module there.
 
     When no backend of `strategy` runs a shape, or its backend fails to activate again, the call still returns
     the module output. The error is logged, and later calls with that shape run `module` without a backend.
@@ -97,13 +98,13 @@ class OnlineTunedModule:
         """Initializes module.
 
         Args:
-            module: Module with all its parameters on `device`.
+            module: Module with all its parameters and buffers on `device`.
             name: Names the cache directory of the tuned graphs.
             strategy: Tunes each new shape. Defaults to `borrowed_module_strategy(device)`.
                 Its backends must leave `module` and its weights on `device`.
                 `OpenVINOBackendConfig(offload_module=False)` and `TorchAOBackendConfig(offload_module=False)`
                 do that.
-                A call that tunes and finds a parameter moved off `device` raises `ValueError`.
+                A call that tunes and finds a parameter or buffer moved off `device` raises `ValueError`.
             device: Device to tune and run on. Defaults to the device of the module parameters.
         """
         self._module = module
@@ -111,7 +112,9 @@ class OnlineTunedModule:
         self._device = device or get_module_device(module)
         misplaced = _misplaced(module, self._device)
         if misplaced:
-            raise ValueError(f"Every parameter must be on {self._device} before tuning. Not on it: {misplaced[:3]}")
+            raise ValueError(
+                f"Every parameter and buffer must be on {self._device} before tuning. Not on it: {misplaced[:3]}"
+            )
         self._strategy = strategy or borrowed_module_strategy(self._device)
         self._backends: dict[Hashable, Backend] = {}
         self._active: Backend | None = None
@@ -192,7 +195,7 @@ class OnlineTunedModule:
         if misplaced:
             backend.deactivate()
             raise ValueError(
-                f"Tuning moved parameters off {self._device}: {misplaced[:3]}."
+                f"Tuning moved parameters or buffers off {self._device}: {misplaced[:3]}."
                 " Every backend of the strategy must leave the module on its device."
             )
         return backend
