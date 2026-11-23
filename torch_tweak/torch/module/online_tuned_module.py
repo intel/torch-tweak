@@ -69,6 +69,8 @@ class OnlineTunedModule:
     Later calls with the same shapes run the selected backend.
     Only the backend of the last call stays active, since an OpenVINO model holds its own copy of the weights.
     Returning to other shapes activates their backend again, which can recompile it.
+    Each new non-tensor value tunes apart, so pass a value that changes on every call as a tensor.
+    The backends run under `torch.no_grad`, so only the first call with new shapes records autograd history.
 
     The module stays where it is and keeps its `forward`. Its owner can keep calling and patching it.
     Call `reset` after the owner changes the weights in any way: moves them, replaces them, or patches their
