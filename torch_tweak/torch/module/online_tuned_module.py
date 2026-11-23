@@ -110,6 +110,8 @@ class OnlineTunedModule:
         self._module = module
         self._name = sanitize_model_name(name)
         self._device = device or get_module_device(module)
+        if self._device is None:
+            raise ValueError("Pass `device` for a module without parameters.")
         misplaced = _misplaced(module, self._device)
         if misplaced:
             raise ValueError(

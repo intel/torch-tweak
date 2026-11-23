@@ -329,6 +329,11 @@ def test_module_with_a_buffer_on_another_device_is_rejected():
         OnlineTunedModule(module, "doubling", strategy=sleep_strategy())
 
 
+def test_module_without_parameters_needs_a_device():
+    with pytest.raises(ValueError, match="device"):
+        OnlineTunedModule(torch.nn.ReLU(), "relu", strategy=sleep_strategy())
+
+
 def test_instances_with_one_name_use_separate_graph_directories(torch_tweak_cache_dir):
     first = OnlineTunedModule(doubling(), "doubling", strategy=sleep_strategy())
     second = OnlineTunedModule(doubling(), "doubling", strategy=sleep_strategy())
