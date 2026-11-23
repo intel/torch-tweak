@@ -77,6 +77,8 @@ questions a reviewer will ask. Those belong in the pull request description.
 ### Necessary
 
 - A helper used once, whose name does not make the call easier to read.
+- A variable used once, whose value is a short, simple expression. Inline it at its one use.
+  Keep the variable when its name says what the expression cannot, or when inlining breaks the line.
 - A `found` flag where a `return` or `break` in the loop, plus `else` for the miss, already says the same thing.
 - A wrapper that only calls one other function.
 - A comment that repeats the next line.
