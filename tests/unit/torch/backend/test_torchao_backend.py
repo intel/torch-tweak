@@ -199,6 +199,18 @@ def test_build_with_offload_module_false_keeps_the_weights_in_place(model, sampl
         backend.deactivate()
 
 
+@requires_xpu
+def test_offload_module_survives_a_checkpoint(model, sample_data, torch_device, tmp_path):
+    config = TorchAOBackendConfig(quantization="int8wo", offload_module=False)
+    backend = build_backend(TorchAOBackend(config), torch.float32, model, sample_data, torch_device, tmp_path)
+    TorchSaveTask().save(tmp_path, backend.to_dict())
+    backend.deactivate()
+
+    loaded = TorchAOBackend.from_dict(model, TorchLoadTask().load(tmp_path))
+
+    assert loaded.describe() == "TorchAOBackend(quantization_config=Int8WeightOnlyConfig(),offload_module=False)"
+
+
 def test_torchao_config_to_from_dict_keeps_user_config():
     config = TorchAOBackendConfig(quantization_config=Int8WeightOnlyConfig(granularity=PerGroup(16)))
 

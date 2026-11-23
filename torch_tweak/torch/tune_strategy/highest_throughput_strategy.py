@@ -224,8 +224,8 @@ class HighestThroughputStrategy(TuneStrategyFindMaxBatchSizeExtension):
         """Activates the fastest profiled backend. A rebuild can fail where the profiled build passed."""
         error: Exception | None = None
         for candidate in sorted(profiled, key=attrgetter("throughput"), reverse=True):
-            # A later build can move `module`.
-            # `OpenVINOBackend._build` offloads it to CPU unless `offload_module=False`.
+            # A later build or activation can move `module`.
+            # `OpenVINOBackend` and `TorchAOBackend` offload it to CPU unless `offload_module=False`.
             # `activate` rebuilds `candidate.backend` on the weights `module` holds now.
             module.to(device)
             try:
