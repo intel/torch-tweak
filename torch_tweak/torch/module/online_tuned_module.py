@@ -4,6 +4,10 @@
 
 import hashlib
 import itertools
+import os
+import shutil
+import tempfile
+import weakref
 from collections.abc import Hashable
 from copy import deepcopy
 from logging import getLogger
@@ -17,7 +21,7 @@ from torch_tweak.torch.backend.backend import Backend
 from torch_tweak.torch.backend.openvino import OpenVINOBackend, OpenVINOBackendConfig
 from torch_tweak.torch.config import torch_tweak_cache_dir
 from torch_tweak.torch.module.graph_spec import GraphSpec
-from torch_tweak.torch.module.sample_metadata import SampleMetadata
+from torch_tweak.torch.module.sample_metadata import CHECKPOINTABLE_VALUE_TYPES, SampleMetadata
 from torch_tweak.torch.module.tunable_module import sanitize_model_name
 from torch_tweak.torch.tune_strategy import HighestThroughputStrategy, NoCorrectBackendError
 from torch_tweak.torch.tune_strategy.default_backends import default_backends
@@ -28,6 +32,8 @@ from torch_tweak.utils.permissions import secure_file, secure_mkdir
 logger = getLogger(__name__)
 
 SELECTED_BACKEND_FILE = "selected_backend.txt"
+PRIVATE_DIR_PREFIX = "private-"
+LINKED_FILE_MIN_BYTES = 1 << 20
 
 
 def borrowed_module_strategy(device: torch.device) -> HighestThroughputStrategy:
@@ -77,8 +83,10 @@ class OnlineTunedModule:
     Each new non-tensor value tunes apart, so pass a value that changes on every call as a tensor.
     The backends run under `torch.no_grad`, so only the first call with new shapes records autograd history.
 
-    The selection is saved under the cache directory, keyed by the weights and the shapes.
-    A later process with the same weights builds the saved backend for those shapes and skips tuning.
+    Each instance tunes in a private directory under `<cache>/<name>`, since a backend reads its files again
+    when it activates. `reset` removes that directory, and so does the end of the instance or of the process.
+    The selected backend and its files are then published to `<cache>/<name>/<weights>/<shapes>`.
+    A later process with the same weights builds the published backend for those shapes and skips tuning.
 
     The module stays where it is and keeps its `forward`. Its owner can keep calling and patching it.
     Call `reset` after the owner changes the weights in any way: moves them, replaces them, or patches their
@@ -106,7 +114,7 @@ class OnlineTunedModule:
 
         Args:
             module: Module with all its parameters and buffers on `device`.
-            name: Names the cache directory of the tuned graphs.
+            name: Names the cache directory of the private and the published graphs.
             strategy: Tunes each new shape. Defaults to `borrowed_module_strategy(device)`.
                 Its backends must leave `module` and its weights on `device`.
                 `OpenVINOBackendConfig(offload_module=False)` and `TorchAOBackendConfig(offload_module=False)`
@@ -130,6 +138,8 @@ class OnlineTunedModule:
         self._failed: set[Hashable] = set()
         self._warned_unkeyed: set[tuple[type, str]] = set()
         self._weights_fingerprint: str | None = None
+        self._graph_names = itertools.count()
+        self._create_private_dir()
 
     @property
     def backends(self) -> dict[Hashable, Backend]:
@@ -173,11 +183,12 @@ class OnlineTunedModule:
         output = self._module(*args, **kwargs)
         self._deactivate_active()
         graph_spec = GraphSpec(
-            name=_shapes_digest(key), input_spec=inputs, output_spec=SampleMetadata.from_outputs(output, strict=True)
+            name=str(next(self._graph_names)),
+            input_spec=inputs,
+            output_spec=SampleMetadata.from_outputs(output, strict=True),
         )
-        cache_dir = self._cache_dir(graph_spec)
         try:
-            backend = self._restore(graph_spec, sample, cache_dir) or self._tune(graph_spec, sample, cache_dir)
+            backend = self._restore_or_tune(key, graph_spec, sample)
         except NoCorrectBackendError:
             self._mark_failed(key, "Every backend")
         else:
@@ -185,11 +196,16 @@ class OnlineTunedModule:
         return output
 
     def reset(self) -> None:
-        """Drops every tuned shape. The next call with any shape tunes again."""
+        """Drops every tuned shape and removes the private graph directory.
+
+        The next call with any shape restores a published selection for the current weights or tunes again.
+        """
         self._deactivate_active()
         self._backends.clear()
         self._failed.clear()
         self._weights_fingerprint = None
+        self._remove_private_dir()
+        self._create_private_dir()
 
     def _mark_failed(self, key: Hashable, step: str) -> None:
         logger.warning(
@@ -202,40 +218,63 @@ class OnlineTunedModule:
             self._active.deactivate()
             self._active = None
 
-    def _cache_dir(self, graph_spec: GraphSpec) -> Path:
+    def _create_private_dir(self) -> None:
+        parent = torch_tweak_cache_dir() / self._name
+        secure_mkdir(parent)
+        self._private_dir = Path(tempfile.mkdtemp(prefix=PRIVATE_DIR_PREFIX, dir=parent))
+        self._remove_private_dir = weakref.finalize(self, shutil.rmtree, self._private_dir, ignore_errors=True)
+
+    def _restore_or_tune(self, key: Hashable, graph_spec: GraphSpec, sample: tuple[tuple, dict]) -> Backend:
+        graph_dir = self._private_dir / graph_spec.name
+        secure_mkdir(graph_dir)
+        published = self._published_dir(key)
+        if published is not None:
+            backend = self._restore(published, graph_spec, sample, graph_dir)
+            if backend is not None:
+                return backend
+        backend = self._strategy.tune(self._module, self._name, graph_spec, [sample], self._device, graph_dir)
+        self._raise_if_moved(backend)
+        if published is not None:
+            _publish(graph_dir / backend.key(), backend.key(), published)
+        return backend
+
+    def _published_dir(self, key: Hashable) -> Path | None:
+        """The directory shared by every process for these weights and shapes, or None when `key` has no stable name.
+
+        A non-tensor value other than a primitive has no `repr` that names it across processes.
+        """
+        _, _, other_data = key
+        if any(type(value) not in CHECKPOINTABLE_VALUE_TYPES for _, _, value in other_data):
+            return None
         if self._weights_fingerprint is None:
             self._weights_fingerprint = weights_fingerprint(self._module)
-        cache_dir = torch_tweak_cache_dir() / self._name / self._weights_fingerprint / graph_spec.name
-        secure_mkdir(cache_dir)
-        return cache_dir
+        digest = hashlib.sha256(repr(key).encode()).hexdigest()[:16]
+        return torch_tweak_cache_dir() / self._name / self._weights_fingerprint / digest
 
-    def _restore(self, graph_spec: GraphSpec, sample: tuple[tuple, dict], cache_dir: Path) -> Backend | None:
-        selected = cache_dir / SELECTED_BACKEND_FILE
+    def _restore(
+        self, published: Path, graph_spec: GraphSpec, sample: tuple[tuple, dict], graph_dir: Path
+    ) -> Backend | None:
+        selected = published / SELECTED_BACKEND_FILE
         if not selected.exists():
             return None
-        backend_key = selected.read_text().strip()
+        backend_key = selected.read_text(encoding="utf-8").strip()
         for candidate in self._strategy.candidate_backends(self._device):
-            if candidate.key() != backend_key:
-                continue
-            backend = deepcopy(candidate)
-            backend_cache_dir = cache_dir / backend_key
-            secure_mkdir(backend_cache_dir)
-            try:
-                backend.build(self._module, graph_spec, [sample], self._device, backend_cache_dir)
-            except Exception:
-                logger.warning("Restoring %s for %s failed, tuning again", backend.describe(), cache_dir, exc_info=True)
-                return None
-            self._raise_if_moved(backend)
-            logger.info("Restored %s for %s", backend.describe(), cache_dir)
-            return backend
-        return None
-
-    def _tune(self, graph_spec: GraphSpec, sample: tuple[tuple, dict], cache_dir: Path) -> Backend:
-        backend = self._strategy.tune(self._module, self._name, graph_spec, [sample], self._device, cache_dir)
+            if candidate.key() == backend_key:
+                break
+        else:
+            return None
+        backend = deepcopy(candidate)
+        backend_dir = graph_dir / backend_key
+        try:
+            shutil.copytree(published / backend_key, backend_dir, copy_function=_link_or_copy)
+            backend.build(self._module, graph_spec, [sample], self._device, backend_dir)
+        except Exception:
+            logger.warning("Restoring %s from %s failed, tuning again", backend.describe(), published, exc_info=True)
+            shutil.rmtree(backend_dir, ignore_errors=True)
+            shutil.rmtree(published, ignore_errors=True)
+            return None
         self._raise_if_moved(backend)
-        selected = cache_dir / SELECTED_BACKEND_FILE
-        selected.write_text(backend.key())
-        secure_file(selected)
+        logger.info("Restored %s from %s", backend.describe(), published)
         return backend
 
     def _raise_if_moved(self, backend: Backend) -> None:
@@ -248,5 +287,42 @@ class OnlineTunedModule:
             )
 
 
-def _shapes_digest(key: Hashable) -> str:
-    return hashlib.sha256(repr(key).encode()).hexdigest()[:16]
+def _link_or_copy(source: str, target: str) -> None:
+    """Links a large file and copies a small one.
+
+    Backends rewrite small files such as `config.json` in place on every build, and a link would carry that
+    write into the published directory.
+    """
+    if os.path.getsize(source) >= LINKED_FILE_MIN_BYTES:
+        try:
+            os.link(source, target)
+            return
+        except OSError:
+            pass
+    shutil.copy2(source, target)
+
+
+def _publish(backend_dir: Path, backend_key: str, published: Path) -> None:
+    """Publishes the build directory of the selected backend once, with a single rename.
+
+    A published directory never changes, since other processes read the IR in it when they activate a backend.
+    The first process to publish wins, and later ones drop their copy.
+    """
+    secure_mkdir(published.parent)
+    staging = Path(tempfile.mkdtemp(dir=published.parent))
+    try:
+        target = staging / backend_key
+        if backend_dir.is_dir():
+            shutil.copytree(backend_dir, target, copy_function=_link_or_copy)
+        else:
+            secure_mkdir(target)
+        selected = staging / SELECTED_BACKEND_FILE
+        selected.write_text(backend_key, encoding="utf-8")
+        secure_file(selected)
+        try:
+            staging.rename(published)
+        except OSError:
+            if not published.is_dir():
+                raise
+    finally:
+        shutil.rmtree(staging, ignore_errors=True)
