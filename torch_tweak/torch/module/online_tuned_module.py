@@ -51,6 +51,16 @@ def _misplaced(module: nn.Module, device: torch.device) -> list[str]:
     return [name for name, weight in module.named_parameters() if not _is_on(weight, device)]
 
 
+def _shapes_key(metadata: SampleMetadata) -> Hashable:
+    """Names the place, shape, and dtype of every tensor, and every non-tensor value.
+
+    `SampleMetadata` equality compares only tensor ranks, and only the LLM phase when `cache_position`
+    is passed by name, so the key does not rely on it.
+    """
+    tensors = tuple((locator, spec.name, tuple(spec.shape), spec.dtype) for locator, spec in metadata.tensor_data)
+    return metadata.llm_phase, tensors, metadata.other_data
+
+
 class OnlineTunedModule:
     """Calls `module` through the backend tuned for the exact shapes of each call.
 
@@ -113,8 +123,8 @@ class OnlineTunedModule:
 
     def __call__(self, *args: Any, **kwargs: Any) -> Any:
         """Runs the backend tuned for these shapes, tuning them first if they are new."""
-        metadata = SampleMetadata.from_inputs(args, kwargs, strict=True)
-        key = (metadata, tuple((tuple(spec.shape), spec.dtype) for spec in metadata.tensor_specs))
+        inputs = SampleMetadata.from_inputs(args, kwargs, strict=True)
+        key = _shapes_key(inputs)
         backend = self._backends.get(key)
         if backend is not None:
             if backend is not self._active:
@@ -128,8 +138,6 @@ class OnlineTunedModule:
         output = self._module(*args, **kwargs)
         self._deactivate_active()
         try:
-            # A strategy can update the shapes of the spec it gets, so the dict key must not be that object.
-            inputs = SampleMetadata.from_inputs(*sample, strict=True)
             backend = self._tune(sample, inputs, SampleMetadata.from_outputs(output, strict=True))
         except NoCorrectBackendError:
             logger.warning("No backend runs %s for this shape. It runs without a backend.", self._name, exc_info=True)

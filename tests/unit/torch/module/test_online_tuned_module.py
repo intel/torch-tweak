@@ -150,6 +150,40 @@ def test_same_shape_in_a_keyword_is_tuned_apart_from_a_positional_one():
     assert len(online.backends) == 2
 
 
+class Decoder(torch.nn.Module):
+    """Takes `cache_position`, which makes `SampleMetadata` compare only the LLM phase."""
+
+    def forward(self, x, cache_position, flag=False):
+        return x
+
+
+def test_llm_prefill_and_decode_of_one_shape_are_tuned_apart():
+    online = OnlineTunedModule(Decoder(), "decoder", strategy=sleep_strategy(), device=torch.device("cpu"))
+
+    online(torch.ones(1, 2), cache_position=torch.tensor([0]))
+    online(torch.ones(1, 2), cache_position=torch.tensor([3]))
+
+    assert len(online.backends) == 2
+
+
+def test_llm_calls_with_another_non_tensor_value_are_tuned_apart():
+    online = OnlineTunedModule(Decoder(), "decoder", strategy=sleep_strategy(), device=torch.device("cpu"))
+
+    online(torch.ones(1, 2), cache_position=torch.tensor([0]), flag=False)
+    online(torch.ones(1, 2), cache_position=torch.tensor([0]), flag=True)
+
+    assert len(online.backends) == 2
+
+
+def test_llm_calls_with_a_tensor_in_another_argument_are_tuned_apart():
+    online = OnlineTunedModule(Decoder(), "decoder", strategy=sleep_strategy(), device=torch.device("cpu"))
+
+    online(torch.ones(1, 2), cache_position=torch.tensor([0]))
+    online(x=torch.ones(1, 2), cache_position=torch.tensor([0]))
+
+    assert len(online.backends) == 2
+
+
 def test_failed_tuning_still_returns_the_module_output():
     strategy = sleep_strategy(backends=[BuildFailsBackend(RuntimeError)])
     online = OnlineTunedModule(doubling(), "doubling", strategy=strategy)
