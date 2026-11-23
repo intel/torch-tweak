@@ -19,6 +19,12 @@ import torch.nn as nn
 
 from torch_tweak.torch.backend.backend import Backend
 from torch_tweak.torch.backend.openvino import OpenVINOBackend, OpenVINOBackendConfig
+from torch_tweak.torch.checkpoint.checkpoint_header import (
+    IncompatibleCheckpointError,
+    read_header,
+    tuning_environment,
+    write_header,
+)
 from torch_tweak.torch.config import torch_tweak_cache_dir
 from torch_tweak.torch.module.graph_spec import GraphSpec
 from torch_tweak.torch.module.sample_metadata import CHECKPOINTABLE_VALUE_TYPES, SampleMetadata
@@ -31,7 +37,7 @@ from torch_tweak.utils.permissions import secure_file, secure_mkdir
 
 logger = getLogger(__name__)
 
-SELECTED_BACKEND_FILE = "selected_backend.txt"
+SELECTED_BACKEND_FILE = "selected_backend.bin"
 PRIVATE_DIR_PREFIX = "private-"
 LINKED_FILE_MIN_BYTES = 1 << 20
 
@@ -87,6 +93,8 @@ class OnlineTunedModule:
     when it activates. `reset` removes that directory, and so does the end of the instance or of the process.
     The selected backend and its files are then published to `<cache>/<name>/<weights>/<shapes>`.
     A later process with the same weights builds the published backend for those shapes and skips tuning.
+    The selection starts with the header of a `.tt` checkpoint: format version, then tuning environment.
+    A selection from another environment is removed, and its shapes tune again.
 
     The module stays where it is and keeps its `forward`. Its owner can keep calling and patching it.
     Call `reset` after the owner changes the weights in any way: moves them, replaces them, or patches their
@@ -109,6 +117,7 @@ class OnlineTunedModule:
         name: str,
         strategy: TuneStrategy | None = None,
         device: torch.device | None = None,
+        environment: dict[str, str] | None = None,
     ):
         """Initializes module.
 
@@ -121,6 +130,7 @@ class OnlineTunedModule:
                 do that.
                 A call that tunes and finds a parameter or buffer moved off `device` raises `ValueError`.
             device: Device to tune and run on. Defaults to the device of the module parameters.
+            environment: Environment a published selection has to match. Defaults to `tuning_environment()`.
         """
         self._module = module
         self._name = sanitize_model_name(name)
@@ -138,6 +148,7 @@ class OnlineTunedModule:
         self._failed: set[Hashable] = set()
         self._warned_unkeyed: set[tuple[type, str]] = set()
         self._weights_fingerprint: str | None = None
+        self._environment = tuning_environment() if environment is None else environment
         self._graph_names = itertools.count()
         self._create_private_dir()
 
@@ -235,7 +246,7 @@ class OnlineTunedModule:
         backend = self._strategy.tune(self._module, self._name, graph_spec, [sample], self._device, graph_dir)
         self._raise_if_moved(backend)
         if published is not None:
-            _publish(graph_dir / backend.key(), backend.key(), published)
+            _publish(graph_dir / backend.key(), backend.key(), published, self._environment)
         return backend
 
     def _published_dir(self, key: Hashable) -> Path | None:
@@ -257,7 +268,14 @@ class OnlineTunedModule:
         selected = published / SELECTED_BACKEND_FILE
         if not selected.exists():
             return None
-        backend_key = selected.read_text(encoding="utf-8").strip()
+        try:
+            with selected.open("rb") as fp:
+                read_header(fp, self._environment, strict=True)
+                backend_key = fp.read().decode()
+        except IncompatibleCheckpointError as error:
+            logger.warning("Tuning %s again. %s", published, "; ".join(str(error).splitlines()))
+            shutil.rmtree(published, ignore_errors=True)
+            return None
         for candidate in self._strategy.candidate_backends(self._device):
             if candidate.key() == backend_key:
                 break
@@ -302,7 +320,7 @@ def _link_or_copy(source: str, target: str) -> None:
     shutil.copy2(source, target)
 
 
-def _publish(backend_dir: Path, backend_key: str, published: Path) -> None:
+def _publish(backend_dir: Path, backend_key: str, published: Path, environment: dict[str, str]) -> None:
     """Publishes the build directory of the selected backend once, with a single rename.
 
     A published directory never changes, since other processes read the IR in it when they activate a backend.
@@ -317,7 +335,9 @@ def _publish(backend_dir: Path, backend_key: str, published: Path) -> None:
         else:
             secure_mkdir(target)
         selected = staging / SELECTED_BACKEND_FILE
-        selected.write_text(backend_key, encoding="utf-8")
+        with selected.open("wb") as fp:
+            write_header(fp, environment)
+            fp.write(backend_key.encode())
         secure_file(selected)
         try:
             staging.rename(published)

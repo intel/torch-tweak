@@ -250,6 +250,8 @@ Each instance tunes in a private directory under `<cache dir>/<name>/`, which `r
 The selected backend is then published once to `<cache dir>/<name>/<weights fingerprint>/<shapes digest>/` and never changes there.
 A later process with the same weights builds that backend without tuning.
 OpenVINO compiles the IR published there instead of converting the module again.
+The published selection starts with the `.tt` header described in the [Deployment Guide](deployment/deployment.md).
+Another format version or tuning environment removes it and tunes the shapes again.
 
 ## Dry Run Mode
 

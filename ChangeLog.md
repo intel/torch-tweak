@@ -31,6 +31,8 @@ SPDX-License-Identifier: Apache-2.0
   for a module that a framework keeps calling. The weights then exist twice on the device (#101)
 - feat: `OnlineTunedModule` saves the selected backend per weights and shapes, and a later process restores it without tuning.
   `OpenVINOBackendConfig(reuse_ir=True)` compiles the saved IR instead of converting the module again (#88)
+- feat: `OnlineTunedModule` writes the `.tt` header before the published selection.
+  Another format version or tuning environment tunes the shapes again and replaces the published selection (#94)
 
 ## 0.4.1
 

@@ -4,6 +4,7 @@
 
 import gc
 import threading
+from pathlib import Path
 
 import numpy as np
 import pytest
@@ -14,7 +15,9 @@ from tests.utilities.helpers import requires_leo, requires_xpu
 from torch_tweak.torch import HighestThroughputStrategy, OneBackendStrategy, OnlineTunedModule
 from torch_tweak.torch.backend.openvino import OpenVINOBackend, OpenVINOBackendConfig
 from torch_tweak.torch.backend.torchao_backend import TorchAOBackend, TorchAOBackendConfig
+from torch_tweak.torch.checkpoint.checkpoint_header import read_header, tuning_environment
 from torch_tweak.torch.module import online_tuned_module
+from torch_tweak.torch.module.online_tuned_module import SELECTED_BACKEND_FILE
 
 
 @pytest.fixture(autouse=True)
@@ -402,6 +405,15 @@ def test_module_without_parameters_needs_a_device():
         OnlineTunedModule(torch.nn.ReLU(), "relu", strategy=sleep_strategy())
 
 
+def published_selections(directory: Path) -> list[str]:
+    selections = []
+    for path in directory.glob(f"*/*/{SELECTED_BACKEND_FILE}"):
+        with path.open("rb") as fp:
+            read_header(fp, tuning_environment())
+            selections.append(fp.read().decode())
+    return selections
+
+
 def test_instances_with_one_name_tune_in_separate_private_directories(tmp_path):
     first = OnlineTunedModule(doubling(), "doubling", strategy=sleep_strategy())
     second = OnlineTunedModule(doubling(), "doubling", strategy=sleep_strategy())
@@ -438,7 +450,7 @@ def test_published_selection_outlives_the_instance(tmp_path):
     del online
     gc.collect()
 
-    assert [path.read_text() for path in (tmp_path / "doubling").glob("*/*/selected_backend.txt")] == ["SleepBackend"]
+    assert published_selections(tmp_path / "doubling") == ["SleepBackend"]
 
 
 class OtherSleepBackend(SleepBackend):
@@ -452,7 +464,7 @@ def test_first_published_selection_is_kept(tmp_path):
 
     OnlineTunedModule(doubling(), "doubling", strategy=strategy)(torch.tensor([[1.0, 3.0]]))
 
-    assert [path.read_text() for path in (tmp_path / "doubling").glob("*/*/selected_backend.txt")] == ["SleepBackend"]
+    assert published_selections(tmp_path / "doubling") == ["SleepBackend"]
 
 
 def test_call_with_a_non_primitive_value_is_not_published(tmp_path):
@@ -460,7 +472,7 @@ def test_call_with_a_non_primitive_value_is_not_published(tmp_path):
 
     online(torch.tensor([1.0, 3.0]), option=object())
 
-    assert list((tmp_path / "option").glob("*/*/selected_backend.txt")) == []
+    assert published_selections(tmp_path / "option") == []
 
 
 class RestoreFailsBackend(BuildFailsBackend):
@@ -476,7 +488,7 @@ def test_published_selection_that_fails_to_restore_is_removed(tmp_path):
 
     OnlineTunedModule(doubling(), "doubling", strategy=strategy)(torch.tensor([[1.0, 3.0]]))
 
-    assert list((tmp_path / "doubling").glob("*/*/selected_backend.txt")) == []
+    assert published_selections(tmp_path / "doubling") == []
 
 
 class RestoreOffloadsBackend(OffloadingBackend):
@@ -510,3 +522,65 @@ def test_restore_that_converts_again_leaves_the_published_ir_alone(tmp_path, mon
     OnlineTunedModule(doubling(), "doubling", strategy=converting_strategy())(torch.tensor([[1.0, 3.0]]))
 
     assert published_ir.read_bytes() == b"published"
+
+
+def test_a_later_module_in_the_same_environment_restores_the_selection_without_tuning():
+    OnlineTunedModule(doubling(), "doubling", strategy=sleep_strategy(), environment={"torch": "2.15.0"})(
+        torch.tensor([[1.0, 3.0]])
+    )
+    strategy = sleep_strategy()
+
+    OnlineTunedModule(doubling(), "doubling", strategy=strategy, environment={"torch": "2.15.0"})(
+        torch.tensor([[1.0, 3.0]])
+    )
+
+    assert strategy.tune_calls == 0
+
+
+def test_a_later_module_in_another_environment_tunes_again():
+    OnlineTunedModule(doubling(), "doubling", strategy=sleep_strategy(), environment={"torch": "2.15.0"})(
+        torch.tensor([[1.0, 3.0]])
+    )
+    strategy = sleep_strategy()
+
+    OnlineTunedModule(doubling(), "doubling", strategy=strategy, environment={"torch": "2.16.0"})(
+        torch.tensor([[1.0, 3.0]])
+    )
+
+    assert strategy.tune_calls == 1
+
+
+def test_tuning_again_in_another_environment_logs_the_entries_that_differ(caplog):
+    OnlineTunedModule(doubling(), "doubling", strategy=sleep_strategy(), environment={"torch": "2.15.0"})(
+        torch.tensor([[1.0, 3.0]])
+    )
+
+    OnlineTunedModule(doubling(), "doubling", strategy=sleep_strategy(), environment={"torch": "2.16.0"})(
+        torch.tensor([[1.0, 3.0]])
+    )
+
+    assert "torch: tuned with '2.15.0', running '2.16.0'" in caplog.text
+
+
+def test_tuning_again_in_another_environment_replaces_the_published_files(tmp_path):
+    OnlineTunedModule(doubling(), "doubling", strategy=sleep_strategy(), environment={"torch": "2.15.0"})(
+        torch.tensor([[1.0, 3.0]])
+    )
+    earlier_ir = next(tmp_path.rglob(SELECTED_BACKEND_FILE)).parent / "model.xml"
+    earlier_ir.write_text("converted by the earlier environment")
+
+    OnlineTunedModule(doubling(), "doubling", strategy=sleep_strategy(), environment={"torch": "2.16.0"})(
+        torch.tensor([[1.0, 3.0]])
+    )
+
+    assert not earlier_ir.exists()
+
+
+def test_a_selection_published_without_a_format_version_tunes_again(tmp_path):
+    OnlineTunedModule(doubling(), "doubling", strategy=sleep_strategy())(torch.tensor([[1.0, 3.0]]))
+    next(tmp_path.rglob(SELECTED_BACKEND_FILE)).write_text("SleepBackend")
+    strategy = sleep_strategy()
+
+    OnlineTunedModule(doubling(), "doubling", strategy=strategy)(torch.tensor([[1.0, 3.0]]))
+
+    assert strategy.tune_calls == 1
