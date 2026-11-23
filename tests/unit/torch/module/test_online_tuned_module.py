@@ -2,6 +2,7 @@
 # SPDX-License-Identifier: Apache-2.0
 """Tests for OnlineTunedModule."""
 
+import gc
 import threading
 
 import numpy as np
@@ -11,6 +12,7 @@ import torch
 from tests.toy_backends import BuildFailsBackend, OffloadingBackend, SleepBackend
 from tests.utilities.helpers import requires_leo, requires_xpu
 from torch_tweak.torch import HighestThroughputStrategy, OneBackendStrategy, OnlineTunedModule
+from torch_tweak.torch.backend.openvino import OpenVINOBackend, OpenVINOBackendConfig
 from torch_tweak.torch.backend.torchao_backend import TorchAOBackend, TorchAOBackendConfig
 from torch_tweak.torch.module import online_tuned_module
 
@@ -308,8 +310,8 @@ def test_tuning_error_outside_the_backends_reaches_the_caller(monkeypatch):
     def full_disk(path):
         raise OSError("No space left on device")
 
-    monkeypatch.setattr(online_tuned_module, "secure_mkdir", full_disk)
     online = OnlineTunedModule(doubling(), "doubling", strategy=sleep_strategy())
+    monkeypatch.setattr(online_tuned_module, "secure_mkdir", full_disk)
 
     with pytest.raises(OSError, match="No space left on device"):
         online(torch.tensor([[1.0, 3.0]]))
@@ -398,3 +400,113 @@ def test_module_with_a_buffer_on_another_device_is_rejected():
 def test_module_without_parameters_needs_a_device():
     with pytest.raises(ValueError, match="device"):
         OnlineTunedModule(torch.nn.ReLU(), "relu", strategy=sleep_strategy())
+
+
+def test_instances_with_one_name_tune_in_separate_private_directories(tmp_path):
+    first = OnlineTunedModule(doubling(), "doubling", strategy=sleep_strategy())
+    second = OnlineTunedModule(doubling(), "doubling", strategy=sleep_strategy())
+
+    first(torch.tensor([[1.0, 3.0]]))
+    second(torch.tensor([[1.0, 3.0]]))
+
+    assert len(list((tmp_path / "doubling").glob("private-*/0"))) == 2
+
+
+def test_reset_removes_the_private_graphs(tmp_path):
+    online = OnlineTunedModule(doubling(), "doubling", strategy=sleep_strategy())
+    online(torch.tensor([[1.0, 3.0]]))
+
+    online.reset()
+
+    assert list((tmp_path / "doubling").glob("private-*/*")) == []
+
+
+def test_collected_instance_removes_its_private_directory(tmp_path):
+    online = OnlineTunedModule(doubling(), "doubling", strategy=sleep_strategy())
+    online(torch.tensor([[1.0, 3.0]]))
+
+    del online
+    gc.collect()
+
+    assert list((tmp_path / "doubling").glob("private-*")) == []
+
+
+def test_published_selection_outlives_the_instance(tmp_path):
+    online = OnlineTunedModule(doubling(), "doubling", strategy=sleep_strategy())
+    online(torch.tensor([[1.0, 3.0]]))
+
+    del online
+    gc.collect()
+
+    assert [path.read_text() for path in (tmp_path / "doubling").glob("*/*/selected_backend.txt")] == ["SleepBackend"]
+
+
+class OtherSleepBackend(SleepBackend):
+    pass
+
+
+def test_first_published_selection_is_kept(tmp_path):
+    OnlineTunedModule(doubling(), "doubling", strategy=sleep_strategy())(torch.tensor([[1.0, 3.0]]))
+    strategy = OneBackendStrategy(OtherSleepBackend())
+    strategy.enable_find_max_batch_size(False)
+
+    OnlineTunedModule(doubling(), "doubling", strategy=strategy)(torch.tensor([[1.0, 3.0]]))
+
+    assert [path.read_text() for path in (tmp_path / "doubling").glob("*/*/selected_backend.txt")] == ["SleepBackend"]
+
+
+def test_call_with_a_non_primitive_value_is_not_published(tmp_path):
+    online = OnlineTunedModule(WithOption(), "option", strategy=sleep_strategy(), device=torch.device("cpu"))
+
+    online(torch.tensor([1.0, 3.0]), option=object())
+
+    assert list((tmp_path / "option").glob("*/*/selected_backend.txt")) == []
+
+
+class RestoreFailsBackend(BuildFailsBackend):
+    """Has the key of `SleepBackend`, so it restores what a `SleepBackend` published, and fails to build."""
+
+    def key(self) -> str:
+        return "SleepBackend"
+
+
+def test_published_selection_that_fails_to_restore_is_removed(tmp_path):
+    OnlineTunedModule(doubling(), "doubling", strategy=sleep_strategy())(torch.tensor([[1.0, 3.0]]))
+    strategy = sleep_strategy(backends=[RestoreFailsBackend(RuntimeError)])
+
+    OnlineTunedModule(doubling(), "doubling", strategy=strategy)(torch.tensor([[1.0, 3.0]]))
+
+    assert list((tmp_path / "doubling").glob("*/*/selected_backend.txt")) == []
+
+
+class RestoreOffloadsBackend(OffloadingBackend):
+    """Has the key of `SleepBackend`, so it restores what a `SleepBackend` published, and moves the module."""
+
+    def key(self) -> str:
+        return "SleepBackend"
+
+
+def test_restore_that_moves_the_weights_is_rejected():
+    OnlineTunedModule(doubling(), "doubling", strategy=sleep_strategy())(torch.tensor([[1.0, 3.0]]))
+    online = OnlineTunedModule(doubling(), "doubling", strategy=sleep_strategy(backends=[RestoreOffloadsBackend()]))
+
+    with pytest.raises(ValueError, match=r"Tuning moved parameters or buffers off cpu: \['weight'\]"):
+        online(torch.tensor([[1.0, 3.0]]))
+
+
+def converting_strategy() -> HighestThroughputStrategy:
+    backend = OpenVINOBackend(OpenVINOBackendConfig(offload_module=False, reuse_ir=False))
+    strategy = HighestThroughputStrategy(backends=[backend])
+    strategy.enable_find_max_batch_size(False)
+    return strategy
+
+
+def test_restore_that_converts_again_leaves_the_published_ir_alone(tmp_path, monkeypatch):
+    monkeypatch.setattr(online_tuned_module, "LINKED_FILE_MIN_BYTES", 0)
+    OnlineTunedModule(doubling(), "doubling", strategy=converting_strategy())(torch.tensor([[1.0, 3.0]]))
+    (published_ir,) = (tmp_path / "doubling").glob("*/*/*/openvino/model.bin")
+    published_ir.write_bytes(b"published")
+
+    OnlineTunedModule(doubling(), "doubling", strategy=converting_strategy())(torch.tensor([[1.0, 3.0]]))
+
+    assert published_ir.read_bytes() == b"published"

@@ -60,6 +60,9 @@ class OpenVINOModelConverter:
                     ordered_input_names = None
 
             _apply_graph_spec_io(ov_model, graph_spec, ordered_input_names)
+            # An old IR file can be a hardlink that other processes read, and serialize writes in place.
+            for path in (xml_path, bin_path):
+                path.unlink(missing_ok=True)
             serialize(ov_model, xml_path.as_posix(), bin_path.as_posix())
             secure_file(xml_path)
             secure_file(bin_path)
