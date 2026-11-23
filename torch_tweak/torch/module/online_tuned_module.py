@@ -47,6 +47,10 @@ def _is_on(weight: torch.Tensor, device: torch.device) -> bool:
     return weight.device.type == device.type and device.index in (None, weight.device.index)
 
 
+def _misplaced(module: nn.Module, device: torch.device) -> list[str]:
+    return [name for name, weight in module.named_parameters() if not _is_on(weight, device)]
+
+
 class OnlineTunedModule:
     """Calls `module` through the backend tuned for the exact shapes of each call.
 
@@ -87,12 +91,13 @@ class OnlineTunedModule:
             strategy: Tunes each new shape. Defaults to `borrowed_module_strategy(device)`.
                 Its backends must leave `module` and its weights on `device`.
                 `OpenVINOBackendConfig(offload_module=False)` does that, and `TorchAOBackend` does not.
+                A call that tunes and finds a parameter moved off `device` raises `ValueError`.
             device: Device to tune and run on. Defaults to the device of the module parameters.
         """
         self._module = module
         self._name = sanitize_model_name(name)
         self._device = device or get_module_device(module)
-        misplaced = [name for name, weight in module.named_parameters() if not _is_on(weight, self._device)]
+        misplaced = _misplaced(module, self._device)
         if misplaced:
             raise ValueError(f"Every parameter must be on {self._device} before tuning. Not on it: {misplaced[:3]}")
         self._strategy = strategy or borrowed_module_strategy(self._device)
@@ -147,4 +152,12 @@ class OnlineTunedModule:
         graph_spec = GraphSpec(name=str(next(self._graph_counter)), input_spec=inputs, output_spec=outputs)
         cache_dir = torch_tweak_cache_dir() / self._name / graph_spec.name
         secure_mkdir(cache_dir)
-        return self._strategy.tune(self._module, self._name, graph_spec, [sample], self._device, cache_dir)
+        backend = self._strategy.tune(self._module, self._name, graph_spec, [sample], self._device, cache_dir)
+        misplaced = _misplaced(self._module, self._device)
+        if misplaced:
+            backend.deactivate()
+            raise ValueError(
+                f"Tuning moved parameters off {self._device}: {misplaced[:3]}."
+                " Every backend of the strategy must leave the module on its device."
+            )
+        return backend

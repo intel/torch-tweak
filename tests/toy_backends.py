@@ -4,6 +4,7 @@
 # NOTE: This file has been modified by Intel Corporation.
 """Toy backends for unit tests."""
 
+import copy
 import time
 from collections.abc import Callable
 from pathlib import Path
@@ -58,6 +59,19 @@ class SleepBackend(Backend):
     @classmethod
     def from_dict(cls, state_dict: dict):
         return cls(sleep_time=state_dict["sleep_time"])
+
+
+class OffloadingBackend(SleepBackend):
+    """Runs a copy of the module and moves the module to the meta device, as `TorchAOBackend` moves it to CPU."""
+
+    def _build(self, module: Any, graph_spec: Any, data: list[Any], cache_dir: Path) -> Backend:
+        self._orig_module = module
+        self._module = copy.deepcopy(module)
+        self._activate()
+        return self
+
+    def _activate(self):
+        self._orig_module.to("meta")
 
 
 class BuildFailsBackend(SleepBackend):
