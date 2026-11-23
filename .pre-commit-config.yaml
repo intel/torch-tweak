@@ -27,7 +27,7 @@ repos:
         pass_filenames: false
   - repo: https://github.com/astral-sh/ruff-pre-commit
     # Keep this rev equal to the ruff pin in pyproject.toml. Lint fails when they differ.
-    rev: v0.17.5
+    rev: v0.17.6
     hooks:
       - id: ruff-check
         args: [ --fix ]
@@ -81,7 +81,7 @@ repos:
 
   # Strip output from Jupyter and IPython notebooks
   - repo: https://github.com/kynan/nbstripout
-    rev: 0.9.1
+    rev: 0.9.2
     hooks:
       - id: nbstripout
 
