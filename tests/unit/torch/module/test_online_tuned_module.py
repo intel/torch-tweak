@@ -249,6 +249,42 @@ def test_tuning_error_outside_the_backends_reaches_the_caller(monkeypatch):
         online(torch.tensor([[1.0, 3.0]]))
 
 
+class ActivationFailsBackend(SleepBackend):
+    """Fails to activate once `fails` is set, as a recompile can when the device runs out of memory."""
+
+    fails = False
+
+    def _activate(self):
+        if self.fails:
+            raise RuntimeError("activation failed")
+
+
+def test_failed_activation_returns_the_module_output():
+    strategy = sleep_strategy(backends=[ActivationFailsBackend()])
+    online = OnlineTunedModule(doubling(), "doubling", strategy=strategy)
+    online(torch.tensor([[1.0, 3.0]]))
+    online(torch.tensor([[1.0, 3.0], [5.0, 7.0]]))
+    first, _ = online.backends.values()
+    first.fails = True
+
+    actual = online(torch.tensor([[4.0, 5.0]]))
+
+    torch.testing.assert_close(actual, torch.tensor([[8.0, 10.0]]))
+
+
+def test_backend_that_fails_to_activate_is_dropped():
+    strategy = sleep_strategy(backends=[ActivationFailsBackend()])
+    online = OnlineTunedModule(doubling(), "doubling", strategy=strategy)
+    online(torch.tensor([[1.0, 3.0]]))
+    online(torch.tensor([[1.0, 3.0], [5.0, 7.0]]))
+    first, second = online.backends.values()
+    first.fails = True
+
+    online(torch.tensor([[4.0, 5.0]]))
+
+    assert list(online.backends.values()) == [second]
+
+
 @requires_leo
 def test_default_strategy_leaves_the_weights_where_they_are():
     module = doubling().to("xpu")

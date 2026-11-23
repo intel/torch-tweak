@@ -76,8 +76,8 @@ class OnlineTunedModule:
     Every parameter of `module` must already be on `device`, since the backends build on that device and leave the
     module there.
 
-    When no backend of `strategy` runs a shape, the call still returns the module output.
-    The error is logged, and later calls with that shape run `module` without a backend.
+    When no backend of `strategy` runs a shape, or its backend fails to activate again, the call still returns
+    the module output. The error is logged, and later calls with that shape run `module` without a backend.
     So do calls whose inputs cannot be copied, and calls with a non-tensor input that cannot be hashed.
     Any other error from tuning reaches the caller, and the next call with that shape tunes again.
 
@@ -141,7 +141,12 @@ class OnlineTunedModule:
         if backend is not None:
             if backend is not self._active:
                 self._deactivate_active()
-                backend.activate()
+                try:
+                    backend.activate()
+                except Exception:
+                    del self._backends[key]
+                    self._mark_failed(key, "Activating the backend")
+                    return self._module(*args, **kwargs)
                 self._active = backend
             return backend.infer(*args, **kwargs)
         if key in self._failed:
@@ -149,20 +154,14 @@ class OnlineTunedModule:
         try:
             sample = deepcopy((args, kwargs))
         except Exception:
-            logger.warning(
-                "Copying the inputs of %s failed. This shape runs the module without a backend.",
-                self._name,
-                exc_info=True,
-            )
-            self._failed.add(key)
+            self._mark_failed(key, "Copying the inputs")
             return self._module(*args, **kwargs)
         output = self._module(*args, **kwargs)
         self._deactivate_active()
         try:
             backend = self._tune(sample, inputs, SampleMetadata.from_outputs(output, strict=True))
         except NoCorrectBackendError:
-            logger.warning("No backend runs %s for this shape. It runs without a backend.", self._name, exc_info=True)
-            self._failed.add(key)
+            self._mark_failed(key, "Every backend")
         else:
             self._active = self._backends[key] = backend
         return output
@@ -172,6 +171,12 @@ class OnlineTunedModule:
         self._deactivate_active()
         self._backends.clear()
         self._failed.clear()
+
+    def _mark_failed(self, key: Hashable, step: str) -> None:
+        logger.warning(
+            "%s failed for %s. This shape runs the module without a backend.", step, self._name, exc_info=True
+        )
+        self._failed.add(key)
 
     def _deactivate_active(self) -> None:
         if self._active is not None:
