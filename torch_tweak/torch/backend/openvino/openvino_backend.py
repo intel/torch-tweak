@@ -38,6 +38,15 @@ def _port_names(ports: Sequence[ov.ConstOutput]) -> set[str]:
     return {name for port in ports for name in port.get_names()}
 
 
+# NumPy has no bfloat16. OpenVINO on the host reads and returns bf16 data as float16 arrays that hold the bf16 bits.
+def _host_array(tensor: torch.Tensor, *, bf16_port: bool) -> np.ndarray:
+    # CompiledModel reads host inputs as C-contiguous numpy arrays.
+    tensor = tensor.detach().cpu().contiguous()
+    if bf16_port:
+        tensor = tensor.to(torch.bfloat16).view(torch.float16)
+    return tensor.numpy()
+
+
 def openvino_device_for_xpu(core: ov.Core, device: torch.device) -> str:
     """Returns the OpenVINO GPU that is the same physical device as the PyTorch XPU ``device``.
 
@@ -99,6 +108,7 @@ class OpenVINOBackend(Backend):
         self._graph_spec: GraphSpec | None = None
         self._output_object: Any = None
         self._input_names: set[str] = set()
+        self._bf16_names: set[str] = set()
         self._compiled_model: ov.CompiledModel | None = None
         self._xpu_request: XpuInferRequest | None = None
         self._shape_model: ov.Model | None = None
@@ -143,6 +153,9 @@ class OpenVINOBackend(Backend):
         scalar_inputs = staticize_extra_openvino_inputs(ov_model.inputs, tensor_input_names)
         ov_model.validate_nodes_and_infer_types()
         self._input_names = _port_names(ov_model.inputs)
+        self._bf16_names = _port_names([
+            port for port in [*ov_model.inputs, *ov_model.outputs] if port.get_element_type() == ov.Type.bf16
+        ])
         compile_config = {}
         if self._config.performance_hint:
             compile_config["PERFORMANCE_HINT"] = self._config.performance_hint
@@ -193,8 +206,7 @@ class OpenVINOBackend(Backend):
             return self._prepare_outputs_for_return(torch_outputs)
 
     def _infer_on_host(self, inputs: dict[str, torch.Tensor]) -> dict[str, torch.Tensor]:
-        # CompiledModel reads host inputs as C-contiguous numpy arrays.
-        ov_inputs = {name: tensor.detach().cpu().contiguous().numpy() for name, tensor in inputs.items()}
+        ov_inputs = {name: _host_array(tensor, bf16_port=name in self._bf16_names) for name, tensor in inputs.items()}
         ov_outputs = self._compiled_model(ov_inputs)
         output_names = _port_names(self._compiled_model.outputs)
 
@@ -204,6 +216,8 @@ class OpenVINOBackend(Backend):
                 continue
             # The infer request reuses its output buffer on the next call.
             tensor = torch.from_numpy(np.array(ov_outputs[tensor_spec.name]))
+            if tensor_spec.name in self._bf16_names:
+                tensor = tensor.view(torch.bfloat16)
             torch_outputs[tensor_spec.name] = tensor.to(dtype=tensor_spec.dtype)
         return torch_outputs
 
