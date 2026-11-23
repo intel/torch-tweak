@@ -5,7 +5,7 @@
 import pytest
 import torch
 
-from tests.toy_backends import BuildFailsBackend, SleepBackend
+from tests.toy_backends import BuildFailsBackend, OffloadingBackend, SleepBackend
 from tests.utilities.helpers import requires_leo
 from torch_tweak.torch import HighestThroughputStrategy, OneBackendStrategy, OnlineTunedModule
 from torch_tweak.torch.module import online_tuned_module
@@ -206,6 +206,13 @@ def test_module_with_a_weight_on_another_device_is_rejected():
 
     with pytest.raises(ValueError, match="weight"):
         OnlineTunedModule(module, "linear", strategy=sleep_strategy(), device=torch.device("cpu"))
+
+
+def test_tuning_that_moves_the_weights_is_rejected():
+    online = OnlineTunedModule(doubling(), "doubling", strategy=OneBackendStrategy(OffloadingBackend()))
+
+    with pytest.raises(ValueError, match=r"Tuning moved parameters off cpu: \['weight'\]"):
+        online(torch.tensor([[1.0, 3.0]]))
 
 
 def test_instances_with_one_name_use_separate_graph_directories(torch_tweak_cache_dir):
