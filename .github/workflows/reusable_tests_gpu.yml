@@ -11,7 +11,7 @@ permissions:
 jobs:
   tests:
     name: Tests (GPU)
-    runs-on: [BMG]
+    runs-on: [BMG2]
     timeout-minutes: 30
     container:
       image: ubuntu:26.04

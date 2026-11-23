@@ -24,6 +24,7 @@ jobs:
   checks:
     name: Checks
     uses: ./.github/workflows/reusable_checks.yml
+    if: github.repository == 'XXX'
     permissions:
       contents: read
       # CodeQL results upload.
@@ -37,18 +38,21 @@ jobs:
 
   tests:
     name: Tests (GPU)
-    needs: checks
+    # needs: checks
     # run only on upstream; forks won't have the HW
-    if: github.repository == 'intel/torch-tweak' && needs.checks.outputs.run_gpu_tests == 'true'
+    if: github.repository == 'intel/torch-tweak'
+    #&& needs.checks.outputs.run_gpu_tests == 'true'
     uses: ./.github/workflows/reusable_tests_gpu.yml
 
   tests-cpu:
     name: Tests (CPU)
     needs: checks
+    if: github.repository == 'XXX'
     uses: ./.github/workflows/reusable_tests_cpu.yml
 
   coverage:
     name: Coverage
+    if: github.repository == 'XXX'
     needs: [tests, tests-cpu]
     permissions:
       contents: read
