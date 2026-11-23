@@ -81,6 +81,8 @@ questions a reviewer will ask. Those belong in the pull request description.
 - A wrapper that only calls one other function.
 - A comment that repeats the next line.
 - A comment about deleted code, the previous behavior, or why an older version differed.
+- Code that loads a `.tt` checkpoint of an older format: a default for a missing key, a migration, a second reader.
+  See [Checkpoint format](#checkpoint-format).
 - A keyword argument that only repeats the default, where seeing it does not help the reader.
 - A `_name` read from outside the class or module that owns it.
 - A class hierarchy standing in for one function. A decorator with a single call site.
@@ -110,6 +112,19 @@ Prefer that edit over a new abstraction.
 - A result that already has one shape, including a stand-in string for a miss. Do not invent an exception for it.
 - A broken idiom where following it would make that code clearly worse.
 - Anything in the Ruff list below.
+
+## Checkpoint format
+
+Torch Tweak never loads a `.tt` checkpoint of an older format.
+Simple loading code is worth more than an old checkpoint. The user tunes the model again.
+Do not add a default for a missing key, a migration, or a second reader.
+
+A change can break loading between the last release and this code.
+Examples are a new field in a saved backend config, a renamed key, or a removed key.
+Then compare `TT_FORMAT_VERSION` in `torch_tweak/torch/checkpoint/checkpoint_header.py` with the last release.
+If the release has the same version, bump it in this change.
+If this code already has a higher version, an unreleased change bumped it. Leave it.
+A release without `checkpoint_header.py` wrote no format version, and `read_header` already rejects its checkpoints.
 
 ## Leave these to Ruff
 
