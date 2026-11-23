@@ -7,7 +7,8 @@ import torch
 
 from tests.toy_backends import BuildFailsBackend, SleepBackend
 from tests.utilities.helpers import requires_leo
-from torch_tweak.torch import HighestThroughputStrategy, OnlineTunedModule
+from torch_tweak.torch import HighestThroughputStrategy, OneBackendStrategy, OnlineTunedModule
+from torch_tweak.torch.module import online_tuned_module
 
 
 class CountingStrategy(HighestThroughputStrategy):
@@ -166,6 +167,27 @@ def test_shape_that_failed_tuning_is_not_tuned_again():
 
     torch.testing.assert_close(actual, torch.tensor([[8.0, 10.0]]))
     assert (strategy.tune_calls, online.backends) == (1, {})
+
+
+def test_failed_export_of_a_one_backend_strategy_still_returns_the_module_output():
+    strategy = OneBackendStrategy(BuildFailsBackend(ValueError))
+    strategy.enable_find_max_batch_size(False)
+    online = OnlineTunedModule(doubling(), "doubling", strategy=strategy)
+
+    actual = online(torch.tensor([[1.0, 3.0]]))
+
+    torch.testing.assert_close(actual, torch.tensor([[2.0, 6.0]]))
+
+
+def test_tuning_error_outside_the_backends_reaches_the_caller(monkeypatch):
+    def full_disk(path):
+        raise OSError("No space left on device")
+
+    monkeypatch.setattr(online_tuned_module, "secure_mkdir", full_disk)
+    online = OnlineTunedModule(doubling(), "doubling", strategy=sleep_strategy())
+
+    with pytest.raises(OSError, match="No space left on device"):
+        online(torch.tensor([[1.0, 3.0]]))
 
 
 @requires_leo

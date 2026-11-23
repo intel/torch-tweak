@@ -41,6 +41,7 @@ from torch_tweak.torch.task.profiling import (
 )
 from torch_tweak.torch.tune_strategy.default_backends import default_backends
 from torch_tweak.torch.tune_strategy.extension import TuneStrategyFindMaxBatchSizeExtension
+from torch_tweak.torch.tune_strategy.tune_strategy import NoCorrectBackendError
 from torch_tweak.torch.utils.memory import release_device_memory
 from torch_tweak.utils.logging import control_output, log
 from torch_tweak.utils.timer import Timer
@@ -130,6 +131,7 @@ class HighestThroughputStrategy(TuneStrategyFindMaxBatchSizeExtension):
         max_batch_size = graph_spec.get_max_batch_size()
 
         profiled: list[_ProfiledBackend] = []
+        last_error: Exception | None = None
 
         backends = list(self._backends or default_backends(device))
 
@@ -180,6 +182,7 @@ class HighestThroughputStrategy(TuneStrategyFindMaxBatchSizeExtension):
                     backend.deactivate()
 
                 except Exception as exc:
+                    last_error = self._summarize_failure(exc)
                     if backend.is_active:
                         backend.deactivate()
                     self._log_failure(exc, log_file)
@@ -194,7 +197,7 @@ class HighestThroughputStrategy(TuneStrategyFindMaxBatchSizeExtension):
                 ", ".join([backend.describe() for backend in backends]),
                 sink=self._sink,
             )
-            raise RuntimeError("No correct backend found")
+            raise NoCorrectBackendError("No correct backend found") from last_error
 
         self.results.append(
             HighestThroughputStrategyResult(
@@ -228,11 +231,14 @@ class HighestThroughputStrategy(TuneStrategyFindMaxBatchSizeExtension):
             try:
                 candidate.backend.activate()
             except Exception as exc:
-                log("❌ %s failed to activate: %s", candidate.backend.describe(), exc, sink=self._sink)
-                error = exc
+                error = self._summarize_failure(exc)
+                log("❌ %s failed to activate: %s", candidate.backend.describe(), error, sink=self._sink)
             else:
                 return candidate
-        raise RuntimeError("No profiled backend could be activated") from error
+        # The traceback of the raised error keeps this frame and the frame of `_tune`, which share `profiled`.
+        profiled.clear()
+        del candidate
+        raise NoCorrectBackendError("No profiled backend could be activated") from error
 
     def _get_profiling_config(self, batching: bool, max_batch_size: int) -> ProfilingConfig:
         """Gets profiling configuration."""
