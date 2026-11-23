@@ -78,6 +78,7 @@ class OnlineTunedModule:
 
     When no backend of `strategy` runs a shape, the call still returns the module output.
     The error is logged, and later calls with that shape run `module` without a backend.
+    So do calls whose inputs cannot be copied, and calls with a non-tensor input that cannot be hashed.
     Any other error from tuning reaches the caller, and the next call with that shape tunes again.
 
     Not thread safe: call it from one thread at a time.
@@ -115,6 +116,7 @@ class OnlineTunedModule:
         self._backends: dict[Hashable, Backend] = {}
         self._active: Backend | None = None
         self._failed: set[Hashable] = set()
+        self._warned_unkeyed = False
 
     @property
     def backends(self) -> dict[Hashable, Backend]:
@@ -123,9 +125,19 @@ class OnlineTunedModule:
 
     def __call__(self, *args: Any, **kwargs: Any) -> Any:
         """Runs the backend tuned for these shapes, tuning them first if they are new."""
-        inputs = SampleMetadata.from_inputs(args, kwargs, strict=True)
-        key = _shapes_key(inputs)
-        backend = self._backends.get(key)
+        try:
+            inputs = SampleMetadata.from_inputs(args, kwargs, strict=True)
+            key = _shapes_key(inputs)
+            backend = self._backends.get(key)
+        except TypeError:
+            if not self._warned_unkeyed:
+                logger.warning(
+                    "Cannot key a call to %s by its inputs. Such calls run the module without a backend.",
+                    self._name,
+                    exc_info=True,
+                )
+                self._warned_unkeyed = True
+            return self._module(*args, **kwargs)
         if backend is not None:
             if backend is not self._active:
                 self._deactivate_active()
@@ -134,7 +146,16 @@ class OnlineTunedModule:
             return backend.infer(*args, **kwargs)
         if key in self._failed:
             return self._module(*args, **kwargs)
-        sample = deepcopy((args, kwargs))
+        try:
+            sample = deepcopy((args, kwargs))
+        except Exception:
+            logger.warning(
+                "Copying the inputs of %s failed. This shape runs the module without a backend.",
+                self._name,
+                exc_info=True,
+            )
+            self._failed.add(key)
+            return self._module(*args, **kwargs)
         output = self._module(*args, **kwargs)
         self._deactivate_active()
         try:

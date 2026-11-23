@@ -2,6 +2,9 @@
 # SPDX-License-Identifier: Apache-2.0
 """Tests for OnlineTunedModule."""
 
+import threading
+
+import numpy as np
 import pytest
 import torch
 
@@ -182,6 +185,27 @@ def test_llm_calls_with_a_tensor_in_another_argument_are_tuned_apart():
     online(x=torch.ones(1, 2), cache_position=torch.tensor([0]))
 
     assert len(online.backends) == 2
+
+
+class WithOption(torch.nn.Module):
+    def forward(self, x, option=None):
+        return 2 * x
+
+
+def test_call_with_an_unhashable_input_returns_the_module_output():
+    online = OnlineTunedModule(WithOption(), "option", strategy=sleep_strategy(), device=torch.device("cpu"))
+
+    actual = online(torch.tensor([1.0, 3.0]), option=np.zeros(1))
+
+    torch.testing.assert_close(actual, torch.tensor([2.0, 6.0]))
+
+
+def test_call_with_an_uncopyable_input_returns_the_module_output():
+    online = OnlineTunedModule(WithOption(), "option", strategy=sleep_strategy(), device=torch.device("cpu"))
+
+    actual = online(torch.tensor([1.0, 3.0]), option=threading.Lock())
+
+    torch.testing.assert_close(actual, torch.tensor([2.0, 6.0]))
 
 
 def test_failed_tuning_still_returns_the_module_output():
