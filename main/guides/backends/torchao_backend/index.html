@@ -942,6 +942,17 @@
   
 </li>
         
+          <li class="md-nav__item">
+  <a href="#keeping-the-module-on-its-device" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Keeping the Module on Its Device
+      
+    </span>
+  </a>
+  
+</li>
+        
       </ul>
     </nav>
   
@@ -2634,6 +2645,17 @@
   
 </li>
         
+          <li class="md-nav__item">
+  <a href="#keeping-the-module-on-its-device" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Keeping the Module on Its Device
+      
+    </span>
+  </a>
+  
+</li>
+        
       </ul>
     </nav>
   
@@ -2792,6 +2814,12 @@ NOTE: This file has been modified by Intel Corporation.
 <a id="__codelineno-4-6" name="__codelineno-4-6" href="#__codelineno-4-6"></a>    <span class="n">quantization_config</span><span class="o">=</span><span class="n">custom_config</span><span class="p">,</span>
 <a id="__codelineno-4-7" name="__codelineno-4-7" href="#__codelineno-4-7"></a><span class="p">)</span>
 </code></pre></div>
+<h3 id="keeping-the-module-on-its-device">Keeping the Module on Its Device</h3>
+<p>The backend moves the module to CPU after copying it for quantization, since the quantized copy holds its own weights.
+<code>offload_module=False</code> leaves the module on its device, for a framework that keeps calling it.
+The weights then exist twice on the device: in the module and in the quantized copy.</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a><span class="n">config</span> <span class="o">=</span> <span class="n">TorchAOBackendConfig</span><span class="p">(</span><span class="n">quantization</span><span class="o">=</span><span class="s2">"int8wo"</span><span class="p">,</span> <span class="n">offload_module</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+</code></pre></div>
 <h2 id="quantization-comparison">Quantization Comparison</h2>
 <table>
 <thead>
@@ -2850,12 +2878,12 @@ NOTE: This file has been modified by Intel Corporation.
 <h2 id="troubleshooting">Troubleshooting</h2>
 <h3 id="issue-accuracy-loss-too-high">Issue: Accuracy loss too high</h3>
 <p><strong>Solution</strong>: Try less aggressive quantization:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a><span class="c1"># Instead of int8wo, try fp8wo</span>
-<a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a><span class="n">config</span> <span class="o">=</span> <span class="n">TorchAOBackendConfig</span><span class="p">(</span><span class="n">quantization</span><span class="o">=</span><span class="s2">"fp8wo"</span><span class="p">)</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a><span class="c1"># Instead of int8wo, try fp8wo</span>
+<a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a><span class="n">config</span> <span class="o">=</span> <span class="n">TorchAOBackendConfig</span><span class="p">(</span><span class="n">quantization</span><span class="o">=</span><span class="s2">"fp8wo"</span><span class="p">)</span>
 </code></pre></div>
 <h3 id="issue-not-enough-speed-improvement">Issue: Not enough speed improvement</h3>
 <p><strong>Solution</strong>: Try dynamic quantization:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a><span class="n">config</span> <span class="o">=</span> <span class="n">TorchAOBackendConfig</span><span class="p">(</span><span class="n">quantization</span><span class="o">=</span><span class="s2">"fp8dq"</span><span class="p">)</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a><span class="n">config</span> <span class="o">=</span> <span class="n">TorchAOBackendConfig</span><span class="p">(</span><span class="n">quantization</span><span class="o">=</span><span class="s2">"fp8dq"</span><span class="p">)</span>
 </code></pre></div>
 <h2 id="next-steps">Next Steps</h2>
 <ul>
