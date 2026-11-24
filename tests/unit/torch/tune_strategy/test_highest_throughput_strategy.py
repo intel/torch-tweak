@@ -16,10 +16,11 @@ from tests.toy_backends import (
     BuildFailsBackend,
     MemoryProbeBackend,
     OffsetBackend,
+    OffsetOnLargeInputBackend,
     SleepBackend,
 )
 from tests.toy_models.torch_models import INPUT_SIZE, ToyTorchModel, toy_on_xpu
-from tests.utilities.helpers import requires_xpu
+from tests.utilities.helpers import requires_xpu, tune_identity
 from torch_tweak.torch import TunableModule
 from torch_tweak.torch.backend import Backend
 from torch_tweak.torch.backend.torch_eager import TorchEagerBackend
@@ -243,16 +244,6 @@ def test_tune_fails_with_the_last_error_when_no_backend_reactivates(torch_device
     assert str(raised.value.__cause__) == "RuntimeError: Reactivate failed"
 
 
-def tune_identity(strategy, sample, torch_device, tmp_path):
-    strategy.enable_find_max_batch_size(False)
-    graph_spec = GraphSpec(
-        name="identity",
-        input_spec=SampleMetadata.from_inputs((sample,), {}),
-        output_spec=SampleMetadata.from_outputs(sample),
-    )
-    return strategy.tune(torch.nn.Identity(), "identity", graph_spec, [((sample,), {})], torch_device, tmp_path)
-
-
 class TolerantOffsetBackend(OffsetBackend):
     output_tolerance = 0.5
 
@@ -260,7 +251,7 @@ class TolerantOffsetBackend(OffsetBackend):
 def test_backend_whose_output_differs_from_the_module_is_rejected(torch_device, tmp_path):
     strategy = HighestThroughputStrategy(backends=[OffsetBackend(1.0), SleepBackend(sleep_time=1e-2)])
 
-    selected = tune_identity(strategy, torch.tensor([[1.0, 3.0]], device=torch_device), torch_device, tmp_path)
+    selected = tune_identity(strategy, torch_device, tmp_path, torch.tensor([[1.0, 3.0]], device=torch_device))
 
     assert selected.name == "SleepBackend with sleep time 0.01"
 
@@ -268,7 +259,7 @@ def test_backend_whose_output_differs_from_the_module_is_rejected(torch_device, 
 def test_backend_within_the_dtype_tolerance_of_the_module_is_kept(torch_device, tmp_path):
     strategy = HighestThroughputStrategy(backends=[OffsetBackend(1e-4), SleepBackend(sleep_time=1e-2)])
 
-    selected = tune_identity(strategy, torch.tensor([[1.0, 3.0]], device=torch_device), torch_device, tmp_path)
+    selected = tune_identity(strategy, torch_device, tmp_path, torch.tensor([[1.0, 3.0]], device=torch_device))
 
     assert selected.name == "OffsetBackend with sleep time 0.0"
 
@@ -276,7 +267,7 @@ def test_backend_within_the_dtype_tolerance_of_the_module_is_kept(torch_device, 
 def test_backend_within_its_own_output_tolerance_is_kept(torch_device, tmp_path):
     strategy = HighestThroughputStrategy(backends=[TolerantOffsetBackend(1.0), SleepBackend(sleep_time=1e-2)])
 
-    selected = tune_identity(strategy, torch.tensor([[1.0, 3.0]], device=torch_device), torch_device, tmp_path)
+    selected = tune_identity(strategy, torch_device, tmp_path, torch.tensor([[1.0, 3.0]], device=torch_device))
 
     assert selected.name == "TolerantOffsetBackend with sleep time 0.0"
 
@@ -285,7 +276,7 @@ def test_backend_that_differs_is_kept_when_the_correctness_check_is_disabled(tor
     strategy = HighestThroughputStrategy(backends=[OffsetBackend(1.0), SleepBackend(sleep_time=1e-2)])
     strategy.enable_correctness_check(False)
 
-    selected = tune_identity(strategy, torch.tensor([[1.0, 3.0]], device=torch_device), torch_device, tmp_path)
+    selected = tune_identity(strategy, torch_device, tmp_path, torch.tensor([[1.0, 3.0]], device=torch_device))
 
     assert selected.name == "OffsetBackend with sleep time 0.0"
 
@@ -300,7 +291,25 @@ class CountingModule(torch.nn.Module):
         return x + self.calls
 
 
-def test_module_with_changing_outputs_skips_the_comparison_with_it(torch_device, tmp_path):
+def test_backend_that_is_right_on_every_sample_is_kept(torch_device, tmp_path):
+    strategy = HighestThroughputStrategy(backends=[SleepBackend(sleep_time=0.0)])
+    samples = (torch.tensor([[1.0, 3.0]], device=torch_device), torch.tensor([[7.0, 9.0]], device=torch_device))
+
+    selected = tune_identity(strategy, torch_device, tmp_path, *samples)
+
+    assert selected.name == "SleepBackend with sleep time 0.0"
+
+
+def test_backend_that_is_wrong_on_the_second_sample_is_rejected(torch_device, tmp_path):
+    strategy = HighestThroughputStrategy(backends=[OffsetOnLargeInputBackend(), SleepBackend(sleep_time=1e-2)])
+    samples = (torch.tensor([[1.0, 3.0]], device=torch_device), torch.tensor([[7.0, 9.0]], device=torch_device))
+
+    selected = tune_identity(strategy, torch_device, tmp_path, *samples)
+
+    assert selected.name == "SleepBackend with sleep time 0.01"
+
+
+def test_module_with_changing_outputs_skips_the_comparison_with_it(torch_device, tmp_path, caplog):
     strategy = HighestThroughputStrategy(backends=[OffsetBackend(1.0), SleepBackend(sleep_time=1e-2)])
     strategy.enable_find_max_batch_size(False)
     sample = torch.tensor([[1.0, 3.0]], device=torch_device)
@@ -313,6 +322,7 @@ def test_module_with_changing_outputs_skips_the_comparison_with_it(torch_device,
     selected = strategy.tune(CountingModule(), "counting", graph_spec, [((sample,), {})], torch_device, tmp_path)
 
     assert selected.name == "OffsetBackend with sleep time 0.0"
+    assert "Module counting gives different outputs for the same inputs" in caplog.text
 
 
 class InferFailsBackend(SleepBackend):

@@ -15,7 +15,11 @@ from torch_tweak.torch.backend.torch_eager import TorchEagerBackend
 from torch_tweak.torch.module.graph_spec import GraphSpec
 from torch_tweak.torch.module.recording_module import Sample
 from torch_tweak.torch.module.sample_metadata import SampleMetadata
-from torch_tweak.torch.task.correctness import CorrectnessTensorShapeError, CorrectnessValueError
+from torch_tweak.torch.task.correctness import (
+    CorrectnessMismatchError,
+    CorrectnessTensorShapeError,
+    CorrectnessValueError,
+)
 from torch_tweak.torch.tune_strategy import TuneStrategy
 
 
@@ -119,3 +123,24 @@ def test_correctness_extension_torch_eager_backend_with_wrong_shapes(torch_devic
     ):
         backend = strategy.tune(module, "test_model", graph_spec, data, torch_device, cache_dir=tmp_path)
         backend.deactivate()
+
+
+def test_check_correctness_rejects_outputs_that_differ_from_the_reference_outputs(torch_device, tmp_path):
+    module = ToyTorchModel()
+    graph_spec = module.graph_spec()
+    data = module.samples(device=torch_device)
+    backend = TorchEagerBackend().build(module, graph_spec, data, torch_device, tmp_path)
+    reference_outputs = [module(*args, **kwargs) + 1 for args, kwargs in data]
+
+    with pytest.raises(CorrectnessMismatchError, match="differs from the expected output"):
+        TuneStrategyTestCorrectness().check_correctness(backend, "test_model", graph_spec, data, reference_outputs)
+
+
+def test_check_correctness_accepts_outputs_equal_to_the_reference_outputs(torch_device, tmp_path):
+    module = ToyTorchModel()
+    graph_spec = module.graph_spec()
+    data = module.samples(device=torch_device)
+    backend = TorchEagerBackend().build(module, graph_spec, data, torch_device, tmp_path)
+    reference_outputs = [module(*args, **kwargs) for args, kwargs in data]
+
+    TuneStrategyTestCorrectness().check_correctness(backend, "test_model", graph_spec, data, reference_outputs)

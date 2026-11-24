@@ -1131,9 +1131,22 @@ def test_traced_model_that_returns_the_row_count_of_its_build_sample_is_rejected
 
 
 @requires_leo
-def test_float32_model_on_xpu_is_checked_with_the_float16_tolerance_it_computes_in(tmp_path):
+def test_float32_model_on_xpu_reports_the_float16_tolerance_it_computes_in(tmp_path):
     x = torch.ones(1, 2, device="xpu")
 
     backend = backend_build(OpenVINOBackend(), nn.Linear(2, 2), [((x,), {})], tmp_path, torch.device("xpu"))
 
     assert backend.output_tolerance == pytest.approx(0.03125)
+
+
+def test_float32_model_on_cpu_reports_the_float32_tolerance(tmp_path):
+    x = torch.ones(1, 2)
+
+    backend = backend_build(OpenVINOBackend(), nn.Linear(2, 2), [((x,), {})], tmp_path, torch.device("cpu"))
+
+    assert backend.output_tolerance == pytest.approx(3.45e-4, rel=1e-2)
+
+
+def test_output_tolerance_of_a_backend_that_is_not_built_is_an_error():
+    with pytest.raises(RuntimeError, match="OpenVINO model is not compiled"):
+        OpenVINOBackend().output_tolerance  # noqa: B018

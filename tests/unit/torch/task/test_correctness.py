@@ -219,3 +219,39 @@ def test_check_outputs_match_accepts_equal_python_values():
 def test_check_outputs_match_requires_the_same_structure():
     with pytest.raises(CorrectnessMismatchError, match="has structure"):
         check_outputs_match((torch.zeros(2),), (torch.zeros(2), torch.zeros(2)))
+
+
+def test_check_outputs_match_accepts_a_bfloat16_difference_within_its_tolerance():
+    check_outputs_match(
+        torch.tensor([4.0], dtype=torch.bfloat16),
+        torch.tensor([4.25], dtype=torch.bfloat16),
+    )
+
+
+def test_check_outputs_match_rejects_a_bfloat16_difference_beyond_its_tolerance():
+    with pytest.raises(CorrectnessMismatchError, match="Mismatched elements: 1 / 1"):
+        check_outputs_match(
+            torch.tensor([4.0], dtype=torch.bfloat16),
+            torch.tensor([4.5], dtype=torch.bfloat16),
+        )
+
+
+def test_check_outputs_match_accepts_empty_tensors():
+    check_outputs_match(torch.zeros(0, 3), torch.zeros(0, 3))
+
+
+def test_check_outputs_match_requires_zeros_to_stay_zero():
+    with pytest.raises(CorrectnessMismatchError, match="Mismatched elements: 1 / 2"):
+        check_outputs_match(torch.zeros(2), torch.tensor([0.0, 0.001]))
+
+
+def test_check_outputs_match_takes_the_tolerance_of_each_tensor_from_its_own_magnitude():
+    with pytest.raises(CorrectnessMismatchError, match="tensor 1 differs"):
+        check_outputs_match(
+            (torch.tensor([1000.0]), torch.tensor([1.0])),
+            (torch.tensor([1000.0]), torch.tensor([1.1])),
+        )
+
+
+def test_check_outputs_match_does_not_compare_values_that_are_not_tensors_or_scalars():
+    check_outputs_match({"y": torch.zeros(2), "mask": None}, {"y": torch.zeros(2), "mask": None})

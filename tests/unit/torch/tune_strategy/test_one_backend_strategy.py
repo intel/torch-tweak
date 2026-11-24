@@ -12,9 +12,9 @@ import pytest
 import torch
 import torch.nn as nn
 
-from tests.toy_backends import AllocateThenFailBackend, AllocatingBackend, MemoryProbeBackend
+from tests.toy_backends import AllocateThenFailBackend, AllocatingBackend, MemoryProbeBackend, OffsetBackend
 from tests.toy_models.torch_models import toy_on_xpu
-from tests.utilities.helpers import requires_xpu
+from tests.utilities.helpers import requires_xpu, tune_identity
 from torch_tweak.torch.backend.backend import Backend
 from torch_tweak.torch.module.graph_spec import GraphSpec
 from torch_tweak.torch.module.recording_module import Sample
@@ -132,3 +132,12 @@ def test_tune_starts_without_the_memory_a_failed_tune_held(tmp_path):
     probing.tune(model, "test", graph_spec, data, torch.device("xpu"), tmp_path)
 
     assert reserved_at_build[0] < reserved_before + failed_bytes
+
+
+def test_backend_whose_output_differs_from_the_module_is_rejected(torch_device, tmp_path):
+    strategy = OneBackendStrategy(OffsetBackend(1.0))
+
+    with pytest.raises(NoCorrectBackendError) as raised:
+        tune_identity(strategy, torch_device, tmp_path, torch.tensor([[1.0, 3.0]], device=torch_device))
+
+    assert "differs from the expected output" in str(raised.value.__cause__)

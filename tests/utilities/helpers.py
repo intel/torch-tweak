@@ -10,7 +10,8 @@ import importlib.util
 import pytest
 import torch
 
-from torch_tweak.torch.module.sample_metadata import CHECKPOINTABLE_VALUE_TYPES
+from torch_tweak.torch.module.graph_spec import GraphSpec
+from torch_tweak.torch.module.sample_metadata import CHECKPOINTABLE_VALUE_TYPES, SampleMetadata
 from torch_tweak.torch.utils.xpu import is_available as is_xpu_available
 
 requires_xpu = pytest.mark.skipif(not is_xpu_available(), reason="XPU is not available")
@@ -27,6 +28,18 @@ def _has_level_zero_interop() -> bool:
 has_leo = _has_level_zero_interop()
 LEO_MISSING = "The Intel GPU driver cannot run OpenCL on Level Zero (EnableLEO=1 on Battlemage)"
 requires_leo = pytest.mark.skipif(not has_leo, reason=LEO_MISSING)
+
+
+def tune_identity(strategy, device, cache_dir, *samples):
+    """Tune `torch.nn.Identity` on `samples`, so that the module outputs are the samples."""
+    strategy.enable_find_max_batch_size(False)
+    graph_spec = GraphSpec(
+        name="identity",
+        input_spec=SampleMetadata.from_inputs((samples[0],), {}),
+        output_spec=SampleMetadata.from_outputs(samples[0]),
+    )
+    data = [((sample,), {}) for sample in samples]
+    return strategy.tune(torch.nn.Identity(), "identity", graph_spec, data, device, cache_dir)
 
 
 def assert_only_primitives(value):
