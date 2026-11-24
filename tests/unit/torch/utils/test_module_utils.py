@@ -45,7 +45,7 @@ def _holding(tensor: torch.Tensor) -> nn.Module:
     return module
 
 
-def test_weights_fingerprint_samples_the_last_value_of_a_tensor_too_long_for_float32_indices():
+def test_weights_fingerprint_sees_a_change_of_the_last_value_of_a_long_tensor():
     zeros = torch.zeros(16_777_218, dtype=torch.uint8)
     last_one = zeros.clone()
     last_one[-1] = 1
@@ -53,6 +53,56 @@ def test_weights_fingerprint_samples_the_last_value_of_a_tensor_too_long_for_flo
     fingerprints = (weights_fingerprint(_holding(zeros)), weights_fingerprint(_holding(last_one)))
 
     assert fingerprints[0] != fingerprints[1]
+
+
+def test_weights_fingerprint_sees_a_change_of_one_value_in_a_large_tensor():
+    zeros = torch.zeros(1_000_003, dtype=torch.bfloat16)
+    one_changed = zeros.clone()
+    one_changed[12_345] = 1
+
+    fingerprints = (weights_fingerprint(_holding(zeros)), weights_fingerprint(_holding(one_changed)))
+
+    assert fingerprints[0] != fingerprints[1]
+
+
+def test_weights_fingerprint_sees_a_swap_of_two_values():
+    values = torch.arange(10.0)
+    swapped = values[[0, 1, 7, 3, 4, 5, 6, 2, 8, 9]]
+
+    assert weights_fingerprint(_holding(values)) != weights_fingerprint(_holding(swapped))
+
+
+def test_weights_fingerprint_sees_a_change_of_a_bool_value():
+    flags = torch.zeros(5, dtype=torch.bool)
+
+    assert weights_fingerprint(_holding(flags)) != weights_fingerprint(_holding(flags.logical_not()))
+
+
+def test_weights_fingerprint_tells_apart_shapes_with_the_same_bytes():
+    assert weights_fingerprint(_holding(torch.zeros(2, 3))) != weights_fingerprint(_holding(torch.zeros(3, 2)))
+
+
+def test_weights_fingerprint_tells_apart_dtypes_with_the_same_bytes():
+    zeros = weights_fingerprint(_holding(torch.zeros(2, dtype=torch.float32)))
+
+    assert zeros != weights_fingerprint(_holding(torch.zeros(2, dtype=torch.int32)))
+
+
+def test_weights_fingerprint_ignores_the_memory_layout():
+    transposed = torch.arange(6.0).reshape(2, 3).t()
+
+    assert weights_fingerprint(_holding(transposed)) == weights_fingerprint(_holding(transposed.contiguous()))
+
+
+def test_weights_fingerprint_names_an_empty_tensor():
+    assert weights_fingerprint(_holding(torch.zeros(0))) != weights_fingerprint(nn.Module())
+
+
+@requires_xpu
+def test_weights_fingerprint_does_not_depend_on_the_device():
+    values = torch.randn(100_000, dtype=torch.float16)
+
+    assert weights_fingerprint(_holding(values)) == weights_fingerprint(_holding(values.to("xpu")))
 
 
 @pytest.fixture
