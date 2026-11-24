@@ -147,6 +147,27 @@ def test_a_later_module_with_other_weights_tunes_again():
     assert len(strategy.results) == 1
 
 
+def test_a_later_module_with_another_architecture_tunes_again():
+    first = torch.nn.Sequential(doubling(), torch.nn.ReLU())
+    second = torch.nn.Sequential(doubling(), torch.nn.Tanh())
+    OnlineTunedModule(first, "net", strategy=sleep_strategy())(torch.tensor([[1.0, 3.0]]))
+    strategy = sleep_strategy()
+
+    OnlineTunedModule(second, "net", strategy=strategy)(torch.tensor([[1.0, 3.0]]))
+
+    assert strategy.tune_calls == 1
+
+
+def test_a_later_module_in_another_environment_tunes_again(monkeypatch):
+    OnlineTunedModule(doubling(), "doubling", strategy=sleep_strategy())(torch.tensor([[1.0, 3.0]]))
+    monkeypatch.setattr(online_tuned_module, "tuning_environment", lambda: {"torch": "another version"})
+    strategy = sleep_strategy()
+
+    OnlineTunedModule(doubling(), "doubling", strategy=strategy)(torch.tensor([[1.0, 3.0]]))
+
+    assert strategy.tune_calls == 1
+
+
 def test_reset_drops_the_tuned_shapes():
     online = OnlineTunedModule(doubling(), "doubling", strategy=sleep_strategy())
     online(torch.tensor([[1.0, 3.0]]))

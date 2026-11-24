@@ -4,6 +4,7 @@
 
 import hashlib
 import itertools
+import json
 import os
 import shutil
 import tempfile
@@ -19,6 +20,7 @@ import torch.nn as nn
 
 from torch_tweak.torch.backend.backend import Backend
 from torch_tweak.torch.backend.openvino import OpenVINOBackend, OpenVINOBackendConfig
+from torch_tweak.torch.checkpoint.checkpoint_header import tuning_environment
 from torch_tweak.torch.config import torch_tweak_cache_dir
 from torch_tweak.torch.module.graph_spec import GraphSpec
 from torch_tweak.torch.module.sample_metadata import CHECKPOINTABLE_VALUE_TYPES, SampleMetadata
@@ -85,8 +87,10 @@ class OnlineTunedModule:
 
     Each instance tunes in a private directory under `<cache>/<name>`, since a backend reads its files again
     when it activates. `reset` removes that directory, and so does the end of the instance or of the process.
-    The selected backend and its files are then published to `<cache>/<name>/<weights>/<shapes>`.
-    A later process with the same weights builds the published backend for those shapes and skips tuning.
+    The selected backend and its files are then published to `<cache>/<name>/<model>/<shapes>`.
+    `<model>` covers the weights, `repr(module)` and `tuning_environment()`.
+    `<shapes>` also covers the device type and the strategy.
+    A later process with the same model builds the published backend for those shapes and skips tuning.
 
     The module stays where it is and keeps its `forward`. Its owner can keep calling and patching it.
     Call `reset` after the owner changes the weights in any way: moves them, replaces them, or patches their
@@ -137,7 +141,7 @@ class OnlineTunedModule:
         self._active: Backend | None = None
         self._failed: set[Hashable] = set()
         self._warned_unkeyed: set[tuple[type, str]] = set()
-        self._weights_fingerprint: str | None = None
+        self._model_key: str | None = None
         self._graph_names = itertools.count()
         self._create_private_dir()
 
@@ -203,7 +207,7 @@ class OnlineTunedModule:
         self._deactivate_active()
         self._backends.clear()
         self._failed.clear()
-        self._weights_fingerprint = None
+        self._model_key = None
         self._remove_private_dir()
         self._create_private_dir()
 
@@ -242,7 +246,7 @@ class OnlineTunedModule:
         return backend
 
     def _published_dir(self, key: Hashable) -> Path | None:
-        """The directory shared by every process for these weights, shapes, device and strategy.
+        """The directory shared by every process for this model, shapes, device type and strategy.
 
         None when `key` has no stable name: a non-tensor value other than a primitive has no `repr` that names it
         across processes.
@@ -250,11 +254,11 @@ class OnlineTunedModule:
         _, _, other_data = key
         if any(type(value) not in CHECKPOINTABLE_VALUE_TYPES for _, _, value in other_data):
             return None
-        if self._weights_fingerprint is None:
-            self._weights_fingerprint = weights_fingerprint(self._module)
+        if self._model_key is None:
+            self._model_key = _model_key(self._module)
         name = repr((self._device.type, self._strategy.describe(), key))
         digest = hashlib.sha256(name.encode()).hexdigest()[:16]
-        return torch_tweak_cache_dir() / self._name / self._weights_fingerprint / digest
+        return torch_tweak_cache_dir() / self._name / self._model_key / digest
 
     def _restore(
         self, published: Path, graph_spec: GraphSpec, sample: tuple[tuple, dict], graph_dir: Path
@@ -290,6 +294,12 @@ class OnlineTunedModule:
                 f"Tuning moved parameters or buffers off {self._device}: {misplaced[:3]}."
                 " Every backend of the strategy must leave the module on its device."
             )
+
+
+def _model_key(module: nn.Module) -> str:
+    """Hashes the weights, the architecture, and the library and hardware versions a published backend depends on."""
+    described = json.dumps([weights_fingerprint(module), repr(module), tuning_environment()], sort_keys=True)
+    return hashlib.sha256(described.encode()).hexdigest()[:16]
 
 
 def _link_or_copy(source: str, target: str) -> None:
