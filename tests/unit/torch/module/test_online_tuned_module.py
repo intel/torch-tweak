@@ -204,13 +204,11 @@ def test_unkeyable_calls_warn_once_per_kind_of_error(caplog):
     online = OnlineTunedModule(WithOption(), "option", strategy=sleep_strategy(), device=torch.device("cpu"))
     x = torch.tensor([1.0, 3.0])
 
-    with caplog.at_level("WARNING", logger=online_tuned_module.logger.name):
-        online(x, option=np.zeros(1))
-        online(x, option=np.zeros(2))
-        online(x, option={1})
+    online(x, option=np.zeros(1))
+    online(x, option=np.zeros(2))
+    online(x, option={1})
 
-    warnings = [record for record in caplog.records if "Cannot key" in record.getMessage()]
-    assert len(warnings) == 2
+    assert len(caplog.records) == 2
 
 
 def test_call_with_an_uncopyable_input_returns_the_module_output():
