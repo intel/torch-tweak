@@ -123,7 +123,7 @@ class OnlineTunedModule:
         self._backends: dict[Hashable, Backend] = {}
         self._active: Backend | None = None
         self._failed: set[Hashable] = set()
-        self._warned_unkeyed = False
+        self._warned_unkeyed: set[tuple[type, str]] = set()
 
     @property
     def backends(self) -> dict[Hashable, Backend]:
@@ -136,14 +136,15 @@ class OnlineTunedModule:
             inputs = SampleMetadata.from_inputs(args, kwargs, strict=True)
             key = _shapes_key(inputs)
             backend = self._backends.get(key)
-        except TypeError:
-            if not self._warned_unkeyed:
+        except TypeError as error:
+            error_kind = (type(error), str(error))
+            if error_kind not in self._warned_unkeyed:
                 logger.warning(
                     "Cannot key a call to %s by its inputs. Such calls run the module without a backend.",
                     self._name,
                     exc_info=True,
                 )
-                self._warned_unkeyed = True
+                self._warned_unkeyed.add(error_kind)
             return self._module(*args, **kwargs)
         if backend is not None:
             if backend is not self._active:
