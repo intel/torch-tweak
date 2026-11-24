@@ -94,6 +94,20 @@ def test_weights_fingerprint_ignores_the_memory_layout():
     assert weights_fingerprint(_holding(transposed)) == weights_fingerprint(_holding(transposed.contiguous()))
 
 
+def _registering(**buffers: torch.Tensor) -> nn.Module:
+    module = nn.Module()
+    for name, tensor in buffers.items():
+        module.register_buffer(name, tensor)
+    return module
+
+
+def test_weights_fingerprint_ignores_the_registration_order():
+    weight_first = _registering(weight=torch.tensor([1.0]), bias=torch.tensor([2.0]))
+    bias_first = _registering(bias=torch.tensor([2.0]), weight=torch.tensor([1.0]))
+
+    assert weights_fingerprint(weight_first) == weights_fingerprint(bias_first)
+
+
 def test_weights_fingerprint_names_an_empty_tensor():
     assert weights_fingerprint(_holding(torch.zeros(0))) != weights_fingerprint(nn.Module())
 
