@@ -208,7 +208,7 @@ def test_unkeyable_calls_warn_once_per_kind_of_error(caplog):
     online(x, option=np.zeros(2))
     online(x, option={1})
 
-    assert len(caplog.records) == 2
+    assert caplog.text.count("Cannot key a call") == 2
 
 
 def test_call_with_an_uncopyable_input_returns_the_module_output():
