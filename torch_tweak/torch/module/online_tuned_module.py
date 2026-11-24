@@ -43,12 +43,23 @@ def borrowed_module_strategy(device: torch.device) -> HighestThroughputStrategy:
     return strategy
 
 
-def _is_on(weight: torch.Tensor, device: torch.device) -> bool:
-    return weight.device.type == device.type and device.index in (None, weight.device.index)
+def _is_on(tensor: torch.Tensor, device: torch.device) -> bool:
+    return tensor.device.type == device.type and device.index in (None, tensor.device.index)
 
 
 def _misplaced(module: nn.Module, device: torch.device) -> list[str]:
-    return [name for name, weight in module.named_parameters() if not _is_on(weight, device)]
+    tensors = itertools.chain(module.named_parameters(), module.named_buffers())
+    return [name for name, tensor in tensors if not _is_on(tensor, device)]
+
+
+def _shapes_key(metadata: SampleMetadata) -> Hashable:
+    """Names the place, shape, and dtype of every tensor, and every non-tensor value.
+
+    `SampleMetadata` equality compares only tensor ranks, and only the LLM phase when `cache_position`
+    is passed by name, so the key does not rely on it.
+    """
+    tensors = tuple((locator, spec.name, tuple(spec.shape), spec.dtype) for locator, spec in metadata.tensor_data)
+    return metadata.llm_phase, tensors, metadata.other_data
 
 
 class OnlineTunedModule:
@@ -58,16 +69,19 @@ class OnlineTunedModule:
     Later calls with the same shapes run the selected backend.
     Only the backend of the last call stays active, since an OpenVINO model holds its own copy of the weights.
     Returning to other shapes activates their backend again, which can recompile it.
+    Each new non-tensor value tunes apart, so pass a value that changes on every call as a tensor.
+    The backends run under `torch.no_grad`, so only the first call with new shapes records autograd history.
 
     The module stays where it is and keeps its `forward`. Its owner can keep calling and patching it.
     Call `reset` after the owner changes the weights in any way: moves them, replaces them, or patches their
     values in place. A backend serves the weights it was built on. OpenVINO keeps a snapshot
     of their values, and other backends hold their addresses.
-    Every parameter of `module` must already be on `device`, since the backends build on that device and leave the
-    module there.
+    Every parameter and buffer of `module` must already be on `device`, since the backends build on that device and
+    leave the module there.
 
-    When no backend of `strategy` runs a shape, the call still returns the module output.
-    The error is logged, and later calls with that shape run `module` without a backend.
+    When no backend of `strategy` runs a shape, or its backend fails to activate again, the call still returns
+    the module output. The error is logged, and later calls with that shape run `module` without a backend.
+    So do calls whose inputs cannot be copied, and calls with a non-tensor input that cannot be hashed.
     Any other error from tuning reaches the caller, and the next call with that shape tunes again.
 
     Not thread safe: call it from one thread at a time.
@@ -86,25 +100,30 @@ class OnlineTunedModule:
         """Initializes module.
 
         Args:
-            module: Module with all its parameters on `device`.
+            module: Module with all its parameters and buffers on `device`.
             name: Names the cache directory of the tuned graphs.
             strategy: Tunes each new shape. Defaults to `borrowed_module_strategy(device)`.
                 Its backends must leave `module` and its weights on `device`.
                 `OpenVINOBackendConfig(offload_module=False)` and `TorchAOBackendConfig(offload_module=False)`
                 do that.
-                A call that tunes and finds a parameter moved off `device` raises `ValueError`.
+                A call that tunes and finds a parameter or buffer moved off `device` raises `ValueError`.
             device: Device to tune and run on. Defaults to the device of the module parameters.
         """
         self._module = module
         self._name = sanitize_model_name(name)
         self._device = device or get_module_device(module)
+        if self._device is None:
+            raise ValueError("Pass `device` for a module without parameters.")
         misplaced = _misplaced(module, self._device)
         if misplaced:
-            raise ValueError(f"Every parameter must be on {self._device} before tuning. Not on it: {misplaced[:3]}")
+            raise ValueError(
+                f"Every parameter and buffer must be on {self._device} before tuning. Not on it: {misplaced[:3]}"
+            )
         self._strategy = strategy or borrowed_module_strategy(self._device)
         self._backends: dict[Hashable, Backend] = {}
         self._active: Backend | None = None
         self._failed: set[Hashable] = set()
+        self._warned_unkeyed: set[tuple[type, str]] = set()
 
     @property
     def backends(self) -> dict[Hashable, Backend]:
@@ -113,27 +132,44 @@ class OnlineTunedModule:
 
     def __call__(self, *args: Any, **kwargs: Any) -> Any:
         """Runs the backend tuned for these shapes, tuning them first if they are new."""
-        metadata = SampleMetadata.from_inputs(args, kwargs, strict=True)
-        key = (metadata, tuple((tuple(spec.shape), spec.dtype) for spec in metadata.tensor_specs))
-        backend = self._backends.get(key)
+        try:
+            inputs = SampleMetadata.from_inputs(args, kwargs, strict=True)
+            key = _shapes_key(inputs)
+            backend = self._backends.get(key)
+        except TypeError as error:
+            error_kind = (type(error), str(error))
+            if error_kind not in self._warned_unkeyed:
+                logger.warning(
+                    "Cannot key a call to %s by its inputs. Such calls run the module without a backend.",
+                    self._name,
+                    exc_info=True,
+                )
+                self._warned_unkeyed.add(error_kind)
+            return self._module(*args, **kwargs)
         if backend is not None:
             if backend is not self._active:
                 self._deactivate_active()
-                backend.activate()
+                try:
+                    backend.activate()
+                except Exception:
+                    del self._backends[key]
+                    self._mark_failed(key, "Activating the backend")
+                    return self._module(*args, **kwargs)
                 self._active = backend
             return backend.infer(*args, **kwargs)
         if key in self._failed:
             return self._module(*args, **kwargs)
-        sample = deepcopy((args, kwargs))
+        try:
+            sample = deepcopy((args, kwargs))
+        except Exception:
+            self._mark_failed(key, "Copying the inputs")
+            return self._module(*args, **kwargs)
         output = self._module(*args, **kwargs)
         self._deactivate_active()
         try:
-            # A strategy can update the shapes of the spec it gets, so the dict key must not be that object.
-            inputs = SampleMetadata.from_inputs(*sample, strict=True)
             backend = self._tune(sample, inputs, SampleMetadata.from_outputs(output, strict=True))
         except NoCorrectBackendError:
-            logger.warning("No backend runs %s for this shape. It runs without a backend.", self._name, exc_info=True)
-            self._failed.add(key)
+            self._mark_failed(key, "Every backend")
         else:
             self._active = self._backends[key] = backend
         return output
@@ -143,6 +179,12 @@ class OnlineTunedModule:
         self._deactivate_active()
         self._backends.clear()
         self._failed.clear()
+
+    def _mark_failed(self, key: Hashable, step: str) -> None:
+        logger.warning(
+            "%s failed for %s. This shape runs the module without a backend.", step, self._name, exc_info=True
+        )
+        self._failed.add(key)
 
     def _deactivate_active(self) -> None:
         if self._active is not None:
@@ -158,7 +200,7 @@ class OnlineTunedModule:
         if misplaced:
             backend.deactivate()
             raise ValueError(
-                f"Tuning moved parameters off {self._device}: {misplaced[:3]}."
+                f"Tuning moved parameters or buffers off {self._device}: {misplaced[:3]}."
                 " Every backend of the strategy must leave the module on its device."
             )
         return backend

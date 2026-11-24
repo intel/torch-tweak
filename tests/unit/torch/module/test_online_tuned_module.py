@@ -2,6 +2,9 @@
 # SPDX-License-Identifier: Apache-2.0
 """Tests for OnlineTunedModule."""
 
+import threading
+
+import numpy as np
 import pytest
 import torch
 
@@ -150,6 +153,72 @@ def test_same_shape_in_a_keyword_is_tuned_apart_from_a_positional_one():
     assert len(online.backends) == 2
 
 
+class Decoder(torch.nn.Module):
+    """Takes `cache_position`, which makes `SampleMetadata` compare only the LLM phase."""
+
+    def forward(self, x, cache_position, flag=False):
+        return x
+
+
+def test_llm_prefill_and_decode_of_one_shape_are_tuned_apart():
+    online = OnlineTunedModule(Decoder(), "decoder", strategy=sleep_strategy(), device=torch.device("cpu"))
+
+    online(torch.ones(1, 2), cache_position=torch.tensor([0]))
+    online(torch.ones(1, 2), cache_position=torch.tensor([3]))
+
+    assert len(online.backends) == 2
+
+
+def test_llm_calls_with_another_non_tensor_value_are_tuned_apart():
+    online = OnlineTunedModule(Decoder(), "decoder", strategy=sleep_strategy(), device=torch.device("cpu"))
+
+    online(torch.ones(1, 2), cache_position=torch.tensor([0]), flag=False)
+    online(torch.ones(1, 2), cache_position=torch.tensor([0]), flag=True)
+
+    assert len(online.backends) == 2
+
+
+def test_llm_calls_with_a_tensor_in_another_argument_are_tuned_apart():
+    online = OnlineTunedModule(Decoder(), "decoder", strategy=sleep_strategy(), device=torch.device("cpu"))
+
+    online(torch.ones(1, 2), cache_position=torch.tensor([0]))
+    online(x=torch.ones(1, 2), cache_position=torch.tensor([0]))
+
+    assert len(online.backends) == 2
+
+
+class WithOption(torch.nn.Module):
+    def forward(self, x, option=None):
+        return 2 * x
+
+
+def test_call_with_an_unhashable_input_returns_the_module_output():
+    online = OnlineTunedModule(WithOption(), "option", strategy=sleep_strategy(), device=torch.device("cpu"))
+
+    actual = online(torch.tensor([1.0, 3.0]), option=np.zeros(1))
+
+    torch.testing.assert_close(actual, torch.tensor([2.0, 6.0]))
+
+
+def test_unkeyable_calls_warn_once_per_kind_of_error(caplog):
+    online = OnlineTunedModule(WithOption(), "option", strategy=sleep_strategy(), device=torch.device("cpu"))
+    x = torch.tensor([1.0, 3.0])
+
+    online(x, option=np.zeros(1))
+    online(x, option=np.zeros(2))
+    online(x, option={1})
+
+    assert caplog.text.count("Cannot key a call") == 2
+
+
+def test_call_with_an_uncopyable_input_returns_the_module_output():
+    online = OnlineTunedModule(WithOption(), "option", strategy=sleep_strategy(), device=torch.device("cpu"))
+
+    actual = online(torch.tensor([1.0, 3.0]), option=threading.Lock())
+
+    torch.testing.assert_close(actual, torch.tensor([2.0, 6.0]))
+
+
 def test_failed_tuning_still_returns_the_module_output():
     strategy = sleep_strategy(backends=[BuildFailsBackend(RuntimeError)])
     online = OnlineTunedModule(doubling(), "doubling", strategy=strategy)
@@ -191,6 +260,42 @@ def test_tuning_error_outside_the_backends_reaches_the_caller(monkeypatch):
         online(torch.tensor([[1.0, 3.0]]))
 
 
+class ActivationFailsBackend(SleepBackend):
+    """Fails to activate once `fails` is set, as a recompile can when the device runs out of memory."""
+
+    fails = False
+
+    def _activate(self):
+        if self.fails:
+            raise RuntimeError("activation failed")
+
+
+def test_failed_activation_returns_the_module_output():
+    strategy = sleep_strategy(backends=[ActivationFailsBackend()])
+    online = OnlineTunedModule(doubling(), "doubling", strategy=strategy)
+    online(torch.tensor([[1.0, 3.0]]))
+    online(torch.tensor([[1.0, 3.0], [5.0, 7.0]]))
+    first, _ = online.backends.values()
+    first.fails = True
+
+    actual = online(torch.tensor([[4.0, 5.0]]))
+
+    torch.testing.assert_close(actual, torch.tensor([[8.0, 10.0]]))
+
+
+def test_backend_that_fails_to_activate_is_dropped():
+    strategy = sleep_strategy(backends=[ActivationFailsBackend()])
+    online = OnlineTunedModule(doubling(), "doubling", strategy=strategy)
+    online(torch.tensor([[1.0, 3.0]]))
+    online(torch.tensor([[1.0, 3.0], [5.0, 7.0]]))
+    first, second = online.backends.values()
+    first.fails = True
+
+    online(torch.tensor([[4.0, 5.0]]))
+
+    assert list(online.backends.values()) == [second]
+
+
 @requires_leo
 def test_default_strategy_leaves_the_weights_where_they_are():
     module = doubling().to("xpu")
@@ -223,8 +328,21 @@ def test_module_with_a_weight_on_another_device_is_rejected():
 def test_tuning_that_moves_the_weights_is_rejected():
     online = OnlineTunedModule(doubling(), "doubling", strategy=OneBackendStrategy(OffloadingBackend()))
 
-    with pytest.raises(ValueError, match=r"Tuning moved parameters off cpu: \['weight'\]"):
+    with pytest.raises(ValueError, match=r"Tuning moved parameters or buffers off cpu: \['weight'\]"):
         online(torch.tensor([[1.0, 3.0]]))
+
+
+def test_module_with_a_buffer_on_another_device_is_rejected():
+    module = doubling()
+    module.register_buffer("scale", torch.ones(2, device="meta"))
+
+    with pytest.raises(ValueError, match="scale"):
+        OnlineTunedModule(module, "doubling", strategy=sleep_strategy())
+
+
+def test_module_without_parameters_needs_a_device():
+    with pytest.raises(ValueError, match="device"):
+        OnlineTunedModule(torch.nn.ReLU(), "relu", strategy=sleep_strategy())
 
 
 def test_instances_with_one_name_use_separate_graph_directories(torch_tweak_cache_dir):
