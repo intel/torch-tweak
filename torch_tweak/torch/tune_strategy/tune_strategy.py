@@ -174,7 +174,7 @@ class TuneStrategy(ABC):
         ...
 
     def candidate_backends(self, device: torch.device) -> list[Backend]:
-        """The unbuilt backends this strategy chooses from on `device`. Empty when it does not choose among backends."""
+        """The unbuilt backends this strategy chooses from on `device`. Empty when they are unknown before tuning."""
         return []
 
     @staticmethod

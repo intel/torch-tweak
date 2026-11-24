@@ -235,20 +235,25 @@ class OnlineTunedModule:
         backend = self._strategy.tune(self._module, self._name, graph_spec, [sample], self._device, graph_dir)
         self._raise_if_moved(backend)
         if published is not None:
-            _publish(graph_dir / backend.key(), backend.key(), published)
+            try:
+                _publish(graph_dir / backend.key(), backend.key(), published)
+            except OSError:
+                logger.warning("Publishing %s to %s failed", backend.describe(), published, exc_info=True)
         return backend
 
     def _published_dir(self, key: Hashable) -> Path | None:
-        """The directory shared by every process for these weights and shapes, or None when `key` has no stable name.
+        """The directory shared by every process for these weights, shapes, device and strategy.
 
-        A non-tensor value other than a primitive has no `repr` that names it across processes.
+        None when `key` has no stable name: a non-tensor value other than a primitive has no `repr` that names it
+        across processes.
         """
         _, _, other_data = key
         if any(type(value) not in CHECKPOINTABLE_VALUE_TYPES for _, _, value in other_data):
             return None
         if self._weights_fingerprint is None:
             self._weights_fingerprint = weights_fingerprint(self._module)
-        digest = hashlib.sha256(repr(key).encode()).hexdigest()[:16]
+        name = repr((self._device.type, self._strategy.describe(), key))
+        digest = hashlib.sha256(name.encode()).hexdigest()[:16]
         return torch_tweak_cache_dir() / self._name / self._weights_fingerprint / digest
 
     def _restore(

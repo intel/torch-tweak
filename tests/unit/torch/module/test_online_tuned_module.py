@@ -441,18 +441,66 @@ def test_published_selection_outlives_the_instance(tmp_path):
     assert [path.read_text() for path in (tmp_path / "doubling").glob("*/*/selected_backend.txt")] == ["SleepBackend"]
 
 
+def test_tuning_leaves_an_existing_published_directory_unchanged(tmp_path):
+    OnlineTunedModule(doubling(), "doubling", strategy=sleep_strategy())(torch.tensor([[1.0, 3.0]]))
+    [selected] = (tmp_path / "doubling").glob("*/*/selected_backend.txt")
+    selected.unlink()
+    published = sorted(path.relative_to(tmp_path) for path in selected.parent.rglob("*"))
+    strategy = sleep_strategy()
+
+    OnlineTunedModule(doubling(), "doubling", strategy=strategy)(torch.tensor([[1.0, 3.0]]))
+
+    actual = sorted(path.relative_to(tmp_path) for path in selected.parent.rglob("*"))
+    assert (strategy.tune_calls, actual) == (1, published)
+
+
+@pytest.fixture
+def writable_after_test(tmp_path):
+    yield
+    (tmp_path / "doubling").chmod(0o700)
+
+
+def test_module_that_cannot_publish_keeps_the_tuned_backend(writable_after_test, tmp_path):
+    online = OnlineTunedModule(doubling(), "doubling", strategy=sleep_strategy())
+    (tmp_path / "doubling").chmod(0o500)
+
+    online(torch.tensor([[1.0, 3.0]]))
+
+    assert [type(backend) for backend in online.backends.values()] == [SleepBackend]
+
+
 class OtherSleepBackend(SleepBackend):
     pass
 
 
-def test_first_published_selection_is_kept(tmp_path):
+def test_a_later_module_with_another_strategy_tunes_again():
     OnlineTunedModule(doubling(), "doubling", strategy=sleep_strategy())(torch.tensor([[1.0, 3.0]]))
-    strategy = OneBackendStrategy(OtherSleepBackend())
-    strategy.enable_find_max_batch_size(False)
+    strategy = sleep_strategy([SleepBackend(), OtherSleepBackend()])
 
     OnlineTunedModule(doubling(), "doubling", strategy=strategy)(torch.tensor([[1.0, 3.0]]))
 
-    assert [path.read_text() for path in (tmp_path / "doubling").glob("*/*/selected_backend.txt")] == ["SleepBackend"]
+    assert strategy.tune_calls == 1
+
+
+@requires_xpu
+def test_a_later_module_on_another_device_type_tunes_again():
+    OnlineTunedModule(doubling(), "doubling", strategy=sleep_strategy())(torch.tensor([[1.0, 3.0]]))
+    strategy = sleep_strategy()
+
+    OnlineTunedModule(doubling().to("xpu"), "doubling", strategy=strategy)(torch.tensor([[1.0, 3.0]], device="xpu"))
+
+    assert strategy.tune_calls == 1
+
+
+def test_a_later_module_with_one_backend_strategy_restores_the_selection(caplog):
+    strategy = OneBackendStrategy(SleepBackend())
+    strategy.enable_find_max_batch_size(False)
+    OnlineTunedModule(doubling(), "doubling", strategy=strategy)(torch.tensor([[1.0, 3.0]]))
+    caplog.clear()
+
+    OnlineTunedModule(doubling(), "doubling", strategy=strategy)(torch.tensor([[1.0, 3.0]]))
+
+    assert "Executing strategy" not in caplog.text
 
 
 def test_call_with_a_non_primitive_value_is_not_published(tmp_path):
@@ -464,7 +512,7 @@ def test_call_with_a_non_primitive_value_is_not_published(tmp_path):
 
 
 class RestoreFailsBackend(BuildFailsBackend):
-    """Has the key of `SleepBackend`, so it restores what a `SleepBackend` published, and fails to build."""
+    """Has the key and description of `SleepBackend`, so it restores what a `SleepBackend` published, and fails to build."""
 
     def key(self) -> str:
         return "SleepBackend"
@@ -480,7 +528,7 @@ def test_published_selection_that_fails_to_restore_is_removed(tmp_path):
 
 
 class RestoreOffloadsBackend(OffloadingBackend):
-    """Has the key of `SleepBackend`, so it restores what a `SleepBackend` published, and moves the module."""
+    """Has the key and description of `SleepBackend`, so it restores what a `SleepBackend` published, and moves the module."""
 
     def key(self) -> str:
         return "SleepBackend"

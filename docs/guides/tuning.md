@@ -247,8 +247,9 @@ All its parameters and buffers must already be on the device.
 Call `reset()` after the owner changes the weights in any way: moves them, replaces them, or patches their values in place. A backend serves the weights it was built on.
 
 Each instance tunes in a private directory under `<cache dir>/<name>/`, which `reset()` and the end of the process remove.
-The selected backend is then published once to `<cache dir>/<name>/<weights fingerprint>/<shapes digest>/` and never changes there.
-A later process with the same weights builds that backend without tuning.
+The selected backend is then published once to `<cache dir>/<name>/<weights fingerprint>/<digest>/` and never changes there.
+The digest covers the shapes, the device type and the strategy description.
+A later process with the same weights, device type and strategy builds that backend without tuning.
 OpenVINO compiles the IR published there instead of converting the module again.
 
 ## Dry Run Mode
