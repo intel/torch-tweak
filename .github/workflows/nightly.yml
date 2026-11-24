@@ -37,7 +37,7 @@ jobs:
         with:
           scan-type: fs
           scan-ref: .
-          scanners: vuln,secret
+          scanners: secret
           format: json
           output: ${{ runner.temp }}/trivy-filesystem.json
           exit-code: "0"
@@ -46,7 +46,7 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
         with:
-          python-version: "3.12"
+          python-version: "3.14"
 
       - name: Set up uv
         uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2 # v10.3.3
@@ -57,7 +57,7 @@ jobs:
           uv pip compile --extra xpu pyproject.toml \
             -o "$RUNNER_TEMP/tt-sca/requirements.txt"
 
-      - name: Scan resolved dependencies with Trivy
+      - name: Scan resolved dependencies
         id: trivy-dependencies
         uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
         with:
