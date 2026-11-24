@@ -2,6 +2,7 @@
 # SPDX-License-Identifier: Apache-2.0
 """Tests for OnlineTunedModule."""
 
+import errno
 import gc
 import threading
 
@@ -468,7 +469,7 @@ def test_reset_removes_the_private_graphs(tmp_path):
 
     online.reset()
 
-    assert list((tmp_path / "doubling").glob("private-*/*")) == []
+    assert [path.name for path in (tmp_path / "doubling").glob("private-*/*")] == [".lock"]
 
 
 def test_collected_instance_removes_its_private_directory(tmp_path):
@@ -479,6 +480,57 @@ def test_collected_instance_removes_its_private_directory(tmp_path):
     gc.collect()
 
     assert list((tmp_path / "doubling").glob("private-*")) == []
+
+
+def test_new_instance_removes_an_unlocked_private_directory(tmp_path):
+    abandoned = tmp_path / "doubling" / "private-abandoned"
+    abandoned.mkdir(parents=True)
+    (abandoned / ".lock").touch()
+
+    OnlineTunedModule(doubling(), "doubling", strategy=sleep_strategy())
+
+    assert not abandoned.exists()
+
+
+def test_new_instance_keeps_the_private_directory_of_a_live_instance(tmp_path):
+    _first = OnlineTunedModule(doubling(), "doubling", strategy=sleep_strategy())
+
+    _second = OnlineTunedModule(doubling(), "doubling", strategy=sleep_strategy())
+
+    assert len(list((tmp_path / "doubling").glob("private-*"))) == 2
+
+
+def test_new_instance_keeps_a_private_directory_without_a_lock_file(tmp_path):
+    unlocked = tmp_path / "doubling" / "private-unlocked"
+    unlocked.mkdir(parents=True)
+
+    OnlineTunedModule(doubling(), "doubling", strategy=sleep_strategy())
+
+    assert unlocked.exists()
+
+
+def test_new_instance_without_fcntl_keeps_an_unlocked_private_directory(tmp_path, monkeypatch):
+    monkeypatch.setattr(online_tuned_module, "fcntl", None)
+    abandoned = tmp_path / "doubling" / "private-abandoned"
+    abandoned.mkdir(parents=True)
+    (abandoned / ".lock").touch()
+
+    OnlineTunedModule(doubling(), "doubling", strategy=sleep_strategy())
+
+    assert abandoned.exists()
+
+
+def unsupported_flock(descriptor, operation):
+    raise OSError(errno.ENOSYS, "Function not implemented")
+
+
+def test_instance_runs_on_a_file_system_without_flock(monkeypatch):
+    monkeypatch.setattr(online_tuned_module.fcntl, "flock", unsupported_flock)
+    online = OnlineTunedModule(doubling(), "doubling", strategy=sleep_strategy())
+
+    actual = online(torch.tensor([[1.0, 3.0]]))
+
+    torch.testing.assert_close(actual, torch.tensor([[2.0, 6.0]]))
 
 
 def test_published_selection_outlives_the_instance(tmp_path):
