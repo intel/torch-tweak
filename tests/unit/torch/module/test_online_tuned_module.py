@@ -11,7 +11,7 @@ import torch
 
 from tests.toy_backends import BuildFailsBackend, OffloadingBackend, SleepBackend
 from tests.utilities.helpers import requires_leo, requires_xpu
-from torch_tweak.torch import HighestThroughputStrategy, OneBackendStrategy, OnlineTunedModule
+from torch_tweak.torch import FirstWinsStrategy, HighestThroughputStrategy, OneBackendStrategy, OnlineTunedModule
 from torch_tweak.torch.backend.openvino import OpenVINOBackend, OpenVINOBackendConfig
 from torch_tweak.torch.backend.torchao_backend import TorchAOBackend, TorchAOBackendConfig
 from torch_tweak.torch.module import online_tuned_module
@@ -136,6 +136,35 @@ def test_restored_backend_returns_the_module_output():
     actual = later(torch.tensor([[4.0, 5.0]]))
 
     torch.testing.assert_close(actual, torch.tensor([[8.0, 10.0]]))
+
+
+def test_every_shape_of_a_later_module_is_restored():
+    first = OnlineTunedModule(doubling(), "doubling", strategy=sleep_strategy())
+    first(torch.tensor([[1.0, 3.0]]))
+    first(torch.tensor([[1.0, 3.0], [5.0, 7.0]]))
+    strategy = sleep_strategy()
+    later = OnlineTunedModule(doubling(), "doubling", strategy=strategy)
+
+    later(torch.tensor([[1.0, 3.0]]))
+    later(torch.tensor([[1.0, 3.0], [5.0, 7.0]]))
+
+    assert (strategy.tune_calls, len(later.backends)) == (0, 2)
+
+
+def first_wins_strategy() -> FirstWinsStrategy:
+    strategy = FirstWinsStrategy(backends=[SleepBackend()])
+    strategy.enable_find_max_batch_size(False)
+    strategy.enable_correctness_check(False)
+    return strategy
+
+
+def test_a_later_module_restores_the_selection_of_first_wins_strategy(caplog):
+    OnlineTunedModule(doubling(), "doubling", strategy=first_wins_strategy())(torch.tensor([[1.0, 3.0]]))
+    caplog.clear()
+
+    OnlineTunedModule(doubling(), "doubling", strategy=first_wins_strategy())(torch.tensor([[1.0, 3.0]]))
+
+    assert "Executing strategy" not in caplog.text
 
 
 def test_a_later_module_with_other_weights_tunes_again():

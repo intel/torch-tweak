@@ -392,6 +392,28 @@ def test_openvino_backend_with_reuse_ir_compiles_the_ir_already_in_its_directory
     torch.testing.assert_close(actual.cpu(), torch.tensor([[2.0, 4.0]]))
 
 
+def test_openvino_backend_without_reuse_ir_converts_the_module_again(tmp_path, torch_device):
+    sample = ((torch.tensor([[1.0, 2.0]], device=torch_device),), {})
+    backend_build(OpenVINOBackend(), _scaling(2.0), [sample], tmp_path, torch_device)
+    backend = backend_build(OpenVINOBackend(), _scaling(3.0), [sample], tmp_path, torch_device)
+
+    actual = backend.infer(*sample[0])
+
+    torch.testing.assert_close(actual.cpu(), torch.tensor([[3.0, 6.0]]))
+
+
+def test_openvino_backend_with_reuse_ir_converts_when_the_ir_misses_its_weights(tmp_path, torch_device):
+    sample = ((torch.tensor([[1.0, 2.0]], device=torch_device),), {})
+    config = OpenVINOBackendConfig(reuse_ir=True)
+    backend_build(OpenVINOBackend(config), _scaling(2.0), [sample], tmp_path, torch_device)
+    (tmp_path / "openvino" / OV_MODEL_BIN_NAME).unlink()
+    backend = backend_build(OpenVINOBackend(config), _scaling(3.0), [sample], tmp_path, torch_device)
+
+    actual = backend.infer(*sample[0])
+
+    torch.testing.assert_close(actual.cpu(), torch.tensor([[3.0, 6.0]]))
+
+
 def test_openvino_backend_serialization(model, sample_data, tmp_path, torch_device):
     backend = backend_build(
         OpenVINOBackend(OpenVINOBackendConfig(use_dynamo=False)), model, sample_data, tmp_path, torch_device
