@@ -112,6 +112,7 @@ class HighestThroughputStrategy(TuneStrategyFindMaxBatchSizeExtension):
         data: list[Sample],
         device: torch.device,
         cache_dir: Path,
+        reference_outputs: list[Any] | None,
     ) -> Backend:
         """Tunes given torch module with provided graph_spec and data."""
         log(
@@ -148,7 +149,7 @@ class HighestThroughputStrategy(TuneStrategyFindMaxBatchSizeExtension):
                         backend = deepcopy(backend)
                         backend.build(module, graph_spec, deepcopy(data), device, backend_cache_dir)
                     log("✅ backend built", depth=2, sink=self._sink)
-                    self.check_correctness(backend, name, graph_spec, data)
+                    self.check_correctness(backend, name, graph_spec, data, reference_outputs)
                     log("✅ backend validated", depth=2, sink=self._sink)
                     batch_size, throughput, throughput_per_batch_size = calculate_highest_throughput_for_backend(
                         backend, name, graph_spec, data, self._get_profiling_config(batching, max_batch_size)

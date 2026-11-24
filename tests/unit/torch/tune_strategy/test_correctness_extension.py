@@ -4,6 +4,7 @@
 
 # NOTE: This file has been modified by Intel Corporation.
 from pathlib import Path
+from typing import Any
 
 import pytest
 import torch
@@ -27,10 +28,11 @@ class TuneStrategyTestCorrectness(TuneStrategy):
         data: list[Sample],
         device: torch.device,
         cache_dir: Path,
+        reference_outputs: list[Any] | None,
     ):
         backend = TorchEagerBackend()
         backend = backend.build(module, graph_spec, data, device, cache_dir)
-        self.check_correctness(backend, name, graph_spec, data)
+        self.check_correctness(backend, name, graph_spec, data, reference_outputs)
         return backend
 
     def _describe_parts(self) -> list[str]:
@@ -69,7 +71,7 @@ def test_correctness_is_idempotent():
     data = [((cache,), {"cache": cache})]
     input_spec = output_spec = SampleMetadata.from_inputs((), {})
     graph_spec = GraphSpec(name="test_model", input_spec=input_spec, output_spec=output_spec)
-    strategy.check_correctness(MockBackend(), "test_model", graph_spec, data)  # type: ignore
+    strategy.check_correctness(MockBackend(), "test_model", graph_spec, data, None)  # type: ignore
     assert len(cache) == 0, "cache should be empty"
 
 

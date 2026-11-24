@@ -291,6 +291,7 @@ If you would like to write a custom strategy, extend the `TuneStrategy` class an
         data: list[Sample],
         device: torch.device,
         cache_dir: Path,
+        reference_outputs: list[Any] | None,
     ) -> Backend:
         """Tunes given torch module with provided graph_spec and data.
 
@@ -305,6 +306,10 @@ If you would like to write a custom strategy, extend the `TuneStrategy` class an
         """
         ...
 ```
+
+Call `self.check_correctness(backend, name, graph_spec, data, reference_outputs)` on every backend you consider.
+`reference_outputs` holds the module outputs for each sample of `data`. It is `None` when the correctness check is
+disabled, or when the module gives different outputs for the same inputs.
 
 If needed, you can also extend the`_pre_tune` and `_post_tune` methods, which are invoked before and after the `_tune`.
 

@@ -38,6 +38,7 @@ SPDX-License-Identifier: Apache-2.0
   `Backend.output_tolerance` allows more. TorchAO allows 0.25.
   OpenVINO allows the tolerance of the precision it computes in, float16 for float32 models on a GPU.
   A module whose outputs change between calls with the same inputs is not compared with the backends, and a warning says so.
+  A custom `TuneStrategy._tune` takes a `reference_outputs` argument and passes it to `check_correctness`.
 
 ## 0.4.1
 

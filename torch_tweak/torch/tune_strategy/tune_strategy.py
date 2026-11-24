@@ -56,7 +56,6 @@ class TuneStrategy(ABC):
         """
         self._sink = sink or self._logger.info
         self._enable_correctness_check = True
-        self._module_outputs: list[Any] | None = None
         self._system_monitor = SystemMonitor()
 
     def tune_dry_run(
@@ -86,29 +85,36 @@ class TuneStrategy(ABC):
     ) -> Backend:
         """Tunes given torch module with provided graph_spec and data."""
         self._describe(module, name, graph_spec, data, device, cache_dir)
-        try:
-            with Timer(name=f"Tune `{self.__class__.__name__}`", sink=self._sink):
-                # The exception of a failed earlier tune holds its memory until the caller has handled it.
-                # `TunableModule.tune` deactivates the backends it already selected before calling `tune`.
-                release_device_memory(device, self._sink)
-                if self._enable_correctness_check:
-                    # Taken once, before a backend build moves the module off `device`.
-                    self._module_outputs = self._reference_outputs(module, name, data, device)
-                self._pre_tune(module, name, graph_spec, data, device, cache_dir)
-                backend = self._tune(module, name, graph_spec, data, device, cache_dir)
-                self._post_tune(backend, name, graph_spec, data)
-                return backend
-        finally:
-            self._module_outputs = None
+        with Timer(name=f"Tune `{self.__class__.__name__}`", sink=self._sink):
+            # The exception of a failed earlier tune holds its memory until the caller has handled it.
+            # `TunableModule.tune` deactivates the backends it already selected before calling `tune`.
+            release_device_memory(device, self._sink)
+            # Taken once, before a backend build moves the module off `device`.
+            reference_outputs = (
+                self._reference_outputs(module, name, data, device) if self._enable_correctness_check else None
+            )
+            self._pre_tune(module, name, graph_spec, data, device, cache_dir)
+            backend = self._tune(module, name, graph_spec, data, device, cache_dir, reference_outputs)
+            self._post_tune(backend, name, graph_spec, data)
+            return backend
 
-    def check_correctness(self, backend: Backend, name: str, graph_spec: GraphSpec, data: list[Sample]):
-        """Check outputs for NaN/inf, their shapes, and, during `tune`, their values against the module outputs.
+    def check_correctness(
+        self,
+        backend: Backend,
+        name: str,
+        graph_spec: GraphSpec,
+        data: list[Sample],
+        reference_outputs: list[Any] | None,
+    ):
+        """Check outputs for NaN/inf, their shapes, and their values against the module outputs.
 
         Args:
             backend: The backend to check.
             name: The name of the module.
             graph_spec: The graph spec of the module.
-            data: The samples given to `tune`, in the same order.
+            data: The samples given to `tune`.
+            reference_outputs: The module outputs for each sample of `data`, in the same order, as `_tune` receives
+                them. None skips the comparison with the module.
 
         Note:
             This method is should be called by the _tune method to check the correctness of the backend.
@@ -134,9 +140,9 @@ class TuneStrategy(ABC):
                 check_output_correctness(outputs, name=output_name)
                 outputs_metadata = SampleMetadata.from_outputs(outputs)
                 check_output_tensor_shapes(graph_spec.output_spec.tensor_specs, outputs_metadata.tensor_specs)
-                if self._module_outputs is not None:
+                if reference_outputs is not None:
                     check_outputs_match(
-                        self._module_outputs[index],
+                        reference_outputs[index],
                         outputs,
                         tolerance_floor=backend.output_tolerance,
                         name=output_name,
@@ -201,6 +207,7 @@ class TuneStrategy(ABC):
         data: list[Sample],
         device: torch.device,
         cache_dir: Path,
+        reference_outputs: list[Any] | None,
     ) -> Backend:
         """Tunes given torch module with provided graph_spec and data.
 
@@ -318,6 +325,7 @@ class DummyTuneStrategy(TuneStrategy):
         data: list[Sample],
         device: torch.device,
         cache_dir: Path,
+        reference_outputs: list[Any] | None,
     ):
         """Tunes given torch module with provided graph_spec and data."""
         return DummyBackend()

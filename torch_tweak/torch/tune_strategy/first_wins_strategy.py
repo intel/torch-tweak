@@ -8,6 +8,7 @@
 from collections.abc import Iterable
 from copy import deepcopy
 from pathlib import Path
+from typing import Any
 
 import torch
 import torch.nn as nn
@@ -42,6 +43,7 @@ class FirstWinsStrategy(TuneStrategyFindMaxBatchSizeExtension):
         data: list[Sample],
         device: torch.device,
         cache_dir: Path,
+        reference_outputs: list[Any] | None,
     ) -> Backend:
         """Tunes given torch module with provided graph_spec and data."""
         selected_backend = None
@@ -67,7 +69,7 @@ class FirstWinsStrategy(TuneStrategyFindMaxBatchSizeExtension):
                         backend = deepcopy(backend)
                         backend = backend.build(module, graph_spec, deepcopy(data), device, backend_cache_dir)
                     log("✅ backend built", depth=2, sink=self._sink)
-                    self.check_correctness(backend, name, graph_spec, data)
+                    self.check_correctness(backend, name, graph_spec, data, reference_outputs)
                     log("✅ backend validated", depth=2, sink=self._sink)
                     selected_backend = backend
                     break
