@@ -254,4 +254,4 @@ def test_check_outputs_match_takes_the_tolerance_of_each_tensor_from_its_own_mag
 
 
 def test_check_outputs_match_does_not_compare_values_that_are_not_tensors_or_scalars():
-    check_outputs_match({"y": torch.zeros(2), "mask": None}, {"y": torch.zeros(2), "mask": None})
+    check_outputs_match({"y": torch.zeros(2), "state": object()}, {"y": torch.zeros(2), "state": object()})

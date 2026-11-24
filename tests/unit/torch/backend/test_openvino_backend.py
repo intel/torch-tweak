@@ -1139,6 +1139,10 @@ def test_float32_model_on_xpu_reports_the_float16_tolerance_it_computes_in(tmp_p
     assert backend.output_tolerance == pytest.approx(0.03125)
 
 
+@pytest.mark.skipif(
+    ov.Core().get_property("CPU", "INFERENCE_PRECISION_HINT") != ov.Type.f32,
+    reason="OpenVINO computes float32 models in a lower precision on this CPU, such as bfloat16 with AMX",
+)
 def test_float32_model_on_cpu_reports_the_float32_tolerance(tmp_path):
     x = torch.ones(1, 2)
 
