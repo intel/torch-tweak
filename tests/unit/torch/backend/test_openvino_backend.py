@@ -810,6 +810,7 @@ def test_dynamo_converter_handles_positional_only_mixed_with_kwarg(tmp_path, tor
     the positional-only entry leaves ``{"b": ...}`` and export rejects it outright. Inference then
     runs at batch size 2, which was never recorded, so the batch axis must have stayed dynamic.
     """
+    torch.manual_seed(0)
     model = _PositionalOnlyModel().to(torch_device).eval()
     graph_spec, samples = _graph_spec_over_batch_sizes(model, [1, 8], device=torch_device, b_as_kwarg=True)
 
