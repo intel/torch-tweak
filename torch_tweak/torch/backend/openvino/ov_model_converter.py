@@ -51,7 +51,7 @@ class OpenVINOModelConverter:
         logger.info("Converting PyTorch module to OpenVINO IR: %s", xml_path)
         try:
             args, kwargs = _prepare_sample(sample, graph_spec.input_spec)
-            with _constants_do_not_share_temporary_copies():
+            with _constants_do_not_share_temporary_copies(), _root_logger_kept():
                 if self.use_dynamo:
                     ov_model, ordered_kwarg_names = self._convert_dynamo(module, args, kwargs, graph_spec)
                     ordered_input_names = _ordered_input_names_for_dynamo(graph_spec.input_spec, ordered_kwarg_names)
@@ -103,6 +103,25 @@ class OpenVINOModelConverter:
             example_input=example_input,
             dynamo=False,
         )
+
+
+@contextlib.contextmanager
+def _root_logger_kept() -> Generator[None]:
+    """Restores the level, filters, and handlers of the root logger.
+
+    ``convert_model`` sets the root logger to ``ERROR`` and restores it only when the conversion succeeds.
+
+    Remove this function once the minimum ``openvino`` version includes
+    https://github.com/openvinotoolkit/openvino/pull/40263.
+    """
+    root = logging.getLogger()
+    level, filters, handlers = root.level, list(root.filters), list(root.handlers)
+    try:
+        yield
+    finally:
+        root.setLevel(level)
+        root.filters = filters
+        root.handlers = handlers
 
 
 @contextlib.contextmanager
