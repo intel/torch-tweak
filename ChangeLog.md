@@ -33,11 +33,7 @@ SPDX-License-Identifier: Apache-2.0
   The model covers every weight value, `repr(module)`, and the library and hardware versions.
   `OpenVINOBackendConfig(reuse_ir=True)` compiles the saved IR instead of converting the module again (#88)
 - feat (breaking): the correctness check rejects backends whose outputs differ from the module outputs (#99).
-  A floating point output may differ by the square root of its dtype epsilon, relative to its largest magnitude in the module output.
-  A Python `float` in the output may differ by the tolerance of the default dtype. Other Python scalars must be equal.
-  `Backend.output_tolerance` allows more. TorchAO allows 0.25.
-  OpenVINO allows the tolerance of the precision it computes in, float16 for float32 models on a GPU.
-  A module whose outputs change between calls with the same inputs is not compared with the backends, and a warning says so.
+  `Backend.output_tolerance` sets how far a backend may differ.
   A custom `TuneStrategy._tune` takes a `reference_outputs` argument and passes it to `check_correctness`.
 
 ## 0.4.1
