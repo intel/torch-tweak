@@ -250,12 +250,19 @@ class OnlineTunedModule:
 
         None when `key` has no stable name: a non-tensor value other than a primitive has no `repr` that names it
         across processes.
+        None also when the weights cannot be fingerprinted, such as a sparse buffer, until `reset`.
         """
         _, _, other_data = key
         if any(type(value) not in CHECKPOINTABLE_VALUE_TYPES for _, _, value in other_data):
             return None
         if self._model_key is None:
-            self._model_key = _model_key(self._module)
+            try:
+                self._model_key = _model_key(self._module)
+            except Exception:
+                logger.warning("Cannot fingerprint %s. Its selections are not published.", self._name, exc_info=True)
+                self._model_key = ""
+        if not self._model_key:
+            return None
         name = repr((self._device.type, self._strategy.describe(), key))
         digest = hashlib.sha256(name.encode()).hexdigest()[:16]
         return torch_tweak_cache_dir() / self._name / self._model_key / digest

@@ -532,6 +532,17 @@ def test_call_with_a_non_primitive_value_is_not_published(tmp_path):
     assert list((tmp_path / "option").glob("*/*/selected_backend.txt")) == []
 
 
+def test_module_with_a_sparse_buffer_is_tuned_and_not_published(tmp_path):
+    module = doubling()
+    module.register_buffer("mask", torch.eye(2).to_sparse())
+    online = OnlineTunedModule(module, "sparse", strategy=sleep_strategy())
+
+    online(torch.tensor([[1.0, 3.0]]))
+
+    published = list(tmp_path.glob("sparse/*/*/selected_backend.txt"))
+    assert ([type(backend) for backend in online.backends.values()], published) == ([SleepBackend], [])
+
+
 class RestoreFailsBackend(BuildFailsBackend):
     """Has the key and description of `SleepBackend`, so it restores what a `SleepBackend` published, and fails to build."""
 
