@@ -1,12 +1,18 @@
 name: Deploy docs
 
 # Deploy documentation to GitHub Pages.
+# - push to main: deploys the "main" version.
+# - push of a final release tag (vX.Y.Z): deploys version X.Y.Z.
+#   Release candidates (vX.Y.ZrcN) are not deployed.
+# The version selector offers "main" and every released version.
 # The strict docs build is checked in reusable_checks.yml (per PR).
 
 on:
   workflow_dispatch:
   push:
     branches: [main]
+    tags:
+      - "v[0-9]+.[0-9]+.[0-9]+"
     paths:
       - "torch_tweak/**"
       - "docs/**"
@@ -19,7 +25,8 @@ on:
       - "uv.lock"
       - ".github/workflows/deploy_docs.yml"
 
-# A running deploy is never cancelled; only the newest waiting run is kept, which is fine as each deploys main's HEAD.
+# A running deploy is never cancelled. Only the newest waiting run is kept, which is fine for main (each deploys HEAD).
+# Tag runs share the group, so they are never run concurrently with main deploys (both push to gh-pages).
 concurrency:
   group: docs-deploy
   cancel-in-progress: false
@@ -33,15 +40,33 @@ jobs:
   # mike pushes to gh-pages, so this job needs contents: write.
   deploy-docs:
     name: Deploy docs
-    if: github.ref == 'refs/heads/main'
+    if: github.ref == 'refs/heads/main' || github.ref_type == 'tag'
     runs-on: ubuntu-latest
     permissions:
       contents: write
     steps:
+      - name: Require a final release tag
+        if: github.ref_type == 'tag'
+        env:
+          REF_NAME: ${{ github.ref_name }}
+        run: |
+          if ! printf '%s' "${REF_NAME}" | grep -Eq '^v[0-9]+\.[0-9]+\.[0-9]+$'; then
+            echo "::error::Tag '${REF_NAME}' does not match vX.Y.Z."
+            exit 1
+          fi
+
       - name: Checkout repository
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           fetch-depth: 0
+
+      - name: Require the tagged commit to be on main
+        if: github.ref_type == 'tag'
+        run: |
+          if ! git merge-base --is-ancestor "${GITHUB_SHA}" origin/main; then
+            echo "::error::Tag '${GITHUB_REF_NAME}' points to ${GITHUB_SHA}, which is not on main."
+            exit 1
+          fi
 
       # TODO: Change back to "3.x" once openvino releases 3.15 version
       # ref. https://github.com/openvinotoolkit/openvino/issues/38721
@@ -58,6 +83,13 @@ jobs:
 
       - name: Deploy docs
         env:
+          REF_TYPE: ${{ github.ref_type }}
+          REF_NAME: ${{ github.ref_name }}
           GIT_COMMITTER_NAME: ${{ secrets.GH_BB_DOCKER_USERNAME }}
           GIT_COMMITTER_EMAIL: ${{ secrets.GH_BB_DOCKER_USERNAME }}@users.noreply.github.com
-        run: uv run --no-default-groups --extra doc mike deploy --push main
+        run: |
+          if [ "${REF_TYPE}" = "tag" ]; then
+            uv run --no-default-groups --extra doc mike deploy --push "${REF_NAME#v}"
+          else
+            uv run --no-default-groups --extra doc mike deploy --push main
+          fi
