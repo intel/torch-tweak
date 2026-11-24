@@ -246,6 +246,13 @@ The module stays on its device and keeps its `forward`.
 All its parameters and buffers must already be on the device.
 Call `reset()` after the owner changes the weights in any way: moves them, replaces them, or patches their values in place. A backend serves the weights it was built on.
 
+Each instance tunes in a private directory under `<cache dir>/<name>/`, which `reset()` and the end of the process remove.
+The selected backend is then published once to `<cache dir>/<name>/<model key>/<digest>/` and never changes there.
+The model key covers every weight value, `repr(module)`, and the library and hardware versions.
+The digest covers the shapes, the device type and the strategy description.
+A later process with the same model key, device type and strategy builds that backend without tuning.
+OpenVINO compiles the IR published there instead of converting the module again.
+
 ## Dry Run Mode
 
 You can run tuning in dry-run mode. It records samples of data, detects batch and dynamic axes, and detects graphs of execution but does not call the actual backend to tune. This allows debugging if everything is working as expected.

@@ -4,8 +4,10 @@
 # NOTE: This file has been modified by Intel Corporation.
 """PyTorch module utilities for parameter counting, device management, and memory offloading."""
 
+import hashlib
 import inspect
 from collections.abc import Callable, ValuesView
+from concurrent.futures import ThreadPoolExecutor
 from inspect import Parameter
 from typing import Optional
 
@@ -41,6 +43,39 @@ def format_num_parameters(num: int) -> str:
         return f"{num / 1_000:.1f}K"
     else:
         return f"{num}"
+
+
+FINGERPRINT_THREADS = 4
+
+
+def _values_digest(tensor: torch.Tensor) -> bytes:
+    values = tensor.detach().reshape(-1).contiguous().cpu()
+    return hashlib.sha256(values.view(torch.uint8).numpy()).digest()
+
+
+def weights_fingerprint(module: nn.Module) -> str:
+    """Hashes the name, shape, dtype, and every value of every tensor in `module.state_dict()`.
+
+    The values are hashed in logical order, so the memory layout and the device do not change the fingerprint.
+    `FINGERPRINT_THREADS` threads copy and hash the tensors, since both release the GIL.
+
+    >>> layer = nn.Linear(2, 2)
+    >>> before = weights_fingerprint(layer)
+    >>> before == weights_fingerprint(layer)
+    True
+    >>> with torch.no_grad():
+    ...     _ = layer.weight.add_(1.0)
+    >>> before == weights_fingerprint(layer)
+    False
+    """
+    digest = hashlib.sha256()
+    state = module.state_dict()
+    with ThreadPoolExecutor(max_workers=FINGERPRINT_THREADS) as pool:
+        digests = pool.map(_values_digest, state.values())
+        for (name, tensor), values_digest in zip(state.items(), digests, strict=True):
+            digest.update(f"{name}:{tuple(tensor.shape)}:{tensor.dtype};".encode())
+            digest.update(values_digest)
+    return digest.hexdigest()[:16]
 
 
 def count_parameters(module: nn.Module) -> int:

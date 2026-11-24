@@ -72,6 +72,10 @@ class OneBackendStrategy(TuneStrategyFindMaxBatchSizeExtension):
         del backend
         raise NoCorrectBackendError(f"Backend failed: {self._backend.describe()}") from cause
 
+    def candidate_backends(self, device: torch.device) -> list[Backend]:
+        """The one backend this strategy uses."""
+        return [self._backend]
+
     def _describe_parts(self):
         """Describes the tuning."""
         return [
