@@ -2947,6 +2947,12 @@ The backends run under <code>torch.no_grad</code>, so use <code>OnlineTunedModul
 The module stays on its device and keeps its <code>forward</code>.
 All its parameters and buffers must already be on the device.
 Call <code>reset()</code> after the owner changes the weights in any way: moves them, replaces them, or patches their values in place. A backend serves the weights it was built on.</p>
+<p>Each instance tunes in a private directory under <code>&lt;cache dir&gt;/&lt;name&gt;/</code>, which <code>reset()</code> and the end of the process remove.
+The selected backend is then published once to <code>&lt;cache dir&gt;/&lt;name&gt;/&lt;model key&gt;/&lt;digest&gt;/</code> and never changes there.
+The model key covers every weight value, <code>repr(module)</code>, and the library and hardware versions.
+The digest covers the shapes, the device type and the strategy description.
+A later process with the same model key, device type and strategy builds that backend without tuning.
+OpenVINO compiles the IR published there instead of converting the module again.</p>
 <h2 id="dry-run-mode">Dry Run Mode</h2>
 <p>You can run tuning in dry-run mode. It records samples of data, detects batch and dynamic axes, and detects graphs of execution but does not call the actual backend to tune. This allows debugging if everything is working as expected.</p>
 <p>The dry-run mode can be turned on with the <code>dry_run</code> argument. This example tunes a small MLP on Intel XPU and stops before any backend is built:</p>

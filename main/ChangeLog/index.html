@@ -2477,6 +2477,9 @@ SPDX-License-Identifier: Apache-2.0
   A bf16 output, or a float16 input of a bf16 graph, came back as other numbers (#100)</li>
 <li>feat: <code>TorchAOBackendConfig(offload_module=False)</code> leaves the module on its device after quantization,
   for a module that a framework keeps calling. The weights then exist twice on the device (#101)</li>
+<li>feat: <code>OnlineTunedModule</code> saves the selected backend per model, shapes, device type and strategy, and a later process restores it without tuning.
+  The model covers every weight value, <code>repr(module)</code>, and the library and hardware versions.
+  <code>OpenVINOBackendConfig(reuse_ir=True)</code> compiles the saved IR instead of converting the module again (#88)</li>
 </ul>
 <h2 id="041">0.4.1</h2>
 <ul>

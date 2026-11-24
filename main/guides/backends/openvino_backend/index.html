@@ -2545,6 +2545,8 @@ Without LEO, building the backend on XPU raises <code>LevelZeroInteropError</cod
 The weights then exist twice on the device: in the module and in the compiled model.</p>
 <p>The flag controls only the backend build.
 <code>TunableModule</code> replaces the module's forward, so after tuning it still moves the module to <code>config.device_after_tuning</code>.</p>
+<p><code>reuse_ir=True</code> compiles the IR already in the build directory instead of converting the module.
+The IR holds the weights, so the caller keys that directory by the weights and the shapes, as <code>OnlineTunedModule</code> does.</p>
 <h2 id="next-steps">Next Steps</h2>
 <ul>
 <li>Compare with the <a href="../torch_inductor_backend/">Torch Inductor backend</a></li>
