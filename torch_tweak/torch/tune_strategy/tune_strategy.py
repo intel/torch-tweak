@@ -21,6 +21,8 @@ from torch_tweak.torch.module.graph_spec import GraphSpec
 from torch_tweak.torch.module.recording_module import Sample
 from torch_tweak.torch.module.sample_metadata import SampleMetadata
 from torch_tweak.torch.task.correctness import (
+    CorrectnessMismatchError,
+    CorrectnessValueError,
     check_output_correctness,
     check_output_tensor_shapes,
     check_outputs_match,
@@ -91,7 +93,7 @@ class TuneStrategy(ABC):
                 release_device_memory(device, self._sink)
                 if self._enable_correctness_check:
                     # Taken once, before a backend build moves the module off `device`.
-                    self._module_outputs = _module_outputs(module, data, device)
+                    self._module_outputs = self._reference_outputs(module, name, data, device)
                 self._pre_tune(module, name, graph_spec, data, device, cache_dir)
                 backend = self._tune(module, name, graph_spec, data, device, cache_dir)
                 self._post_tune(backend, name, graph_spec, data)
@@ -139,6 +141,31 @@ class TuneStrategy(ABC):
                         tolerance_floor=backend.output_tolerance,
                         name=output_name,
                     )
+
+    def _reference_outputs(
+        self, module: nn.Module, name: str, data: list[Sample], device: torch.device
+    ) -> list[Any] | None:
+        """Returns the module outputs for `data`, or None when the module gives different outputs for one input."""
+        module.to(device)
+        with torch.no_grad():
+            outputs = [module(*deepcopy(args), **deepcopy(kwargs)) for args, kwargs in data]
+            if data:
+                args, kwargs = data[0]
+                try:
+                    # A module that returns NaN is rejected later, by the check of each backend.
+                    check_output_correctness(outputs[0], name=name)
+                    check_outputs_match(outputs[0], module(*deepcopy(args), **deepcopy(kwargs)))
+                except CorrectnessValueError:
+                    pass
+                except CorrectnessMismatchError as error:
+                    self._logger.warning(
+                        "Module %s gives different outputs for the same inputs, so backend outputs are not compared "
+                        "with it. NaN, infinity, and shape checks still run. %s",
+                        name,
+                        error,
+                    )
+                    return None
+        return outputs
 
     def enable_correctness_check(self, enable: bool = True) -> "TuneStrategy":
         """Enable/disable correctness checking."""
@@ -294,9 +321,3 @@ class DummyTuneStrategy(TuneStrategy):
     ):
         """Tunes given torch module with provided graph_spec and data."""
         return DummyBackend()
-
-
-def _module_outputs(module: nn.Module, data: list[Sample], device: torch.device) -> list[Any]:
-    module.to(device)
-    with torch.no_grad():
-        return [module(*deepcopy(args), **deepcopy(kwargs)) for args, kwargs in data]

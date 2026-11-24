@@ -290,6 +290,31 @@ def test_backend_that_differs_is_kept_when_the_correctness_check_is_disabled(tor
     assert selected.name == "OffsetBackend with sleep time 0.0"
 
 
+class CountingModule(torch.nn.Module):
+    def __init__(self):
+        super().__init__()
+        self.calls = 0
+
+    def forward(self, x):
+        self.calls += 1
+        return x + self.calls
+
+
+def test_module_with_changing_outputs_skips_the_comparison_with_it(torch_device, tmp_path):
+    strategy = HighestThroughputStrategy(backends=[OffsetBackend(1.0), SleepBackend(sleep_time=1e-2)])
+    strategy.enable_find_max_batch_size(False)
+    sample = torch.tensor([[1.0, 3.0]], device=torch_device)
+    graph_spec = GraphSpec(
+        name="counting",
+        input_spec=SampleMetadata.from_inputs((sample,), {}),
+        output_spec=SampleMetadata.from_outputs(sample),
+    )
+
+    selected = strategy.tune(CountingModule(), "counting", graph_spec, [((sample,), {})], torch_device, tmp_path)
+
+    assert selected.name == "OffsetBackend with sleep time 0.0"
+
+
 class InferFailsBackend(SleepBackend):
     def _infer(self, *args, **kwargs):
         raise RuntimeError("Infer failed")

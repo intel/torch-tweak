@@ -37,7 +37,7 @@ SPDX-License-Identifier: Apache-2.0
   A Python `float` in the output may differ by the tolerance of the default dtype. Other Python scalars must be equal.
   `Backend.output_tolerance` allows more. TorchAO allows 0.25.
   OpenVINO allows the tolerance of the precision it computes in, float16 for float32 models on a GPU.
-  A module whose outputs change between calls with the same inputs needs `enable_correctness_check(False)`.
+  A module whose outputs change between calls with the same inputs is not compared with the backends, and a warning says so.
 
 ## 0.4.1
 

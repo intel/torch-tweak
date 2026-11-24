@@ -254,8 +254,8 @@ Torch Tweak validates correctness by running the tuned backend on sample data. T
    its type.
 
 This ensures tuning does not break the module.
-A module whose outputs change between calls with the same inputs fails point 5 and needs
-`strategy.enable_correctness_check(False)`.
+Torch Tweak runs the module twice on the first sample. When the outputs differ, it logs a warning and skips point 5.
+Points 1 to 4 still apply.
 
 ### 6. Backend Activation
 
