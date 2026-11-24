@@ -39,7 +39,7 @@ jobs:
           python-version: "3.14"
 
       - name: Set up uv
-        uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2 # v10.3.3
+        uses: astral-sh/setup-uv@1db35dd8eee11c5894872e0b383ae6c406cf738d # v10.4.0
 
       # dev includes all deps (including pre-commit);
       # we also build tt itself as it is needed for the API docs.
@@ -80,7 +80,7 @@ jobs:
         run: uv run --no-sync properdocs build --strict
 
       - name: Initialize CodeQL
-        uses: github/codeql-action/init@33d7b85da1a04171e211befe2c739303b9a4c066 # v4.39.3
+        uses: github/codeql-action/init@1bd86f2fdb4b86187fa4059f16f31a3202acc9ea # v4.39.4
         with:
           languages: actions, python
           # Outputs of the previous steps.
@@ -90,7 +90,7 @@ jobs:
               - site
 
       - name: Perform CodeQL analysis
-        uses: github/codeql-action/analyze@33d7b85da1a04171e211befe2c739303b9a4c066 # v4.39.3
+        uses: github/codeql-action/analyze@1bd86f2fdb4b86187fa4059f16f31a3202acc9ea # v4.39.4
 
       - name: Detect changes that need GPU tests
         id: changes
