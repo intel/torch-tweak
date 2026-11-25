@@ -6,6 +6,7 @@
 """Unit tests for OpenVINOBackend."""
 
 import gc
+import logging
 import shutil
 import uuid
 from types import SimpleNamespace
@@ -15,6 +16,7 @@ import pytest
 import torch
 import torch.nn as nn
 import torch.utils._pytree as pytree
+from openvino.frontend import OpConversionFailure
 from transformers.modeling_outputs import BaseModelOutputWithPooling
 
 from tests.toy_models import ToyTorchModel
@@ -415,6 +417,31 @@ def test_openvino_backend_with_reuse_ir_converts_when_the_ir_misses_its_weights(
     actual = backend.infer(*sample[0])
 
     torch.testing.assert_close(actual.cpu(), torch.tensor([[3.0, 6.0]]))
+
+
+@torch.library.custom_op("torch_tweak_test::opaque_double", mutates_args=())
+def _opaque_double(x: torch.Tensor) -> torch.Tensor:
+    return x * 2
+
+
+@_opaque_double.register_fake
+def _(x: torch.Tensor) -> torch.Tensor:
+    return torch.empty_like(x)
+
+
+class _Opaque(nn.Module):
+    def forward(self, x):
+        return _opaque_double(x)
+
+
+def test_openvino_backend_keeps_the_root_logger_level_after_a_failed_conversion(caplog, tmp_path, torch_device):
+    caplog.set_level(logging.INFO)
+    sample = ((torch.tensor([[1.0, 2.0]], device=torch_device),), {})
+
+    with pytest.raises(OpConversionFailure, match="opaque_double"):
+        backend_build(OpenVINOBackend(), _Opaque(), [sample], tmp_path, torch_device)
+
+    assert logging.getLogger().level == logging.INFO
 
 
 def test_openvino_backend_serialization(model, sample_data, tmp_path, torch_device):
