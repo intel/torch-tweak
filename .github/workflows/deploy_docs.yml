@@ -25,10 +25,10 @@ on:
       - "uv.lock"
       - ".github/workflows/deploy_docs.yml"
 
-# A running deploy is never cancelled. Only the newest waiting run is kept, which is fine for main (each deploys HEAD).
-# Tag runs share the group, so they are never run concurrently with main deploys (both push to gh-pages).
+# Serialize all deployments to gh-pages and keep every queued release tag (up to GitHub's queue limit).
 concurrency:
   group: docs-deploy
+  queue: max
   cancel-in-progress: false
 
 permissions:
@@ -58,6 +58,7 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
+          ref: ${{ github.ref_type == 'tag' && github.sha || 'refs/heads/main' }}
           fetch-depth: 0
 
       - name: Require the tagged commit to be on main
