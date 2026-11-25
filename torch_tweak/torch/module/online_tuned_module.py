@@ -18,6 +18,11 @@ from typing import Any
 import torch
 import torch.nn as nn
 
+try:
+    import fcntl
+except ImportError:
+    fcntl = None
+
 from torch_tweak.torch.backend.backend import Backend
 from torch_tweak.torch.backend.openvino import OpenVINOBackend, OpenVINOBackendConfig
 from torch_tweak.torch.checkpoint.checkpoint_header import tuning_environment
@@ -35,6 +40,7 @@ logger = getLogger(__name__)
 
 SELECTED_BACKEND_FILE = "selected_backend.txt"
 PRIVATE_DIR_PREFIX = "private-"
+PRIVATE_DIR_LOCK = ".lock"
 LINKED_FILE_MIN_BYTES = 1 << 20
 
 
@@ -65,6 +71,53 @@ def _misplaced(module: nn.Module, device: torch.device) -> list[str]:
     return [name for name, tensor in tensors if not _is_on(tensor, device)]
 
 
+def _lock_private_dir(path: Path) -> int | None:
+    """Locks `path` until the process closes the returned descriptor or ends in any way, SIGKILL included.
+
+    The lock file gets its final name only after it is locked, so no other process sees it unlocked.
+    None when the file system cannot lock it. `path` then has no lock file, and no other process removes it.
+    """
+    if fcntl is None:
+        return None
+    pending = path / f"{PRIVATE_DIR_LOCK}-pending"
+    descriptor = os.open(pending, os.O_CREAT | os.O_RDWR, 0o600)
+    try:
+        fcntl.flock(descriptor, fcntl.LOCK_EX | fcntl.LOCK_NB)
+    except OSError:
+        os.close(descriptor)
+        logger.warning("Cannot lock %s. A process killed before removing it leaves it behind.", path, exc_info=True)
+        return None
+    os.rename(pending, path / PRIVATE_DIR_LOCK)
+    return descriptor
+
+
+def _remove_private_dir(path: Path, lock: int | None) -> None:
+    shutil.rmtree(path, ignore_errors=True)
+    if lock is not None:
+        os.close(lock)
+
+
+def _remove_abandoned_private_dirs(parent: Path) -> None:
+    """Removes the private directories of processes that ended without removing them, for example on SIGTERM.
+
+    A directory without a lock file is kept: its owner may not have locked it yet.
+    """
+    if fcntl is None:
+        return
+    for path in parent.glob(f"{PRIVATE_DIR_PREFIX}*"):
+        try:
+            descriptor = os.open(path / PRIVATE_DIR_LOCK, os.O_RDWR)
+        except OSError:
+            continue
+        try:
+            fcntl.flock(descriptor, fcntl.LOCK_EX | fcntl.LOCK_NB)
+        except OSError:
+            os.close(descriptor)
+            continue
+        logger.info("Removing the private directory of an ended process: %s", path)
+        _remove_private_dir(path, descriptor)
+
+
 def _shapes_key(metadata: SampleMetadata) -> Hashable:
     """Names the place, shape, and dtype of every tensor, and every non-tensor value.
 
@@ -91,6 +144,9 @@ class OnlineTunedModule:
     `<model>` covers the weights, `repr(module)` and `tuning_environment()`.
     `<shapes>` also covers the device type and the strategy.
     A later process with the same model builds the published backend for those shapes and skips tuning.
+    A new instance also removes the private directories of processes that ended without removing them.
+    It tells them apart with `flock`, so processes on different hosts share the cache only on a file system
+    whose `flock` locks across hosts.
 
     The module stays where it is and keeps its `forward`. Its owner can keep calling and patching it.
     Call `reset` after the owner changes the weights in any way: moves them, replaces them, or patches their
@@ -225,8 +281,10 @@ class OnlineTunedModule:
     def _create_private_dir(self) -> None:
         parent = torch_tweak_cache_dir() / self._name
         secure_mkdir(parent)
+        _remove_abandoned_private_dirs(parent)
         self._private_dir = Path(tempfile.mkdtemp(prefix=PRIVATE_DIR_PREFIX, dir=parent))
-        self._remove_private_dir = weakref.finalize(self, shutil.rmtree, self._private_dir, ignore_errors=True)
+        lock = _lock_private_dir(self._private_dir)
+        self._remove_private_dir = weakref.finalize(self, _remove_private_dir, self._private_dir, lock)
 
     def _restore_or_tune(self, key: Hashable, graph_spec: GraphSpec, sample: tuple[tuple, dict]) -> Backend:
         graph_dir = self._private_dir / graph_spec.name
