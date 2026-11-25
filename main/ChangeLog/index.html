@@ -2480,6 +2480,9 @@ SPDX-License-Identifier: Apache-2.0
 <li>feat: <code>OnlineTunedModule</code> saves the selected backend per model, shapes, device type and strategy, and a later process restores it without tuning.
   The model covers every weight value, <code>repr(module)</code>, and the library and hardware versions.
   <code>OpenVINOBackendConfig(reuse_ir=True)</code> compiles the saved IR instead of converting the module again (#88)</li>
+<li>feat (breaking): the correctness check rejects backends whose outputs differ from the module outputs (#99).
+  <code>Backend.output_tolerance</code> sets how far a backend may differ.
+  A custom <code>TuneStrategy._tune</code> takes a <code>reference_outputs</code> argument and passes it to <code>check_correctness</code>.</li>
 </ul>
 <h2 id="041">0.4.1</h2>
 <ul>

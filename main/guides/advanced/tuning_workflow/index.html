@@ -3039,8 +3039,17 @@ NOTE: This file has been modified by Intel Corporation.
 <li>Tensors values must be finite.</li>
 <li>All nested structures are checked against points 1 and 2.</li>
 <li>Tensor shapes must match against original data i.e. static, dynamic and batch axes must match.</li>
+<li>Tensors must match the outputs of the original module on the same samples.
+   A floating point tensor may differ by the square root of its dtype epsilon, times its largest magnitude in the
+   module output. A backend that changes the results on purpose allows more: TorchAO allows 0.25, and OpenVINO allows
+   the tolerance of the precision it computes in, float16 for float32 models on a GPU.
+   A Python <code>float</code> in the output may differ by the same tolerance computed for the default dtype, float32 unless
+   changed, times its magnitude. A <code>bool</code>, <code>int</code>, <code>str</code>, or <code>bytes</code> value must be equal. Every Python scalar must keep
+   its type.</li>
 </ol>
-<p>This ensures tuning does not break the module.</p>
+<p>This ensures tuning does not break the module.
+Torch Tweak runs the module twice on the first sample. When the outputs differ, it logs a warning and skips point 5.
+Points 1 to 4 still apply.</p>
 <h3 id="6-backend-activation">6. Backend Activation</h3>
 <p>After tuning is complete, all tuned modules are activated:</p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-10-1" name="__codelineno-10-1" href="#__codelineno-10-1"></a><span class="k">for</span> <span class="n">module</span> <span class="ow">in</span> <span class="n">MODULE_REGISTRY</span><span class="o">.</span><span class="n">modules</span><span class="o">.</span><span class="n">values</span><span class="p">():</span>
@@ -3065,20 +3074,24 @@ NOTE: This file has been modified by Intel Corporation.
 <a id="__codelineno-11-6" name="__codelineno-11-6" href="#__codelineno-11-6"></a>        <span class="n">data</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">Sample</span><span class="p">],</span>
 <a id="__codelineno-11-7" name="__codelineno-11-7" href="#__codelineno-11-7"></a>        <span class="n">device</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">device</span><span class="p">,</span>
 <a id="__codelineno-11-8" name="__codelineno-11-8" href="#__codelineno-11-8"></a>        <span class="n">cache_dir</span><span class="p">:</span> <span class="n">Path</span><span class="p">,</span>
-<a id="__codelineno-11-9" name="__codelineno-11-9" href="#__codelineno-11-9"></a>    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Backend</span><span class="p">:</span>
-<a id="__codelineno-11-10" name="__codelineno-11-10" href="#__codelineno-11-10"></a><span class="w">        </span><span class="sd">"""Tunes given torch module with provided graph_spec and data.</span>
-<a id="__codelineno-11-11" name="__codelineno-11-11" href="#__codelineno-11-11"></a>
-<a id="__codelineno-11-12" name="__codelineno-11-12" href="#__codelineno-11-12"></a><span class="sd">        Note: each tuning operation should perform a deep copy of a backend as tuning could be called multiple times for the</span>
-<a id="__codelineno-11-13" name="__codelineno-11-13" href="#__codelineno-11-13"></a><span class="sd">        same module, i.e., if there are different graph specs</span>
-<a id="__codelineno-11-14" name="__codelineno-11-14" href="#__codelineno-11-14"></a>
-<a id="__codelineno-11-15" name="__codelineno-11-15" href="#__codelineno-11-15"></a><span class="sd">        Returns:</span>
-<a id="__codelineno-11-16" name="__codelineno-11-16" href="#__codelineno-11-16"></a><span class="sd">            The tuned and activated backend.</span>
-<a id="__codelineno-11-17" name="__codelineno-11-17" href="#__codelineno-11-17"></a>
-<a id="__codelineno-11-18" name="__codelineno-11-18" href="#__codelineno-11-18"></a><span class="sd">        Raises:</span>
-<a id="__codelineno-11-19" name="__codelineno-11-19" href="#__codelineno-11-19"></a><span class="sd">            RuntimeError: if the backend fails any check.</span>
-<a id="__codelineno-11-20" name="__codelineno-11-20" href="#__codelineno-11-20"></a><span class="sd">        """</span>
-<a id="__codelineno-11-21" name="__codelineno-11-21" href="#__codelineno-11-21"></a>        <span class="o">...</span>
+<a id="__codelineno-11-9" name="__codelineno-11-9" href="#__codelineno-11-9"></a>        <span class="n">reference_outputs</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">Any</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span><span class="p">,</span>
+<a id="__codelineno-11-10" name="__codelineno-11-10" href="#__codelineno-11-10"></a>    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Backend</span><span class="p">:</span>
+<a id="__codelineno-11-11" name="__codelineno-11-11" href="#__codelineno-11-11"></a><span class="w">        </span><span class="sd">"""Tunes given torch module with provided graph_spec and data.</span>
+<a id="__codelineno-11-12" name="__codelineno-11-12" href="#__codelineno-11-12"></a>
+<a id="__codelineno-11-13" name="__codelineno-11-13" href="#__codelineno-11-13"></a><span class="sd">        Note: each tuning operation should perform a deep copy of a backend as tuning could be called multiple times for the</span>
+<a id="__codelineno-11-14" name="__codelineno-11-14" href="#__codelineno-11-14"></a><span class="sd">        same module, i.e., if there are different graph specs</span>
+<a id="__codelineno-11-15" name="__codelineno-11-15" href="#__codelineno-11-15"></a>
+<a id="__codelineno-11-16" name="__codelineno-11-16" href="#__codelineno-11-16"></a><span class="sd">        Returns:</span>
+<a id="__codelineno-11-17" name="__codelineno-11-17" href="#__codelineno-11-17"></a><span class="sd">            The tuned and activated backend.</span>
+<a id="__codelineno-11-18" name="__codelineno-11-18" href="#__codelineno-11-18"></a>
+<a id="__codelineno-11-19" name="__codelineno-11-19" href="#__codelineno-11-19"></a><span class="sd">        Raises:</span>
+<a id="__codelineno-11-20" name="__codelineno-11-20" href="#__codelineno-11-20"></a><span class="sd">            RuntimeError: if the backend fails any check.</span>
+<a id="__codelineno-11-21" name="__codelineno-11-21" href="#__codelineno-11-21"></a><span class="sd">        """</span>
+<a id="__codelineno-11-22" name="__codelineno-11-22" href="#__codelineno-11-22"></a>        <span class="o">...</span>
 </code></pre></div>
+<p>Call <code>self.check_correctness(backend, name, graph_spec, data, reference_outputs)</code> on every backend you consider.
+<code>reference_outputs</code> holds the module outputs for each sample of <code>data</code>. It is <code>None</code> when the correctness check is
+disabled, or when the module gives different outputs for the same inputs.</p>
 <p>If needed, you can also extend the<code>_pre_tune</code> and <code>_post_tune</code> methods, which are invoked before and after the <code>_tune</code>.</p>
 <h3 id="custom-backend">Custom Backend</h3>
 <p>To write a custom backend, extend the <code>Backend</code> base class and <code>BackendConfig</code> data class which serves as a config for your custom backend. The following methods are required to be implemented:</p>
@@ -3094,6 +3107,9 @@ NOTE: This file has been modified by Intel Corporation.
 <li><code>_infer()</code> - Executes inference with the backend for the provided inputs.</li>
 </ul>
 <p>Set the class attribute <code>requires_original_module</code> to <code>True</code> when the backend keeps the original module and runs or compiles it. The default is <code>False</code>. Torch Tweak then offloads that module to the meta device after tuning.</p>
+<p>Set <code>output_tolerance</code> when the backend changes the results on purpose, for example by quantizing or by computing in a
+lower precision. The correctness check then allows that difference from the module outputs, relative to their largest
+magnitude. The default is <code>0.0</code>, which keeps the tolerance of the output dtype.</p>
 <p>For serialization with <code>tt.load</code> and <code>tt.save</code>, the <code>to_dict</code> and <code>from_dict</code> methods are used. Anything placed in the dictionary will be saved and restored as a checkpoint. Path objects will be copied to the checkpoints folder and can be used by a backend in the <code>_deploy</code> method.</p>
 <h2 id="monitoring-the-workflow">Monitoring the Workflow</h2>
 <p>Torch Tweak provides detailed logging throughout the tuning process.</p>

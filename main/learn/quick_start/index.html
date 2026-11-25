@@ -2531,7 +2531,7 @@ NOTE: This file has been modified by Intel Corporation.
 <li>you can pick a tuning strategy (e.g., best throughput) for the whole process or per-module</li>
 <li>you can pick tuning backends (for example, XPU graph, TorchAO, Torch Inductor, OpenVINO, and eager) which will be used by the strategy</li>
 <li>you can mix different backends in the same model/pipeline</li>
-<li>you can manually verify the tuning process (note: Torch Tweak performs basic checks for NaNs and errors)</li>
+<li>you can manually verify the tuning process (note: Torch Tweak compares every backend with the original module and checks for NaNs and errors)</li>
 <li>you can save the resulting artifact and later read it from disk</li>
 </ul>
 

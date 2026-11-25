@@ -2856,7 +2856,7 @@ NOTE: This file has been modified by Intel Corporation.
 <li><strong>disable_external_logging</strong>: Disable logging from external libraries</li>
 <li><strong>clear_cache</strong>: Clear Torch Tweak cache before tuning</li>
 </ul>
-<p>Tuning time depends on the tuned modules' size, used strategy, and number of backends. Modules are tuned one by one. If a strategy has many backends to pick from, it takes the one that fulfills specific strategy criteria. Each backend is validated against returning proper numeric results (check against NANs and infinity) and output shapes.</p>
+<p>Tuning time depends on the tuned modules' size, used strategy, and number of backends. Modules are tuned one by one. If a strategy has many backends to pick from, it takes the one that fulfills specific strategy criteria. Each backend is validated against returning proper numeric results (check against NANs and infinity), output shapes, and the outputs of the original module.</p>
 <p>Note: If you specify a batch size that is not a power of 2, it will be used to gather samples but the actual search for the highest throughput will round it up to the nearest power of 2.</p>
 <h3 id="4-persistence-phase">4. Persistence Phase</h3>
 <p>Once tuned, you can save your model for later use. This is crucial for production deployments to avoid re-tuning every time:</p>
