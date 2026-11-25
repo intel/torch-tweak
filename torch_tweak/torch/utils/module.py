@@ -57,6 +57,7 @@ def weights_fingerprint(module: nn.Module) -> str:
     """Hashes the name, shape, dtype, and every value of every tensor in `module.state_dict()`.
 
     The values are hashed in logical order, so the memory layout and the device do not change the fingerprint.
+    The tensors are hashed in name order, so the order in which the module registered them does not change it either.
     `FINGERPRINT_THREADS` threads copy and hash the tensors, since both release the GIL.
 
     >>> layer = nn.Linear(2, 2)
@@ -69,10 +70,10 @@ def weights_fingerprint(module: nn.Module) -> str:
     False
     """
     digest = hashlib.sha256()
-    state = module.state_dict()
+    state = sorted(module.state_dict().items())
     with ThreadPoolExecutor(max_workers=FINGERPRINT_THREADS) as pool:
-        digests = pool.map(_values_digest, state.values())
-        for (name, tensor), values_digest in zip(state.items(), digests, strict=True):
+        digests = pool.map(_values_digest, (tensor for _, tensor in state))
+        for (name, tensor), values_digest in zip(state, digests, strict=True):
             digest.update(f"{name}:{tuple(tensor.shape)}:{tensor.dtype};".encode())
             digest.update(values_digest)
     return digest.hexdigest()[:16]
