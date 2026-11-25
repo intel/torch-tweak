@@ -241,6 +241,9 @@ class TorchAOBackend(Backend):
     """
 
     requires_original_module = True
+    # The largest difference from eager of int8wo, int8dq, fp8wo, and fp8dq on ResNet50, ViT, DistilBERT, and the
+    # SD1.5 UNet on XPU is 0.12, for int8dq on DistilBERT in bfloat16 with a randomly initialized classifier head.
+    output_tolerance = 0.25
 
     # State dictionary keys
     STATE_TYPE = "type"

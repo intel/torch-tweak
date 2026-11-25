@@ -12,9 +12,15 @@ import pytest
 import torch
 import torch.nn as nn
 
-from tests.toy_backends import AllocateThenFailBackend, BuildFailsBackend, MemoryProbeBackend, SleepBackend
+from tests.toy_backends import (
+    AllocateThenFailBackend,
+    BuildFailsBackend,
+    MemoryProbeBackend,
+    OffsetBackend,
+    SleepBackend,
+)
 from tests.toy_models.torch_models import ToyTorchModel, toy_on_xpu
-from tests.utilities.helpers import requires_xpu
+from tests.utilities.helpers import requires_xpu, tune_identity
 from torch_tweak.torch import TunableModule, tune
 from torch_tweak.torch.backend import Backend
 from torch_tweak.torch.module.graph_spec import GraphSpec
@@ -247,3 +253,11 @@ def test_next_backend_builds_without_the_memory_a_failed_backend_held(tmp_path):
     strategy.tune(model, "test", graph_spec, data, torch.device("xpu"), tmp_path)
 
     assert reserved_at_build[0] < reserved_before + failed_bytes
+
+
+def test_backend_whose_output_differs_from_the_module_is_skipped(torch_device, tmp_path):
+    strategy = FirstWinsStrategy([OffsetBackend(1.0), SleepBackend(sleep_time=1e-2)])
+
+    selected = tune_identity(strategy, torch_device, tmp_path, torch.tensor([[1.0, 3.0]], device=torch_device))
+
+    assert selected.name == "SleepBackend with sleep time 0.01"

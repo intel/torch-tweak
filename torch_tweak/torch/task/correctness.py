@@ -10,6 +10,7 @@ from typing import Any
 
 import numpy as np
 import torch
+from torch.utils._pytree import tree_flatten
 
 from torch_tweak.torch.module.tensor_spec import TensorSpec
 
@@ -20,6 +21,10 @@ class CorrectnessValueError(ValueError):
 
 class CorrectnessTensorShapeError(ValueError):
     """Error raised when tensor shapes do not match."""
+
+
+class CorrectnessMismatchError(ValueError):
+    """Error raised when outputs differ from the expected outputs."""
 
 
 def check_output_correctness(output: Any, name: str = "output", depth: int = 0):  # noqa: C901
@@ -68,6 +73,61 @@ def check_output_correctness(output: Any, name: str = "output", depth: int = 0):
 
         if torch.isnan(output).any():
             raise CorrectnessValueError(f"Output tensor {name} contains NaN values")
+
+
+_PYTHON_SCALARS = (bool, int, float, str, bytes)
+
+
+def tolerance(dtype: torch.dtype) -> float:
+    """Largest difference from a reference, relative to its largest magnitude, that a `dtype` output may show.
+
+    >>> tolerance(torch.float16)
+    0.03125
+    """
+    return math.sqrt(torch.finfo(dtype).eps)
+
+
+def check_outputs_match(expected: Any, actual: Any, *, tolerance_floor: float = 0.0, name: str = "output"):
+    """Check that the tensors of `actual` match those of `expected`.
+
+    A floating point tensor may differ by the larger of `tolerance` of its dtype and `tolerance_floor`, times the
+    largest magnitude in `expected`. Other tensors must be equal. A `float` may differ by the larger of `tolerance` of
+    the default dtype and `tolerance_floor`, times its magnitude in `expected`. A `bool`, `int`, `str`, or `bytes`
+    value must be equal. Every Python scalar must keep its type. Other values are not compared.
+
+    Raises:
+        CorrectnessMismatchError: If the structure differs, a tensor differs in shape, dtype, device, or value, or a
+            Python scalar differs in type or value.
+    """
+    expected_leaves, expected_spec = tree_flatten(expected)
+    actual_leaves, actual_spec = tree_flatten(actual)
+    if actual_spec != expected_spec:
+        raise CorrectnessMismatchError(f"{name} has structure {actual_spec}, expected {expected_spec}")
+    for index, (reference, value) in enumerate(zip(expected_leaves, actual_leaves, strict=True)):
+        if isinstance(reference, _PYTHON_SCALARS):
+            if type(value) is not type(reference):
+                matches = False
+            elif isinstance(reference, float):
+                # A Python float has no dtype of its own. PyTorch computes with it in the default dtype.
+                allowed = max(tolerance(torch.get_default_dtype()), tolerance_floor) * abs(reference)
+                matches = abs(value - reference) <= allowed
+            else:
+                matches = value == reference
+            if not matches:
+                raise CorrectnessMismatchError(f"{name} value {index} is {value!r}, expected {reference!r}")
+            continue
+        if not isinstance(reference, torch.Tensor):
+            continue
+        allowed = 0.0
+        if reference.is_floating_point() and reference.numel():
+            allowed = max(tolerance(reference.dtype), tolerance_floor) * reference.abs().max().item()
+        try:
+            torch.testing.assert_close(value, reference, rtol=0, atol=allowed)
+        except AssertionError as error:
+            details = "; ".join(line for line in str(error).splitlines() if line)
+            raise CorrectnessMismatchError(
+                f"{name} tensor {index} differs from the expected output: {details}"
+            ) from error
 
 
 def check_output_tensor_shapes(expected_tensor_specs: list[TensorSpec], actual_tensor_specs: list[TensorSpec]):

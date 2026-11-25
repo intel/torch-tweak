@@ -27,6 +27,7 @@ from torch_tweak.torch.backend.openvino.ov_model_converter import (
 from torch_tweak.torch.backend.openvino.xpu_remote import XpuInferRequest
 from torch_tweak.torch.module.graph_spec import GraphSpec
 from torch_tweak.torch.module.recording_module import Sample
+from torch_tweak.torch.task.correctness import tolerance
 from torch_tweak.torch.utils.module import offload
 from torch_tweak.utils.permissions import secure_mkdir
 
@@ -37,6 +38,9 @@ def _port_names(ports: Sequence[ov.ConstOutput]) -> set[str]:
     # Compilation can merge a removed node's names into a port.
     # get_any_name may return one of them instead of the original name.
     return {name for port in ports for name in port.get_names()}
+
+
+_TORCH_DTYPES = {"f16": torch.float16, "bf16": torch.bfloat16, "f32": torch.float32}
 
 
 # NumPy has no bfloat16. OpenVINO on the host reads and returns bf16 data as float16 arrays that hold the bf16 bits.
@@ -125,6 +129,17 @@ class OpenVINOBackend(Backend):
     def describe(self) -> str:
         """Returns the description of the backend."""
         return f"{self.__class__.__name__}({self._config.describe()})"
+
+    @property
+    def output_tolerance(self) -> float:
+        """The tolerance of the precision the compiled model computes in, float16 for float32 models on a GPU."""
+        if self._xpu_request is not None:
+            precision = self._xpu_request.inference_precision
+        elif self._compiled_model is not None:
+            precision = self._compiled_model.get_property("INFERENCE_PRECISION_HINT").get_type_name()
+        else:
+            raise RuntimeError("OpenVINO model is not compiled. Call build() or activate() first.")
+        return tolerance(_TORCH_DTYPES[precision])
 
     def _build(self, module: nn.Module, graph_spec: GraphSpec, data: list[Sample], cache_dir: Path) -> Backend:
         logger.info("Starting OpenVINO backend build")

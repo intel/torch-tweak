@@ -11,6 +11,7 @@ from abc import ABC, abstractmethod
 from collections.abc import Callable
 from copy import deepcopy
 from pathlib import Path
+from typing import Any
 
 import torch
 import torch.nn as nn
@@ -19,7 +20,13 @@ from torch_tweak.torch.backend.backend import Backend, DummyBackend
 from torch_tweak.torch.module.graph_spec import GraphSpec
 from torch_tweak.torch.module.recording_module import Sample
 from torch_tweak.torch.module.sample_metadata import SampleMetadata
-from torch_tweak.torch.task.correctness import check_output_correctness, check_output_tensor_shapes
+from torch_tweak.torch.task.correctness import (
+    CorrectnessMismatchError,
+    CorrectnessValueError,
+    check_output_correctness,
+    check_output_tensor_shapes,
+    check_outputs_match,
+)
 from torch_tweak.torch.utils.memory import release_device_memory
 from torch_tweak.torch.utils.module import count_parameters
 from torch_tweak.utils.logging import log
@@ -82,19 +89,32 @@ class TuneStrategy(ABC):
             # The exception of a failed earlier tune holds its memory until the caller has handled it.
             # `TunableModule.tune` deactivates the backends it already selected before calling `tune`.
             release_device_memory(device, self._sink)
+            # Taken once, before a backend build moves the module off `device`.
+            reference_outputs = (
+                self._reference_outputs(module, name, data, device) if self._enable_correctness_check else None
+            )
             self._pre_tune(module, name, graph_spec, data, device, cache_dir)
-            backend = self._tune(module, name, graph_spec, data, device, cache_dir)
+            backend = self._tune(module, name, graph_spec, data, device, cache_dir, reference_outputs)
             self._post_tune(backend, name, graph_spec, data)
             return backend
 
-    def check_correctness(self, backend: Backend, name: str, graph_spec: GraphSpec, data: list[Sample]):
-        """Check outputs for NaN/inf.
+    def check_correctness(
+        self,
+        backend: Backend,
+        name: str,
+        graph_spec: GraphSpec,
+        data: list[Sample],
+        reference_outputs: list[Any] | None,
+    ):
+        """Check outputs for NaN/inf, their shapes, and their values against the module outputs.
 
         Args:
             backend: The backend to check.
             name: The name of the module.
             graph_spec: The graph spec of the module.
-            data: The data to check.
+            data: The samples given to `tune`.
+            reference_outputs: The module outputs for each sample of `data`, in the same order, as `_tune` receives
+                them. None skips the comparison with the module.
 
         Note:
             This method is should be called by the _tune method to check the correctness of the backend.
@@ -113,12 +133,45 @@ class TuneStrategy(ABC):
             return
 
         self._logger.debug("Checking correctness for %s and graph spec %s", backend.describe(), graph_spec)
+        output_name = f"{name}.{graph_spec.name}.{backend.describe()}.output"
         with torch.no_grad():
-            for args, kwargs in data:
+            for index, (args, kwargs) in enumerate(data):
                 outputs = backend.infer(*deepcopy(args), **deepcopy(kwargs))
-                check_output_correctness(outputs, name=f"{name}.{graph_spec.name}.{backend.describe()}.output")
+                check_output_correctness(outputs, name=output_name)
                 outputs_metadata = SampleMetadata.from_outputs(outputs)
                 check_output_tensor_shapes(graph_spec.output_spec.tensor_specs, outputs_metadata.tensor_specs)
+                if reference_outputs is not None:
+                    check_outputs_match(
+                        reference_outputs[index],
+                        outputs,
+                        tolerance_floor=backend.output_tolerance,
+                        name=output_name,
+                    )
+
+    def _reference_outputs(
+        self, module: nn.Module, name: str, data: list[Sample], device: torch.device
+    ) -> list[Any] | None:
+        """Returns the module outputs for `data`, or None when the module gives different outputs for one input."""
+        module.to(device)
+        with torch.no_grad():
+            outputs = [module(*deepcopy(args), **deepcopy(kwargs)) for args, kwargs in data]
+            if data:
+                args, kwargs = data[0]
+                try:
+                    # A module that returns NaN is rejected later, by the check of each backend.
+                    check_output_correctness(outputs[0], name=name)
+                    check_outputs_match(outputs[0], module(*deepcopy(args), **deepcopy(kwargs)))
+                except CorrectnessValueError:
+                    pass
+                except CorrectnessMismatchError as error:
+                    self._logger.warning(
+                        "Module %s gives different outputs for the same inputs, so backend outputs are not compared "
+                        "with it. NaN, infinity, and shape checks still run. %s",
+                        name,
+                        error,
+                    )
+                    return None
+        return outputs
 
     def enable_correctness_check(self, enable: bool = True) -> "TuneStrategy":
         """Enable/disable correctness checking."""
@@ -154,6 +207,7 @@ class TuneStrategy(ABC):
         data: list[Sample],
         device: torch.device,
         cache_dir: Path,
+        reference_outputs: list[Any] | None,
     ) -> Backend:
         """Tunes given torch module with provided graph_spec and data.
 
@@ -271,6 +325,7 @@ class DummyTuneStrategy(TuneStrategy):
         data: list[Sample],
         device: torch.device,
         cache_dir: Path,
+        reference_outputs: list[Any] | None,
     ):
         """Tunes given torch module with provided graph_spec and data."""
         return DummyBackend()

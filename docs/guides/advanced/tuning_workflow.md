@@ -245,8 +245,17 @@ Torch Tweak validates correctness by running the tuned backend on sample data. T
 2. Tensors values must be finite.
 3. All nested structures are checked against points 1 and 2.
 4. Tensor shapes must match against original data i.e. static, dynamic and batch axes must match.
+5. Tensors must match the outputs of the original module on the same samples.
+   A floating point tensor may differ by the square root of its dtype epsilon, times its largest magnitude in the
+   module output. A backend that changes the results on purpose allows more: TorchAO allows 0.25, and OpenVINO allows
+   the tolerance of the precision it computes in, float16 for float32 models on a GPU.
+   A Python `float` in the output may differ by the same tolerance computed for the default dtype, float32 unless
+   changed, times its magnitude. A `bool`, `int`, `str`, or `bytes` value must be equal. Every Python scalar must keep
+   its type.
 
 This ensures tuning does not break the module.
+Torch Tweak runs the module twice on the first sample. When the outputs differ, it logs a warning and skips point 5.
+Points 1 to 4 still apply.
 
 ### 6. Backend Activation
 
@@ -282,6 +291,7 @@ If you would like to write a custom strategy, extend the `TuneStrategy` class an
         data: list[Sample],
         device: torch.device,
         cache_dir: Path,
+        reference_outputs: list[Any] | None,
     ) -> Backend:
         """Tunes given torch module with provided graph_spec and data.
 
@@ -296,6 +306,10 @@ If you would like to write a custom strategy, extend the `TuneStrategy` class an
         """
         ...
 ```
+
+Call `self.check_correctness(backend, name, graph_spec, data, reference_outputs)` on every backend you consider.
+`reference_outputs` holds the module outputs for each sample of `data`. It is `None` when the correctness check is
+disabled, or when the module gives different outputs for the same inputs.
 
 If needed, you can also extend the`_pre_tune` and `_post_tune` methods, which are invoked before and after the `_tune`.
 
@@ -314,6 +328,10 @@ To write a custom backend, extend the `Backend` base class and `BackendConfig` d
 - `_infer()` - Executes inference with the backend for the provided inputs.
 
 Set the class attribute `requires_original_module` to `True` when the backend keeps the original module and runs or compiles it. The default is `False`. Torch Tweak then offloads that module to the meta device after tuning.
+
+Set `output_tolerance` when the backend changes the results on purpose, for example by quantizing or by computing in a
+lower precision. The correctness check then allows that difference from the module outputs, relative to their largest
+magnitude. The default is `0.0`, which keeps the tolerance of the output dtype.
 
 For serialization with `tt.load` and `tt.save`, the `to_dict` and `from_dict` methods are used. Anything placed in the dictionary will be saved and restored as a checkpoint. Path objects will be copied to the checkpoints folder and can be used by a backend in the `_deploy` method.
 

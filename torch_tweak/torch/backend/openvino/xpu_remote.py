@@ -89,6 +89,8 @@ _OPENVINO_C_SIGNATURES = {
     "ov_core_create_context_props": [_P, ctypes.c_char_p, ctypes.c_size_t, _PROPERTIES, _OUT],
     "ov_core_compile_model_with_context_props": [_P, _P, _P, ctypes.c_size_t, _PROPERTIES, _OUT],
     "ov_compiled_model_create_infer_request": [_P, _OUT],
+    "ov_compiled_model_get_property": [_P, ctypes.c_char_p, _OUT],
+    "ov_free": [_P],
     "ov_remote_context_create_tensor_props": [_P, ctypes.c_int, _OvShape, ctypes.c_size_t, _PROPERTIES, _OUT],
     "ov_infer_request_set_tensor": [_P, ctypes.c_char_p, _P],
     "ov_infer_request_infer": [_P],
@@ -250,7 +252,11 @@ def has_level_zero_interop(device: torch.device) -> bool:
 
 
 class XpuInferRequest:
-    """An OpenVINO GPU infer request that binds PyTorch XPU tensors as remote tensors."""
+    """An OpenVINO GPU infer request that binds PyTorch XPU tensors as remote tensors.
+
+    Attributes:
+        inference_precision: OpenVINO element type the compiled model computes in, such as ``f16``.
+    """
 
     def __init__(
         self,
@@ -329,6 +335,15 @@ class XpuInferRequest:
         finally:
             lib.ov_model_free(model)
         compiled_model = self._own(lib.ov_compiled_model_free, out.value)
+
+        _check(
+            lib.ov_compiled_model_get_property(compiled_model, b"INFERENCE_PRECISION_HINT", ctypes.byref(out)),
+            "ov_compiled_model_get_property",
+        )
+        try:
+            self.inference_precision = ctypes.string_at(out.value).decode()
+        finally:
+            lib.ov_free(out.value)
 
         _check(
             lib.ov_compiled_model_create_infer_request(compiled_model, ctypes.byref(out)),

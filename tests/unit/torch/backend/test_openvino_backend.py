@@ -47,9 +47,12 @@ from torch_tweak.torch.checkpoint.storage_tasks import (
     UnzipLoadTask,
     ZipSaveTask,
 )
+from torch_tweak.torch.config import config as global_config
 from torch_tweak.torch.module.graph_spec import GraphSpec
 from torch_tweak.torch.module.recording_module import Sample
 from torch_tweak.torch.module.sample_metadata import SampleMetadata
+from torch_tweak.torch.module.tunable_module import TunableModule
+from torch_tweak.torch.tune_strategy import NoCorrectBackendError, OneBackendStrategy
 from torch_tweak.torch.utils.module import get_arguments_names
 
 # ---------------------------------------------------------------------------
@@ -1107,3 +1110,47 @@ def test_reuse_ir_survives_a_checkpoint(model, sample_data, tmp_path, torch_devi
     loaded = _save_and_load(model, backend.to_dict(), tmp_path)
 
     assert loaded.describe() == "OpenVINOBackend(use_dynamo=False,reuse_ir=True)"
+
+
+class _RowCountModel(nn.Module):
+    def forward(self, x):
+        return {"y": x * 2, "rows": x.shape[0]}
+
+
+def test_traced_model_that_returns_the_row_count_of_its_build_sample_is_rejected(torch_device, monkeypatch):
+    monkeypatch.setattr(global_config, "max_num_samples_stored", 2)
+    module = TunableModule(_RowCountModel(), "row-count")
+    module(torch.ones(1, 3, device=torch_device))
+    module(torch.ones(2, 3, device=torch_device))
+    strategy = OneBackendStrategy(OpenVINOBackend(OpenVINOBackendConfig(use_dynamo=False)))
+
+    with pytest.raises(NoCorrectBackendError) as raised:
+        module.tune(device=torch_device, strategy=strategy.enable_find_max_batch_size(False))
+
+    assert "value 1 is 1, expected 2" in str(raised.value.__cause__)
+
+
+@requires_leo
+def test_float32_model_on_xpu_reports_the_float16_tolerance_it_computes_in(tmp_path):
+    x = torch.ones(1, 2, device="xpu")
+
+    backend = backend_build(OpenVINOBackend(), nn.Linear(2, 2), [((x,), {})], tmp_path, torch.device("xpu"))
+
+    assert backend.output_tolerance == pytest.approx(0.03125)
+
+
+@pytest.mark.skipif(
+    ov.Core().get_property("CPU", "INFERENCE_PRECISION_HINT") != ov.Type.f32,
+    reason="OpenVINO computes float32 models in a lower precision on this CPU, such as bfloat16 with AMX",
+)
+def test_float32_model_on_cpu_reports_the_float32_tolerance(tmp_path):
+    x = torch.ones(1, 2)
+
+    backend = backend_build(OpenVINOBackend(), nn.Linear(2, 2), [((x,), {})], tmp_path, torch.device("cpu"))
+
+    assert backend.output_tolerance == pytest.approx(3.45e-4, rel=1e-2)
+
+
+def test_output_tolerance_of_a_backend_that_is_not_built_is_an_error():
+    with pytest.raises(RuntimeError, match="OpenVINO model is not compiled"):
+        OpenVINOBackend().output_tolerance  # noqa: B018
