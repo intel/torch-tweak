@@ -419,3 +419,12 @@ def test_get_modules_after_inspection_with_limit(custom_object, sample_dataset):
 
     assert executed_modules[1].name in ["linear2", "relu"]
     assert executed_modules[1].execution_count == TEST_NUMBER_OF_ITERATIONS
+
+
+def test_inspect_restores_the_forward_when_it_rejects_the_iteration_counts():
+    model = nn.Linear(2, 2)
+
+    with pytest.raises(ValueError, match="number_of_samples must be greater than 0"):
+        inspect(model, torch.zeros(2), number_of_iterations=0, warmup_iterations=0)
+
+    assert model.forward.__func__ is nn.Linear.forward
