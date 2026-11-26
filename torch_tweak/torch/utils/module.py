@@ -5,10 +5,7 @@
 """PyTorch module utilities for parameter counting, device management, and memory offloading."""
 
 import hashlib
-import inspect
-from collections.abc import Callable, ValuesView
 from concurrent.futures import ThreadPoolExecutor
-from inspect import Parameter
 from typing import Optional
 
 import torch
@@ -96,119 +93,6 @@ def count_parameters(module: nn.Module) -> int:
     """
     num_params = sum(p.numel() for p in module.parameters())
     return num_params
-
-
-def _callable_name(func: Callable) -> str:
-    """Best-effort name for any callable.
-
-    ``functools.partial`` objects and instances with ``__call__`` have no ``__name__``,
-    so fall back to their type name.
-
-    >>> import functools
-    >>> _callable_name(functools.partial(print))
-    'partial'
-    """
-    return getattr(func, "__name__", type(func).__name__)
-
-
-def get_arguments_names(func: Callable) -> tuple[list[str], list[str]]:
-    """Split callable parameter names by :mod:`inspect` parameter kind.
-
-    The first list is ``POSITIONAL_ONLY`` names (before ``/``). The second list is
-    ``POSITIONAL_OR_KEYWORD`` and ``KEYWORD_ONLY`` names (callable inputs for export).
-    ``*args`` and ``**kwargs`` name no individual argument, so they appear in neither list.
-
-    A signature yielding no name at all raises ``ValueError``: callers key ``torch.export``
-    inputs by name, and an empty result would silently drop every input instead. This covers
-    both an empty signature and one made up solely of ``*args``/``**kwargs`` -- the latter
-    typically means a wrapper (``torch.compile``, ``nn.DataParallel``, a decorator without
-    :func:`functools.wraps`) replaced ``forward`` and lost the original signature.
-
-    Callers normally pass a *bound* ``forward`` (``my_module.forward``), where ``self`` is
-    already consumed and therefore absent from the result. ``nn.Module`` allows any callable
-    to be bound to ``forward`` -- ``wrapt`` proxies, ``functools.partial``, or objects with
-    ``__call__`` -- and all of them work as long as :func:`inspect.signature` describes them.
-
-    Args:
-        func: Any callable, typically a bound ``forward`` such as ``my_module.forward``.
-
-    Returns:
-        ``(positional_only_names, or_keyword_and_keyword_only_names)``.
-
-    Examples:
-        >>> import torch.nn as nn
-        >>> class _Lin(nn.Module):
-        ...     def forward(self, x, y=1):
-        ...         return x
-        >>> get_arguments_names(_Lin().forward)
-        ([], ['x', 'y'])
-        >>> get_arguments_names(_Lin.forward)
-        ([], ['self', 'x', 'y'])
-        >>> def _positional_only(a, /, b, c=0):
-        ...     pass
-        >>> get_arguments_names(_positional_only)
-        (['a'], ['b', 'c'])
-        >>> class _KwOnly:
-        ...     def __call__(self, x, *, mask=None):
-        ...         return x
-        >>> get_arguments_names(_KwOnly())
-        ([], ['x', 'mask'])
-        >>> def _varargs(x, *args, **kwargs):
-        ...     pass
-        >>> get_arguments_names(_varargs)
-        ([], ['x'])
-        >>> def _empty():
-        ...     pass
-        >>> get_arguments_names(_empty)  # doctest: +IGNORE_EXCEPTION_DETAIL
-        Traceback (most recent call last):
-        ValueError: Callable '_empty()' has no named parameters!
-        >>> def _only_varargs(*args, **kwargs):
-        ...     pass
-        >>> get_arguments_names(_only_varargs)  # doctest: +IGNORE_EXCEPTION_DETAIL
-        Traceback (most recent call last):
-        ValueError: Callable '_only_varargs(*args, **kwargs)' has no named parameters!
-    """
-    signature: inspect.Signature = inspect.signature(func)
-    params: ValuesView[Parameter] = signature.parameters.values()
-
-    posonly_arg_names: list[str] = [p.name for p in params if p.kind is Parameter.POSITIONAL_ONLY]
-    therest_arg_names: list[str] = [
-        p.name for p in params if p.kind in (Parameter.POSITIONAL_OR_KEYWORD, Parameter.KEYWORD_ONLY)
-    ]
-
-    if not posonly_arg_names and not therest_arg_names:
-        raise ValueError(f"Callable '{_callable_name(func)}{signature}' has no named parameters!")
-
-    return posonly_arg_names, therest_arg_names
-
-
-def get_var_keyword_name(func: Callable) -> str | None:
-    """Return the name of the ``**kwargs``-style parameter of a callable, or ``None``.
-
-    ``get_arguments_names`` skips this parameter.
-
-    Examples:
-        >>> def _plain(x, y=1):
-        ...     pass
-        >>> get_var_keyword_name(_plain) is None
-        True
-        >>> def _with_kwargs(x, **kwargs):
-        ...     pass
-        >>> get_var_keyword_name(_with_kwargs)
-        'kwargs'
-        >>> def _custom_name(x, *args, mask=None, **extra):
-        ...     pass
-        >>> get_var_keyword_name(_custom_name)
-        'extra'
-        >>> def _only_varargs(x, *args):
-        ...     pass
-        >>> get_var_keyword_name(_only_varargs) is None
-        True
-    """
-    for parameter in inspect.signature(func).parameters.values():
-        if parameter.kind is Parameter.VAR_KEYWORD:
-            return parameter.name
-    return None
 
 
 def get_module_device(module: nn.Module) -> Optional["torch.device"]:

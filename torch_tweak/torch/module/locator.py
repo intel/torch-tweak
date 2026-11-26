@@ -4,6 +4,7 @@
 # NOTE: This file has been modified by Intel Corporation.
 """Locator for an object in a nested structure."""
 
+import copy
 import dataclasses
 import itertools
 from collections.abc import Generator
@@ -223,12 +224,53 @@ class Locator:
     def get_value(self, obj: object) -> object:
         """Get the value of the locator."""
         for accessor, obj_type in self._path:
-            if obj_type == ObjectType.DATACLASS or obj_type == ObjectType.USER_TYPE:
-                obj = getattr(obj, accessor)
-            else:
-                obj = obj[accessor]
+            obj = Locator._child(obj, accessor, obj_type)
 
         return obj
+
+    def with_value(self, obj: object, value: object) -> object:
+        """Return a copy of *obj* that holds *value* at the locator, leaving *obj* unchanged.
+
+        Only the containers on the path are copied, and only shallowly. The copy of a frozen dataclass takes the value
+        as well.
+
+        Example:
+            >>> locator = Locator(((1, ObjectType.SEQUENCE), ("b", ObjectType.DICT)))
+            >>> obj = (0, {"a": 1, "b": 2})
+            >>> locator.with_value(obj, 3), obj
+            ((0, {'a': 1, 'b': 3}), (0, {'a': 1, 'b': 2}))
+        """
+        if not self._path:
+            return value
+        (accessor, obj_type), *rest = self._path
+        child = Locator(tuple(rest)).with_value(Locator._child(obj, accessor, obj_type), value)
+        if obj_type == ObjectType.DATACLASS or obj_type == ObjectType.USER_TYPE:
+            copied = copy.copy(obj)
+            object.__setattr__(copied, accessor, child)
+            return copied
+        if isinstance(obj, tuple):
+            return Locator._tuple_with(obj, accessor, child)  # type: ignore[arg-type]
+        copied = copy.copy(obj)
+        copied[accessor] = child
+        return copied
+
+    @staticmethod
+    def _tuple_with(obj: tuple, index: int, child: object) -> tuple:
+        if type(obj) is tuple:
+            return obj[:index] + (child,) + obj[index + 1 :]
+        # With no or an empty __dict__, a namedtuple holds nothing but its items, so _replace rebuilds all of its state.
+        if hasattr(obj, "_fields") and not getattr(obj, "__dict__", None):
+            return obj._replace(**{obj._fields[index]: child})  # type: ignore[attr-defined]
+        raise TypeError(
+            f"Cannot replace an item of {type(obj).__qualname__}: only a tuple or a namedtuple without instance"
+            " attributes can be rebuilt"
+        )
+
+    @staticmethod
+    def _child(obj: object, accessor: int | str, obj_type: ObjectType) -> object:
+        if obj_type == ObjectType.DATACLASS or obj_type == ObjectType.USER_TYPE:
+            return getattr(obj, accessor)
+        return obj[accessor]  # type: ignore[index]
 
     def set_value(self, obj: object, value: object) -> object:
         """Set the value of the locator."""
@@ -239,10 +281,7 @@ class Locator:
         for i, (accessor, obj_type) in enumerate(self._path):
             if i == num_paths - 1:
                 break
-            if obj_type == ObjectType.DATACLASS or obj_type == ObjectType.USER_TYPE:
-                obj = getattr(obj, accessor)
-            else:
-                obj = obj[accessor]  # type: ignore
+            obj = Locator._child(obj, accessor, obj_type)
         if obj_type == ObjectType.DATACLASS or obj_type == ObjectType.USER_TYPE:
             setattr(obj, accessor, value)
         elif isinstance(obj, tuple):

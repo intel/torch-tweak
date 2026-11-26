@@ -57,14 +57,6 @@ class _OvShape(ctypes.Structure):
     _fields_ = [("rank", ctypes.c_int64), ("dims", ctypes.POINTER(ctypes.c_int64))]
 
 
-class _OvDimension(ctypes.Structure):
-    _fields_ = [("min", ctypes.c_int64), ("max", ctypes.c_int64)]
-
-
-class _OvPartialShape(ctypes.Structure):
-    _fields_ = [("rank", _OvDimension), ("dims", ctypes.POINTER(_OvDimension))]
-
-
 class _OvProperty(ctypes.Structure):
     _fields_ = [("key", ctypes.c_char_p), ("value", _P)]
 
@@ -85,7 +77,6 @@ _PROPERTIES = ctypes.POINTER(_OvProperty)
 _OPENVINO_C_SIGNATURES = {
     "ov_core_create": [_OUT],
     "ov_core_read_model": [_P, ctypes.c_char_p, ctypes.c_char_p, _OUT],
-    "ov_model_reshape_input_by_name": [_P, ctypes.c_char_p, _OvPartialShape],
     "ov_core_create_context_props": [_P, ctypes.c_char_p, ctypes.c_size_t, _PROPERTIES, _OUT],
     "ov_core_compile_model_with_context_props": [_P, _P, _P, ctypes.c_size_t, _PROPERTIES, _OUT],
     "ov_compiled_model_create_infer_request": [_P, _OUT],
@@ -265,7 +256,6 @@ class XpuInferRequest:
         *,
         ov_device: str,
         config: Mapping[str, str],
-        scalar_inputs: Sequence[str],
     ):
         """Compiles ``model_xml`` for ``ov_device``, the OpenVINO GPU that is the XPU ``device``.
 
@@ -274,7 +264,6 @@ class XpuInferRequest:
             device: PyTorch XPU device whose tensors the request reads and writes.
             ov_device: OpenVINO GPU name from ``openvino_device_for_xpu``.
             config: OpenVINO compile properties.
-            scalar_inputs: Model inputs to reshape to a static scalar before compiling.
         """
         # Tensors on XPU always carry an index, and "xpu" without one is the current device.
         self._device = device if device.index is not None else torch.device(device.type, torch.xpu.current_device())
@@ -282,7 +271,7 @@ class XpuInferRequest:
         # A finalizer that references self keeps it alive, so it never runs.
         weakref.finalize(self, _release_all, self._release)
         try:
-            self._compile(model_xml, ov_device, config, scalar_inputs)
+            self._compile(model_xml, ov_device, config)
         except BaseException:
             self.close()
             raise
@@ -291,7 +280,7 @@ class XpuInferRequest:
         self._release.append((release, handle))
         return handle
 
-    def _compile(self, model_xml: Path, ov_device: str, config: Mapping[str, str], scalar_inputs: Sequence[str]):
+    def _compile(self, model_xml: Path, ov_device: str, config: Mapping[str, str]):
         lib = _openvino_c()
         cl_context = self._own(_opencl().clReleaseContext, _opencl_context(self._device))
 
@@ -315,11 +304,6 @@ class XpuInferRequest:
         _check(lib.ov_core_read_model(core, str(model_xml).encode(), None, ctypes.byref(out)), "ov_core_read_model")
         model = out.value
         try:
-            scalar = _OvPartialShape(rank=_OvDimension(0, 0))
-            for name in scalar_inputs:
-                _check(
-                    lib.ov_model_reshape_input_by_name(model, name.encode(), scalar), "ov_model_reshape_input_by_name"
-                )
             compile_properties = [(key.encode(), value.encode()) for key, value in config.items()]
             _check(
                 lib.ov_core_compile_model_with_context_props(

@@ -22,7 +22,6 @@ from torch_tweak.torch.backend.openvino.ov_model_converter import (
     OV_MODEL_BIN_NAME,
     OV_MODEL_XML_NAME,
     OpenVINOModelConverter,
-    staticize_extra_openvino_inputs,
 )
 from torch_tweak.torch.backend.openvino.xpu_remote import XpuInferRequest
 from torch_tweak.torch.module.graph_spec import GraphSpec
@@ -171,11 +170,6 @@ class OpenVINOBackend(Backend):
             raise RuntimeError("OpenVINO model path is not set")
         core = ov.Core()
         ov_model = core.read_model(self._ov_model_xml)
-        # GraphSpec shapes are already baked into the IR; only the extra-input workaround has to be
-        # re-applied here, because the IR may come from a checkpoint written without it.
-        tensor_input_names = {ts.name for ts in self._graph_spec.input_spec.tensor_specs}
-        scalar_inputs = staticize_extra_openvino_inputs(ov_model.inputs, tensor_input_names)
-        ov_model.validate_nodes_and_infer_types()
         self._input_names = _port_names(ov_model.inputs)
         self._bf16_names = _port_names([
             port for port in [*ov_model.inputs, *ov_model.outputs] if port.get_element_type() == ov.Type.bf16
@@ -189,7 +183,6 @@ class OpenVINOBackend(Backend):
                 self._device,
                 ov_device=openvino_device_for_xpu(core, self._device),
                 config=compile_config,
-                scalar_inputs=scalar_inputs,
             )
             self._shape_model = ov_model
         elif self._device.type == "cpu":
@@ -269,14 +262,9 @@ class OpenVINOBackend(Backend):
 
     def _prepare_inputs(self, args: tuple, kwargs: dict) -> dict[str, torch.Tensor]:
         inputs: dict[str, torch.Tensor] = {}
-        for locator, tensor_spec in self._graph_spec.input_spec.tensor_data:
-            if tensor_spec.name not in self._input_names:
-                continue
-            if tensor_spec.name.startswith("args"):
-                tensor = locator.get_value(args)
-            else:
-                tensor = locator.get_value(kwargs)
-            inputs[tensor_spec.name] = tensor
+        for locator, in_args, tensor_spec in self._graph_spec.input_spec.tensor_data_by_root():
+            if tensor_spec.name in self._input_names:
+                inputs[tensor_spec.name] = locator.get_value(args if in_args else kwargs)
         return inputs
 
     def _prepare_outputs_for_return(self, outputs: dict[str, torch.Tensor]) -> Any:

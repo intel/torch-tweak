@@ -3,6 +3,7 @@
 # SPDX-License-Identifier: Apache-2.0
 
 # NOTE: This file has been modified by Intel Corporation.
+import collections
 import dataclasses
 
 import pytest
@@ -299,6 +300,78 @@ def test_set_value_dict():
     third_locator, _ = results[2]
     new_obj = third_locator.set_value(new_obj, -3)
     assert new_obj == {"a": -1, "b": {"c": -2, "d": -3}}
+
+
+def test_with_value_leaves_the_original_dict_unchanged():
+    obj = {"a": 1, "b": {"c": 2}}
+
+    Locator((("b", ObjectType.DICT), ("c", ObjectType.DICT))).with_value(obj, -2)
+
+    assert obj == {"a": 1, "b": {"c": 2}}
+
+
+def test_with_value_shares_the_containers_off_the_path():
+    obj = {"a": [1], "b": [2]}
+
+    actual = Locator((("b", ObjectType.DICT), (0, ObjectType.SEQUENCE))).with_value(obj, -2)
+
+    assert actual["a"] is obj["a"]
+
+
+_Point = collections.namedtuple("_Point", ["x", "y"])
+
+
+def test_with_value_keeps_a_namedtuple():
+    actual = Locator(((1, ObjectType.SEQUENCE),)).with_value(_Point(1, 2), -2)
+
+    assert actual == _Point(1, -2)
+    assert type(actual) is _Point
+
+
+class _Tagged(tuple):
+    pass
+
+
+def test_with_value_rejects_a_tuple_subclass():
+    with pytest.raises(TypeError, match="_Tagged"):
+        Locator(((1, ObjectType.SEQUENCE),)).with_value(_Tagged((1, 2)), -2)
+
+
+class _SummedPoint(collections.namedtuple("_SummedPointBase", ["x", "y"])):
+    @property
+    def total(self):
+        return self.x + self.y
+
+
+def test_with_value_rebuilds_a_namedtuple_subclass_without_instance_attributes():
+    actual = Locator(((1, ObjectType.SEQUENCE),)).with_value(_SummedPoint(1, 2), 10)
+
+    assert type(actual) is _SummedPoint
+    assert actual.total == 11
+
+
+class _LabeledPoint(collections.namedtuple("_LabeledPointBase", ["x", "y"])):
+    pass
+
+
+def test_with_value_rejects_a_namedtuple_subclass_with_instance_attributes():
+    point = _LabeledPoint(1, 2)
+    point.label = "origin"
+
+    with pytest.raises(TypeError, match="_LabeledPoint"):
+        Locator(((1, ObjectType.SEQUENCE),)).with_value(point, -2)
+
+
+@dataclasses.dataclass(frozen=True)
+class _FrozenPair:
+    a: int
+    b: int
+
+
+def test_with_value_sets_a_field_of_a_frozen_dataclass():
+    actual = Locator((("b", ObjectType.DATACLASS),)).with_value(_FrozenPair(1, 2), -2)
+
+    assert actual == _FrozenPair(1, -2)
 
 
 def test_locator_equality():
