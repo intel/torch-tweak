@@ -32,7 +32,8 @@ logger = getLogger(__name__)
 LOG_FORMAT = "%(asctime)s - %(levelname)s - %(message)s"
 
 
-def _validate_device(device: str | torch.device | None) -> torch.device | None:
+def validate_device(device: str | torch.device | None) -> torch.device | None:
+    """Resolve "auto" to a device and check that XPU is available when it is selected."""
     if device is None:
         return None
     if device == AUTO_DEVICE:
@@ -58,6 +59,8 @@ def tune(
 ) -> None:
     """Tune a callable which runs inference on a pipeline or a model.
 
+    Tunes the modules wrapped with `wrap` or `TunableModule`. `tweak` picks the modules itself and takes longer.
+
     Args:
         func: The function to tune.
         dataset: The dataset to tune on. It can be DataLoaderFactory or any dataset/iterable and even torch.Tensor.
@@ -79,46 +82,65 @@ def tune(
     # Setup logging
     setup_logging(format_string=LOG_FORMAT)
     if clear_cache:
-        _clear_cache()
+        remove_cache_dir()
 
     with libraries_logging(disable_external_logging):
-        device = _validate_device(device)
+        record_and_tune_registered_modules(
+            func,
+            dataset,
+            validate_and_normalize_batch_sizes(batch_sizes),
+            max_num_batches_per_batch_size,
+            validate_device(device),
+            dry_run=dry_run,
+            ignore_failing_modules=ignore_failing_modules,
+            offload=True,
+        )
 
-        # Validate batch sizes
-        batch_sizes = _validate_and_normalize_batch_sizes(batch_sizes)
 
-        for batch_size, args, kwargs in samples_generator(dataset, batch_sizes, max_num_batches_per_batch_size):
-            with global_context:
-                global_context.set(BATCH_SIZE_KEY, batch_size)
-                with torch.no_grad():
-                    func(*args, **kwargs)
+def record_and_tune_registered_modules(
+    func: Callable,
+    dataset: DatasetLike | DataLoaderFactory | torch.Tensor,
+    batch_sizes: list[int],
+    max_num_batches_per_batch_size: int | None,
+    device: torch.device | None,
+    *,
+    dry_run: bool,
+    ignore_failing_modules: bool,
+    offload: bool,
+) -> None:
+    """Record samples by calling `func`, then tune and activate every module in MODULE_REGISTRY."""
+    for batch_size, args, kwargs in samples_generator(dataset, batch_sizes, max_num_batches_per_batch_size):
+        with global_context:
+            global_context.set(BATCH_SIZE_KEY, batch_size)
+            with torch.no_grad():
+                func(*args, **kwargs)
 
-        for module in MODULE_REGISTRY.modules.values():
-            # Before tuning, deactivate backends in other modules
-            # If any backend is activated by Torch Tweak or by the user it will affect available memory during tuning
-            for other_module in MODULE_REGISTRY.modules.values():
-                if other_module != module:
-                    other_module.deactivate()
+    for module in MODULE_REGISTRY.modules.values():
+        # Before tuning, deactivate backends in other modules
+        # If any backend is activated by Torch Tweak or by the user it will affect available memory during tuning
+        for other_module in MODULE_REGISTRY.modules.values():
+            if other_module != module:
+                other_module.deactivate()
 
-            logger.info("════════════════════════════════════════════════════════════════")
-            logger.info("🎯 Tuning module: `%s` (all graphs)", module.name)
-            try:
-                module.tune(device=device, dry_run=dry_run)
-            except Exception:
-                # If ignore_failing_modules is False, we will raise the error and stop tuning.
-                if not ignore_failing_modules:
-                    raise
+        logger.info("════════════════════════════════════════════════════════════════")
+        logger.info("🎯 Tuning module: `%s` (all graphs)", module.name)
+        try:
+            module.tune(device=device, dry_run=dry_run, offload=offload)
+        except Exception:
+            # If ignore_failing_modules is False, we will raise the error and stop tuning.
+            if not ignore_failing_modules:
+                raise
 
-                # If ignore_failing_modules is True, we use original forward for this module and continue tuning the next module.
-                logger.info("⚠️ Tuning module: `%s` failed", module.name)
-                module.enable_passthrough()
-                continue
+            # If ignore_failing_modules is True, we use original forward for this module and continue tuning the next module.
+            logger.info("⚠️ Tuning module: `%s` failed", module.name)
+            module.enable_passthrough()
+            continue
 
-            logger.info("✅ Tuning module: `%s` (all graphs) completed.", module.name)
+        logger.info("✅ Tuning module: `%s` (all graphs) completed.", module.name)
 
-        # Activate the backends after tuning for inference
-        if not dry_run:
-            _activate_tuned_modules()
+    # Activate the backends after tuning for inference
+    if not dry_run:
+        _activate_tuned_modules()
 
 
 def save(
@@ -192,7 +214,7 @@ def load(
         return module
 
 
-def _validate_and_normalize_batch_sizes(batch_sizes: list[int] | None) -> list[int]:
+def validate_and_normalize_batch_sizes(batch_sizes: list[int] | None) -> list[int]:
     """Validate and normalize batch sizes for tuning."""
     if not batch_sizes:
         logger.info("No batch sizes provided, using default batch sizes [1, 2].")
@@ -225,8 +247,8 @@ def _describe_module(module: TunableModule):
         logger.info(" ➤ tuning failed: using original module")
 
 
-def _clear_cache():
-    """Clear the cache."""
+def remove_cache_dir():
+    """Remove the cache directory."""
     cache_dir = torch_tweak_cache_dir()
     if cache_dir.exists():
         shutil.rmtree(cache_dir)

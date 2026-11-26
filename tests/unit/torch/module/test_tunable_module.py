@@ -434,3 +434,21 @@ def test_sleep_backend_keeps_original_module_after_tune():
     assert module.state == ModuleState.TUNED
     assert next(model.parameters()).device.type != "meta"
     assert torch.equal(module(sample), sample)
+
+
+class _ModuleWithOwnMethods(torch.nn.Linear):
+    def offload(self):
+        return "own offload"
+
+    def attach(self):
+        return "own attach"
+
+    def detach(self):
+        return "own detach"
+
+
+@pytest.mark.parametrize("method", ["offload", "attach", "detach"])
+def test_wrapper_calls_the_method_of_the_wrapped_module(method):
+    module = TunableModule(_ModuleWithOwnMethods(2, 2), "own")
+
+    assert getattr(module, method)() == f"own {method}"

@@ -7,6 +7,7 @@ SPDX-License-Identifier: Apache-2.0
 
 ## Unreleased
 
+- feat: `tweak` is the main entry point. It tunes a model at every depth up to `max_depth` and keeps the fastest cut (#56)
 - feat (breaking): a module without a strategy is tuned with `tt.default_strategy(device)`.
   It measures every backend that runs on the device and keeps the fastest (#55)
 - fix (breaking): `profile` returns `ProfilingResult` with measured throughput per batch size (#64)
