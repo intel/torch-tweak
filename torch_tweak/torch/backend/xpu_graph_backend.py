@@ -25,6 +25,11 @@ logger = getLogger(__name__)
 # Maps a tensor axis to its batch multiplier. The axis holds multiplier * batch_size elements.
 BatchAxes = dict[int, int]
 
+# Two eager runs of Flux on the same inputs differ by a mean of 0.025 and a max of 3.07.
+# Replay differs from eager by a mean of 0.031 and a max of 3.01.
+# A replay of stale inputs differs by a mean of 0.92.
+EAGER_NOISE_FACTOR = 4
+
 
 @dataclass
 class XPUGraphBackendConfig(BackendConfig):
@@ -407,12 +412,12 @@ class XPUGraphBackend(Backend):
                 outputs = self._replay(checked)
                 if outputs is None:
                     raise RuntimeError("XPU graph inputs do not match the captured call")
-                _assert_close(outputs, self._eager(checked))
+                _assert_close(outputs, self._eager(checked), self._eager(checked))
         if self._layout.has_batch_axis:
             self._windows_match_eager()
 
     def _windows_match_eager(self) -> None:
-        """Replays windows of one perturbed batch on every graph and compares them to one eager run.
+        """Replays windows of one perturbed batch on every graph and compares them to two eager runs.
 
         Each graph replays its full size and a shorter prefix padded with zeros.
         A padded prefix fails when a row reads a later row or a padding row.
@@ -427,6 +432,7 @@ class XPUGraphBackend(Backend):
         reference = _perturb(self._sample_of_size(rows_in_reference))
         leaves, _ = tree_flatten(reference)
         expected, _ = tree_flatten(self._eager(reference))
+        rerun, _ = tree_flatten(self._eager(reference))
         for size in self.recorded_batch_sizes:
             windows = [(0, size)]
             half = (size + 1) // 2
@@ -439,11 +445,11 @@ class XPUGraphBackend(Backend):
                 windows.append((1, 1))
             for start, rows in windows:
                 outputs = self._replay_rows(leaves, start, rows, size)
-                window = [
-                    ref[_rows_index(ref.ndim, axes, start, rows)] if axes else ref
-                    for ref, axes in zip(expected, self._layout.output_axes, strict=True)
-                ]
-                _assert_close(outputs, window)
+                _assert_close(
+                    outputs,
+                    _window(expected, self._layout.output_axes, start, rows),
+                    _window(rerun, self._layout.output_axes, start, rows),
+                )
 
     def _autocast(self) -> torch.autocast:
         """Returns the autocast context used for warmup, capture, and the eager check."""
@@ -602,15 +608,24 @@ def _perturb_tensor(tensor: torch.Tensor) -> torch.Tensor:
     return cloned.roll(1, 0)
 
 
-def _assert_close(actual: Any, expected: Any) -> None:
-    """Raises when replay outputs are too far from eager outputs."""
+def _window(leaves: list[Any], output_axes: list[BatchAxes], start: int, rows: int) -> list[Any]:
+    """Rows start to start + rows of every batched leaf. Leaves without a batch axis stay whole."""
+    return [
+        leaf[_rows_index(leaf.ndim, axes, start, rows)] if axes else leaf
+        for leaf, axes in zip(leaves, output_axes, strict=True)
+    ]
+
+
+def _assert_close(actual: Any, expected: Any, rerun: Any) -> None:
+    """Raises when replay outputs are too far from eager outputs. expected and rerun are two eager runs."""
     actual_leaves, actual_spec = tree_flatten(actual)
     expected_leaves, expected_spec = tree_flatten(expected)
+    rerun_leaves, _ = tree_flatten(rerun)
     if actual_spec != expected_spec:
         raise RuntimeError("XPU graph output structure does not match eager")
-    for got, ref in zip(actual_leaves, expected_leaves, strict=True):
+    for got, ref, rerun_leaf in zip(actual_leaves, expected_leaves, rerun_leaves, strict=True):
         if isinstance(ref, torch.Tensor):
-            _assert_tensor_close(got, ref)
+            _assert_tensor_close(got, ref, rerun_leaf)
             continue
         got_tensors = _state_tensors(got)
         ref_tensors = _state_tensors(ref)
@@ -620,17 +635,41 @@ def _assert_close(actual: Any, expected: Any) -> None:
             continue
         if len(got_tensors) != len(ref_tensors):
             raise RuntimeError("XPU graph output does not match eager")
-        for got_tensor, ref_tensor in zip(got_tensors, ref_tensors, strict=True):
-            _assert_tensor_close(got_tensor, ref_tensor)
+        for got_tensor, ref_tensor, rerun_tensor in zip(
+            got_tensors, ref_tensors, _state_tensors(rerun_leaf), strict=True
+        ):
+            _assert_tensor_close(got_tensor, ref_tensor, rerun_tensor)
 
 
-def _assert_tensor_close(got: Any, ref: torch.Tensor) -> None:
-    """Raises when one replay tensor is too far from its eager tensor."""
+def _mean_and_max_distance(a: torch.Tensor, b: torch.Tensor) -> tuple[float, float]:
+    """Mean and maximum of abs(a - b) over the elements that are not NaN."""
+    distance = (a.float() - b.float()).abs()
+    return distance.nanmean().item(), distance.masked_fill(distance.isnan(), 0).amax().item()
+
+
+def _assert_tensor_close(got: Any, ref: torch.Tensor, rerun: torch.Tensor) -> None:
+    """Raises when one replay tensor is too far from its eager tensor.
+
+    When rerun, a second eager run, differs from ref, the module is not deterministic.
+    Replay then passes when it has NaN exactly where ref has NaN, and its mean and maximum distances to ref
+    are at most EAGER_NOISE_FACTOR times those of rerun.
+    A replay that ignores its new inputs lands as far from ref as the output of another input.
+    A replay wrong in a few elements stays close in the mean and fails the maximum.
+    """
     if not isinstance(got, torch.Tensor) or got.shape != ref.shape or got.dtype != ref.dtype:
         raise RuntimeError("XPU graph output tensor does not match eager")
     rtol, atol = (1e-2, 1e-2) if ref.dtype in (torch.float16, torch.bfloat16) else (1e-3, 1e-3)
     if torch.allclose(got, ref, rtol=rtol, atol=atol, equal_nan=True):
         return
+    if (
+        ref.is_floating_point()
+        and torch.equal(got.isnan(), ref.isnan())
+        and not torch.allclose(rerun, ref, rtol=rtol, atol=atol, equal_nan=True)
+    ):
+        replay_mean, replay_max = _mean_and_max_distance(got, ref)
+        noise_mean, noise_max = _mean_and_max_distance(rerun, ref)
+        if replay_mean <= EAGER_NOISE_FACTOR * noise_mean and replay_max <= EAGER_NOISE_FACTOR * noise_max:
+            return
     if got.is_floating_point() or got.is_complex():
         difference = (got - ref).abs().max().item()
         raise RuntimeError(f"XPU graph output differs from eager (max abs {difference})")

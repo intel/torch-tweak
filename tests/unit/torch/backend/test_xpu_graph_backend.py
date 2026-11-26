@@ -43,6 +43,25 @@ class NanOutput(nn.Module):
         return torch.sqrt(-x.abs() - 1)
 
 
+class Noisy(nn.Module):
+    def forward(self, x):
+        return x * 2 + 0.1 * torch.randn_like(x)
+
+
+class NoisyWrongInGraph(nn.Module):
+    """Noisy, and the recorded graph writes value into the first output element. Eager never does."""
+
+    def __init__(self, value):
+        super().__init__()
+        self.value = value
+
+    def forward(self, x):
+        y = x * 2 + 0.1 * torch.randn_like(x)
+        if torch.xpu.is_current_stream_capturing():
+            y[0, 0] = self.value
+        return y
+
+
 class TinyConv(nn.Module):
     def __init__(self):
         super().__init__()
@@ -573,6 +592,52 @@ def test_wrong_replay_is_rejected(torch_device, tmp_path, monkeypatch):
     backend = XPUGraphBackend()
     with pytest.raises(RuntimeError, match="differs from eager"):
         backend.build(module, static_graph_spec(module, [(args, {})]), [(args, {})], torch_device, tmp_path)
+
+
+@requires_xpu
+def test_module_that_is_not_deterministic_replays_new_inputs(torch_device, tmp_path):
+    torch.manual_seed(0)
+    module = Noisy().to(torch_device).eval()
+    sample = ((torch.zeros(2, 16, device=torch_device),), {})
+    backend = XPUGraphBackend().build(module, static_graph_spec(module, [sample]), [sample], torch_device, tmp_path)
+
+    actual = backend.infer(torch.ones(2, 16, device=torch_device))
+
+    torch.testing.assert_close(actual, torch.full((2, 16), 2.0, device=torch_device), rtol=0, atol=1.0)
+
+
+@requires_xpu
+def test_wrong_replay_of_a_module_that_is_not_deterministic_is_rejected(torch_device, tmp_path, monkeypatch):
+    monkeypatch.setattr(torch.xpu.XPUGraph, "replay", lambda graph: None)
+    torch.manual_seed(0)
+    module = Noisy().to(torch_device).eval()
+    sample = ((torch.ones(2, 16, device=torch_device),), {})
+    backend = XPUGraphBackend()
+
+    with pytest.raises(RuntimeError, match="differs from eager"):
+        backend.build(module, static_graph_spec(module, [sample]), [sample], torch_device, tmp_path)
+
+
+@requires_xpu
+def test_nan_in_replay_of_a_module_that_is_not_deterministic_is_rejected(torch_device, tmp_path):
+    torch.manual_seed(0)
+    module = NoisyWrongInGraph(float("nan")).to(torch_device).eval()
+    sample = ((torch.ones(2, 16, device=torch_device),), {})
+    backend = XPUGraphBackend()
+
+    with pytest.raises(RuntimeError, match="differs from eager"):
+        backend.build(module, static_graph_spec(module, [sample]), [sample], torch_device, tmp_path)
+
+
+@requires_xpu
+def test_one_wrong_element_in_replay_of_a_module_that_is_not_deterministic_is_rejected(torch_device, tmp_path):
+    torch.manual_seed(0)
+    module = NoisyWrongInGraph(10.0).to(torch_device).eval()
+    sample = ((torch.ones(64, 1024, device=torch_device),), {})
+    backend = XPUGraphBackend()
+
+    with pytest.raises(RuntimeError, match="differs from eager"):
+        backend.build(module, static_graph_spec(module, [sample]), [sample], torch_device, tmp_path)
 
 
 def test_cpu_is_rejected(tmp_path):
