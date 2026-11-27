@@ -1,5 +1,5 @@
 ---
-description: How to write and select unit and functional tests in Torch Tweak. Use when adding or editing tests under tests/, conftest.py, when the user asks for a test, or when review needs proportional validation.
+description: How to write unit and functional tests in Torch Tweak. Use when adding or editing tests under tests/, conftest.py, or when the user asks for a test.
 globs: "{tests/**/*.py,conftest.py}"
 alwaysApply: false
 ---
@@ -256,33 +256,6 @@ Move up when the bug lives in the wiring: export, device, weights, save/load on 
 A functional test is still one scenario, with a literal or an eager oracle.
 Do not boot a full download to test a pure function.
 Do not cover a compiler by mocking it.
-
-## Proportional validation
-
-Select tests by the behavior and boundary that changed, not only by changed file names.
-Use this ladder in order:
-
-1. Run the exact regression test for each changed behavior.
-2. Run the test files found by searching for the behavior, changed symbol, owning class, and module.
-3. Run the affected unit package when shared production code has callers that the selected files do not cover.
-4. Run focused functional tests when the change crosses a real boundary such as export, compilation, device
-   execution, checkpoint loading, serialization, or an external library.
-5. Run the full unit suite once when the change has broad callers or no smaller selection covers them.
-6. Run the full functional suite once when several functional paths can change, selection remains uncertain,
-   or the corresponding CI job requires it before a final verdict.
-
-Stop after the narrowest level that covers every changed contract.
-Do not rerun a wider green level after an amendment unless the amendment can affect code that level exercises.
-Prefer a file or node ID selected by the behavior search over a `-k` expression.
-
-A passing unit suite does not replace a functional test when the defect exists only across a real boundary.
-A pending CI job proves nothing until it completes.
-Completed CI can supply a wide level; report the level still missing while it is pending.
-
-Estimate unusually expensive validation before starting it.
-If a needed run is impractical on the available machine, name the command, why it is needed, and why it was not run.
-Do not silently replace it with tests that cannot observe the behavior.
-Run accelerator tests serially unless each process has its own device.
 
 Unit tests are hermetic. No network. No dependence on another test. No leftover global state.
 The registry fixture exists because global state leaks. Do not add a second global.

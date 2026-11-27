@@ -35,7 +35,7 @@ Run this before you treat your own change as done.
 2. Follow [Behavior contracts](#behavior-contracts). Account for every removed or replaced behavior.
 3. Take each change through the five questions below. When the change is large, also follow `.cursor/skills/upstream-compare/SKILL.md`.
 4. Edit the code. A review note left in a comment is not a fix.
-5. Run the proportional validation ladder in `.cursor/rules/unit-tests.mdc`.
+5. Follow `.cursor/skills/test-validation/SKILL.md`.
 6. When the change alters behavior, read the CI diff-cover report and cover the lines it names.
 7. Read the diff, affected documentation, and pull request description again.
 8. Stop when the new pass finds nothing the previous pass missed.
@@ -47,16 +47,13 @@ narrow `except`, or the `*` that forces a keyword argument.
 ## Review for someone else
 
 Same five questions. When the change is large, also follow `.cursor/skills/upstream-compare/SKILL.md`.
-Follow [Behavior contracts](#behavior-contracts) and the proportional validation ladder in
-`.cursor/rules/unit-tests.mdc`.
+Follow [Behavior contracts](#behavior-contracts) and `.cursor/skills/test-validation/SKILL.md`.
 Report. Edit only if the user asked you to change the code.
 
 Start with the bug that would reach users.
 One bullet per finding: the file, what goes wrong, and what to change.
 Skip a remark that would not change behavior or a decision.
 When the change alters behavior, name the changed lines the CI diff-cover report leaves uncovered.
-End with the tests that ran and the relevant tests that did not run, with the reason.
-Treat a no-findings verdict as provisional while a required validation tier is pending.
 If the author is about to open a pull request, end with the behavior
 questions a reviewer will ask. Those belong in the pull request description.
 
@@ -79,10 +76,6 @@ Find the promise, then find who relies on it.
 
 Do not carry an architectural assumption from an earlier review round.
 After an amendment, repeat this inventory against the complete change.
-
-Do not use a `-k` expression as the only way to select relevant tests.
-It matches test names, not the behavior they exercise.
-Use the files and node IDs found by the contract search.
 
 ## The five questions
 
