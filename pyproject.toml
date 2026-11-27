@@ -113,7 +113,7 @@ packages = ["torch_tweak"]
 # Ref. https://github.com/pypa/setuptools-scm/issues/1084
 [tool.hatch.version]
 source = "vcs"
-raw-options = { local_scheme = "no-local-version", fallback_version = "0.4.1" }
+raw-options = { local_scheme = "no-local-version", fallback_version = "0.5.0rc1" }
 
 # The README is the PyPI long description. Its repo-relative links (docs/learn/..., LICENSE, etc.)
 # would 404 on pypi.org, so at build time we rewrite them to absolute GitHub URLs pinned
