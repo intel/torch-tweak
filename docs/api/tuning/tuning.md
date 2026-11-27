@@ -26,6 +26,11 @@ NOTE: This file has been modified by Intel Corporation.
       show_root_heading: true
       heading_level: 3
 
+::: torch_tweak.torch.DepthResult
+    options:
+      show_root_heading: true
+      heading_level: 3
+
 ## save
 
 ::: torch_tweak.torch.save

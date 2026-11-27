@@ -38,7 +38,7 @@ def main() -> None:
     result = tt.tweak(model, sample, batch_sizes=[8], device=device, max_depth=3, time_budget=600)
     print(result)
     if result.best_depth is None:
-        print("No depth is faster than the untuned model.")
+        print("No depth beats the untuned model by more than the tie tolerance.")
         sys.stdout.flush()
         os._exit(0)
 

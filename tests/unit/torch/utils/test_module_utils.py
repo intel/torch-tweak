@@ -11,7 +11,13 @@ import torch
 import torch.nn as nn
 
 from tests.utilities.helpers import requires_xpu
-from torch_tweak.torch.utils.module import count_parameters, format_num_parameters, offload, weights_fingerprint
+from torch_tweak.torch.utils.module import (
+    count_parameters,
+    format_num_parameters,
+    get_module_device,
+    offload,
+    weights_fingerprint,
+)
 
 
 @pytest.mark.parametrize(
@@ -43,6 +49,14 @@ def _holding(tensor: torch.Tensor) -> nn.Module:
     module = nn.Module()
     module.register_buffer("weight", tensor)
     return module
+
+
+def test_get_module_device_of_a_module_with_only_buffers_is_the_device_of_its_buffers():
+    assert get_module_device(_holding(torch.zeros(2, device="meta"))) == torch.device("meta")
+
+
+def test_get_module_device_of_a_module_without_tensors_is_none():
+    assert get_module_device(nn.ReLU()) is None
 
 
 def test_weights_fingerprint_sees_a_change_of_the_last_value_of_a_long_tensor():

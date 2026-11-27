@@ -42,10 +42,10 @@ Every parameter after `dataset` is keyword-only.
 3. The untuned model is measured as the baseline. It is measured again after the last depth, and the lower latency counts, so a device that is still clocking up does not favor tuning.
 4. For every cut, the modules are wrapped, tuned, and the whole model is measured on `dataset`.
    The wrappers are then detached, so the next depth starts from the original model.
-5. Only depths faster than the baseline are candidates.
+5. Only depths faster than the baseline by more than `tie_tolerance` (3% by default) are candidates.
    The candidate with the lowest sum of median latencies over all samples wins.
-   A shallower candidate wins when it is within `tie_tolerance` (3% by default) of the fastest one.
-   When no depth is faster than the baseline, the model is left untuned and `best_depth` is None.
+   A shallower candidate wins when it is within `tie_tolerance` of the fastest one.
+   When there is no candidate, the model is left untuned and `best_depth` is None.
 
 A module that appears in several cuts is tuned once.
 For example, a leaf module such as `head` is in every cut below its own depth.
@@ -60,13 +60,22 @@ TorchAO is left out because quantization changes the results.
 
 The search for the maximum batch size is off by default.
 That search runs for every module at every depth and probes batch sizes far above `batch_sizes`.
-Pass a strategy to enable it explicitly.
+A strategy you pass searches the maximum batch size unless you turn the search off:
+
+```python
+from torch_tweak.torch.backend import OpenVINOBackend, TorchEagerBackend
+
+strategy = tt.HighestThroughputStrategy(backends=[OpenVINOBackend(), TorchEagerBackend()])
+result = tt.tweak(model, input_data, strategy=strategy.enable_find_max_batch_size(False))
+```
 
 ## Inputs
 
 `dataset` and `batch_sizes` are used for tuning and for measurement.
-`print(result)` also shows the fastest depth for every sample.
-When different inputs prefer different depths, run `tweak` separately for each group of inputs and save each result to its own checkpoint.
+The batches are drawn once and kept in memory during the search, so every depth is measured on the same batches.
+`print(result)` also shows the fastest depth for every sample, or `untuned` when the untuned model is faster.
+When different inputs prefer different depths, run `tweak` separately for each group of inputs on a fresh copy of the model, and save each result to its own checkpoint.
+`tweak` on a model it already tuned wraps the tuned modules again.
 
 ## Parameters
 
@@ -77,16 +86,19 @@ When different inputs prefer different depths, run `tweak` separately for each g
 | `min_execution_percentage` | None | Modules below this fraction (0 to 1) of inspected time are not wrapped |
 | `measure_iterations` | 10 | Timed runs per sample at every depth |
 | `tie_tolerance` | 0.03 | Relative latency difference treated as a tie |
-| `time_budget` | None | Seconds after which no new depth is started |
+| `time_budget` | None | Seconds from the call after which no new depth is started |
 | `dry_run` | False | Only report the modules of each cut |
 
 A depth that fails is reported in `result.depths` and skipped.
 A module that fails to tune runs its original forward and is not installed.
 A depth where every module fails to tune is skipped.
+When the winning depth fails to install, it is reported in `result.depths`, and the next best depth is installed.
 
 ## Cost
 
 Every depth runs a full tuning pass for its new modules.
+Measurement runs every batch `warmup_iterations + measure_iterations` times at every depth, and twice more for the baseline.
+`max_num_batches_per_batch_size` limits the number of batches.
 Start with `dry_run=True` to see how many modules each depth wraps.
 
 `time_budget` limits the search.

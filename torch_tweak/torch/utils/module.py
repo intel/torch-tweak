@@ -6,6 +6,7 @@
 
 import hashlib
 import inspect
+import itertools
 from collections.abc import Callable, ValuesView
 from concurrent.futures import ThreadPoolExecutor
 from inspect import Parameter
@@ -218,12 +219,11 @@ def get_module_device(module: nn.Module) -> Optional["torch.device"]:
         module: Module to get the device of.
 
     Returns:
-        The device of module based on parameters. If not parameters, returns None.
+        The device of the first parameter, or of the first buffer when the module has no parameters.
+        None when the module has neither.
     """
-    try:
-        return next(module.parameters()).device
-    except StopIteration:
-        return None
+    tensor = next(itertools.chain(module.parameters(), module.buffers()), None)
+    return None if tensor is None else tensor.device
 
 
 def offload(model: nn.Module, device: str | torch.device = "meta") -> None:

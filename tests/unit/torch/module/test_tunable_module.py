@@ -447,8 +447,11 @@ class _ModuleWithOwnMethods(torch.nn.Linear):
         return "own detach"
 
 
-@pytest.mark.parametrize("method", ["offload", "attach", "detach"])
-def test_wrapper_calls_the_method_of_the_wrapped_module(method):
+@pytest.mark.parametrize(
+    ("method", "expected"),
+    [("offload", "own offload"), ("attach", "own attach"), ("detach", "own detach")],
+)
+def test_wrapper_calls_the_method_of_the_wrapped_module(method, expected):
     module = TunableModule(_ModuleWithOwnMethods(2, 2), "own")
 
-    assert getattr(module, method)() == f"own {method}"
+    assert getattr(module, method)() == expected

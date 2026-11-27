@@ -180,13 +180,14 @@ class OnlineTunedModule:
                 `OpenVINOBackendConfig(offload_module=False)` and `TorchAOBackendConfig(offload_module=False)`
                 do that.
                 A call that tunes and finds a parameter or buffer moved off `device` raises `ValueError`.
-            device: Device to tune and run on. Defaults to the device of the module parameters.
+            device: Device to tune and run on. Defaults to the device of the module parameters, or of its
+                buffers when it has no parameters.
         """
         self._module = module
         self._name = sanitize_model_name(name)
         self._device = device or get_module_device(module)
         if self._device is None:
-            raise ValueError("Pass `device` for a module without parameters.")
+            raise ValueError("Pass `device` for a module without parameters and buffers.")
         misplaced = _misplaced(module, self._device)
         if misplaced:
             raise ValueError(

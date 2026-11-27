@@ -26,7 +26,7 @@ class PassthroughModule:
         Args:
                 module: module to be tuned.
                 device: Device on which tuned module has to be executed. None leaves the module and its
-                    inputs where they are, for modules without parameters.
+                    inputs where they are, for modules without parameters and buffers.
         """
         super().__init__()
         self._forward_call = module.__call__

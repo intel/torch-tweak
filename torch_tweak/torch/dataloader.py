@@ -55,6 +55,7 @@ Non-batchable inputs should be handled by the user on module level.
 
 """
 
+import copy
 import itertools
 from collections.abc import Callable, Generator, Iterable, Mapping, Sequence
 from dataclasses import dataclass
@@ -516,6 +517,7 @@ def ensure_enough_samples(
     """Ensures there is enough samples in the dataset to run the model for the given number of iterations.
 
     NOTE: This function trims the dataset to the given number of samples.
+    A DataLoaderFactory is returned as a shallow copy holding the trimmed dataset; the one passed in is not modified.
 
     Args:
         dataset: The dataset to make iterable.
@@ -551,5 +553,6 @@ def ensure_enough_samples(
         return limited_dataset
 
     if isinstance(dataset, DataLoaderFactory):
-        dataset.dataset = ensure_enough_samples(dataset.dataset, number_of_samples)
-        return dataset
+        factory = copy.copy(dataset)
+        factory.dataset = ensure_enough_samples(dataset.dataset, number_of_samples)
+        return factory
