@@ -2588,10 +2588,10 @@ Every parameter after <code>dataset</code> is keyword-only.</p>
 <li>The untuned model is measured as the baseline. It is measured again after the last depth, and the lower latency counts, so a device that is still clocking up does not favor tuning.</li>
 <li>For every cut, the modules are wrapped, tuned, and the whole model is measured on <code>dataset</code>.
    The wrappers are then detached, so the next depth starts from the original model.</li>
-<li>Only depths faster than the baseline are candidates.
+<li>Only depths faster than the baseline by more than <code>tie_tolerance</code> (3% by default) are candidates.
    The candidate with the lowest sum of median latencies over all samples wins.
-   A shallower candidate wins when it is within <code>tie_tolerance</code> (3% by default) of the fastest one.
-   When no depth is faster than the baseline, the model is left untuned and <code>best_depth</code> is None.</li>
+   A shallower candidate wins when it is within <code>tie_tolerance</code> of the fastest one.
+   When there is no candidate, the model is left untuned and <code>best_depth</code> is None.</li>
 </ol>
 <p>A module that appears in several cuts is tuned once.
 For example, a leaf module such as <code>head</code> is in every cut below its own depth.</p>
@@ -2603,11 +2603,18 @@ On XPU these are XPU graph, Torch Inductor, OpenVINO, and eager. On CPU these ar
 TorchAO is left out because quantization changes the results.</p>
 <p>The search for the maximum batch size is off by default.
 That search runs for every module at every depth and probes batch sizes far above <code>batch_sizes</code>.
-Pass a strategy to enable it explicitly.</p>
+A strategy you pass searches the maximum batch size unless you turn the search off:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">torch_tweak.torch.backend</span><span class="w"> </span><span class="kn">import</span> <span class="n">OpenVINOBackend</span><span class="p">,</span> <span class="n">TorchEagerBackend</span>
+<a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>
+<a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a><span class="n">strategy</span> <span class="o">=</span> <span class="n">tt</span><span class="o">.</span><span class="n">HighestThroughputStrategy</span><span class="p">(</span><span class="n">backends</span><span class="o">=</span><span class="p">[</span><span class="n">OpenVINOBackend</span><span class="p">(),</span> <span class="n">TorchEagerBackend</span><span class="p">()])</span>
+<a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a><span class="n">result</span> <span class="o">=</span> <span class="n">tt</span><span class="o">.</span><span class="n">tweak</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">input_data</span><span class="p">,</span> <span class="n">strategy</span><span class="o">=</span><span class="n">strategy</span><span class="o">.</span><span class="n">enable_find_max_batch_size</span><span class="p">(</span><span class="kc">False</span><span class="p">))</span>
+</code></pre></div>
 <h2 id="inputs">Inputs</h2>
 <p><code>dataset</code> and <code>batch_sizes</code> are used for tuning and for measurement.
-<code>print(result)</code> also shows the fastest depth for every sample.
-When different inputs prefer different depths, run <code>tweak</code> separately for each group of inputs and save each result to its own checkpoint.</p>
+The batches are drawn once and kept in memory during the search, so every depth is measured on the same batches.
+<code>print(result)</code> also shows the fastest depth for every sample, or <code>untuned</code> when the untuned model is faster.
+When different inputs prefer different depths, run <code>tweak</code> separately for each group of inputs on a fresh copy of the model, and save each result to its own checkpoint.
+<code>tweak</code> on a model it already tuned wraps the tuned modules again.</p>
 <h2 id="parameters">Parameters</h2>
 <table>
 <thead>
@@ -2646,7 +2653,7 @@ When different inputs prefer different depths, run <code>tweak</code> separately
 <tr>
 <td><code>time_budget</code></td>
 <td>None</td>
-<td>Seconds after which no new depth is started</td>
+<td>Seconds from the call after which no new depth is started</td>
 </tr>
 <tr>
 <td><code>dry_run</code></td>
@@ -2657,9 +2664,12 @@ When different inputs prefer different depths, run <code>tweak</code> separately
 </table>
 <p>A depth that fails is reported in <code>result.depths</code> and skipped.
 A module that fails to tune runs its original forward and is not installed.
-A depth where every module fails to tune is skipped.</p>
+A depth where every module fails to tune is skipped.
+When the winning depth fails to install, it is reported in <code>result.depths</code>, and the next best depth is installed.</p>
 <h2 id="cost">Cost</h2>
 <p>Every depth runs a full tuning pass for its new modules.
+Measurement runs every batch <code>warmup_iterations + measure_iterations</code> times at every depth, and twice more for the baseline.
+<code>max_num_batches_per_batch_size</code> limits the number of batches.
 Start with <code>dry_run=True</code> to see how many modules each depth wraps.</p>
 <p><code>time_budget</code> limits the search.
 Depths run from the shallowest, and the depth in progress always finishes.
