@@ -3982,8 +3982,8 @@ model = tt.TunableModule(Linear(10, 10), "model", strategy=tt.FirstWinsStrategy(
 dataset = torch.randn(10, 10)
 tt.tune(model, dataset, batch_sizes=[1, 2], device="cpu") # doctest: +ELLIPSIS
 <strong><em>🎯 Tuning module: <code>model</code> (all graphs)</em></strong>
-storage = tt.LocalTorchStorage(base<strong><em>lder="ckpt")
-tt.save(model, "tuned_m</em></strong>l.tt", storage=storage)
+storage = tt.LocalTorchStorage(base_folder="ckpt")
+tt.save(model, "tuned_model.tt", storage=storage)
 <strong><em>✅ Checkpoint compressed and saved to</em></strong>
 loaded_model = tt.load(model, "tuned_model.tt", storage=storage)</p>
 </blockquote>

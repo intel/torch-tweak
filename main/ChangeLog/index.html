@@ -2208,10 +2208,10 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#unreleased" class="md-nav__link">
+  <a href="#050" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Unreleased
+        0.5.0
       
     </span>
   </a>
@@ -2451,10 +2451,10 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#unreleased" class="md-nav__link">
+  <a href="#050" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Unreleased
+        0.5.0
       
     </span>
   </a>
@@ -2509,41 +2509,35 @@ SPDX-License-Identifier: Apache-2.0
 -->
 
 <h1 id="changelog">Changelog</h1>
-<h2 id="unreleased">Unreleased</h2>
-<ul>
-<li>feat: <code>tweak</code> is the main entry point. It tunes a model at every depth up to <code>max_depth</code> and keeps the fastest cut (#56)</li>
-<li>fix: <code>inspect</code> leaves the dataset of a <code>DataLoaderFactory</code> as it was. It trimmed it to the inspected samples</li>
-<li>fix: a module with buffers and no parameters has the device of its buffers.
-  <code>TunableModule</code> tuned it on CPU, and <code>OnlineTunedModule</code> required <code>device</code> for it</li>
-<li>feat (breaking): a module without a strategy is tuned with <code>tt.default_strategy(device)</code>.
-  It measures every backend that runs on the device and keeps the fastest (#55)</li>
-<li>fix (breaking): <code>profile</code> returns <code>ProfilingResult</code> with measured throughput per batch size (#64)</li>
-<li>fix(openvino): inputs that compilation renames are fed again.
-  A diffusers UNet ran with an unset timestep and returned wrong outputs without an error.</li>
-<li>fix: bf16 and f8 weights on XPU, and non-contiguous ones on CPU, keep their values in the OpenVINO IR (#103)</li>
-<li>feat (breaking): OpenVINO on XPU binds PyTorch tensors as GPU remote tensors without copying them through the host (#102)</li>
-<li>feat: <code>OpenVINOBackendConfig(offload_module=False)</code> leaves the module on its device after conversion,
-  for a module that a framework keeps calling. The weights then exist twice on the device (#117)</li>
-<li>feat: <code>OnlineTunedModule</code> tunes every new input shape on its first call,
+<h2 id="050">0.5.0</h2>
+<p><strong>Breaking changes</strong>:
+- feat: a module without a strategy is tuned with <code>tt.default_strategy(device)</code>.
+  It measures every backend that runs on the device and keeps the fastest (#55)
+- feat: OpenVINO on XPU binds PyTorch tensors as GPU remote tensors
+  without copying them through the host (#102)
+- feat: every strategy raises <code>NoCorrectBackendError</code>, a <code>RuntimeError</code>,
+  when none of its backends works for a graph (#97).
+- feat: the correctness check rejects backends whose outputs differ from the module outputs (#99)
+- fix: <code>profile</code> returns <code>ProfilingResult</code> with measured throughput per batch size (#64)</p>
+<p><strong>Features</strong>:
+- feat: <code>tweak</code> is the main entry point. It tunes a model at every depth up to <code>max_depth</code> and keeps the fastest cut (#56)
+- feat: <code>OpenVINOBackendConfig(offload_module=False)</code> leaves the module on its device after conversion,
+  for a module that a framework keeps calling. The weights then exist twice on the device (#117)
+- feat: <code>OnlineTunedModule</code> tunes every new input shape on its first call,
   for a module that a framework owns and keeps calling.
-  Only the backend of the last call stays active, so tuned shapes do not each keep a copy of the weights (#87)</li>
-<li>feat (breaking): every strategy raises <code>NoCorrectBackendError</code>, a <code>RuntimeError</code>, when none of its backends works
-  for a graph (#97).
-  <code>OneBackendStrategy</code> no longer raises the error of its backend. Catch <code>NoCorrectBackendError</code> instead.
-  <code>__cause__</code> is a <code>RuntimeError</code> with the type and message of the last backend failure.
-  <code>OnlineTunedModule</code> runs a shape without a backend only on this error. Any other tuning error reaches the caller.</li>
-<li>fix(openvino): bf16 inputs and outputs on CPU keep their values.
-  A bf16 input raised a TypeError.
-  A bf16 output, or a float16 input of a bf16 graph, came back as other numbers (#100)</li>
-<li>feat: <code>TorchAOBackendConfig(offload_module=False)</code> leaves the module on its device after quantization,
-  for a module that a framework keeps calling. The weights then exist twice on the device (#101)</li>
-<li>feat: <code>OnlineTunedModule</code> saves the selected backend per model, shapes, device type and strategy, and a later process restores it without tuning.
-  The model covers every weight value, <code>repr(module)</code>, and the library and hardware versions.
-  <code>OpenVINOBackendConfig(reuse_ir=True)</code> compiles the saved IR instead of converting the module again (#88)</li>
-<li>feat (breaking): the correctness check rejects backends whose outputs differ from the module outputs (#99).
-  <code>Backend.output_tolerance</code> sets how far a backend may differ.
-  A custom <code>TuneStrategy._tune</code> takes a <code>reference_outputs</code> argument and passes it to <code>check_correctness</code>.</li>
-</ul>
+  Only the backend of the last call stays active, so tuned shapes do not each keep a copy of the weights (#87)
+- feat: <code>TorchAOBackendConfig(offload_module=False)</code> leaves the module on its device after quantization,
+  for a module that a framework keeps calling. The weights then exist twice on the device (#101)
+- feat: <code>OnlineTunedModule</code> saves the selected backend per model, shapes, device type and strategy,
+  and a later process restores it without tuning (#88)</p>
+<p><strong>Fixes</strong>:
+- fix(openvino): inputs that compilation renames are fed again.
+  A diffusers UNet ran with an unset timestep and returned wrong outputs without an error (#95)
+- fix: bf16 and f8 weights on XPU, and non-contiguous ones on CPU, keep their values in the OpenVINO IR (#103)
+- fix(openvino): bf16 inputs and outputs on CPU keep their values. A bf16 input raised a TypeError.
+  A bf16 output, or a float16 input of a bf16 graph, came back as other numbers (#100)
+- fix: a module with buffers and no parameters has the device of its buffers.
+  <code>TunableModule</code> tuned it on CPU, and <code>OnlineTunedModule</code> required <code>device</code> for it (#135)</p>
 <h2 id="041">0.4.1</h2>
 <ul>
 <li>feat: add an XPU graph backend (#33)</li>
