@@ -28,6 +28,15 @@ Name things the way this repository names them.
 Put the code where this repository puts that kind of code.
 Call it the way callers here already call this kind of function.
 
+Compare responsibilities, not only similarly named files or classes.
+Trace the changed value from the public call through normalization, export or storage, and execution.
+Search upstream for the observable contract and for responsibilities removed by the diff, including argument
+binding and ordering, omitted values, names, reconstruction, validation, and error behavior.
+Stop once the corresponding responsibility is found. Do not explore unrelated upstream subsystems.
+
+Silence in AITune is not clearance.
+When AITune makes no promise about a contract, check this repository's callers and tests before changing it.
+
 Do not paste AITune source into this repository.
 This repository does not merge with AITune.
 It does not keep AITune's API.
