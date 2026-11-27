@@ -10,7 +10,8 @@ description: >-
   Use after writing
   Python, before treating the work as done, and when reviewing a change or
   pull request. Skips anything Ruff already enforces. Flags comments that
-  restate the code or describe removed code.
+  restate the code or describe removed code. Finds observable contracts and
+  the tests and callers that depend on them.
 ---
 
 # Review Python in Torch Tweak
@@ -30,12 +31,14 @@ For a large change, also follow `.cursor/skills/upstream-compare/SKILL.md`.
 
 Run this before you treat your own change as done.
 
-1. Read the diff you just wrote.
-2. Take each change through the five questions below. When the change is large, also follow `.cursor/skills/upstream-compare/SKILL.md`.
-3. Edit the code. A review note left in a comment is not a fix.
-4. When the change alters behavior, read the CI diff-cover report and cover the lines it names.
-5. Read the diff again.
-6. Stop when the new pass finds nothing the previous pass missed.
+1. Read the complete diff for the change. After an amendment, do not inspect only the latest delta.
+2. Follow [Behavior contracts](#behavior-contracts). Account for every removed or replaced behavior.
+3. Take each change through the five questions below. When the change is large, also follow `.cursor/skills/upstream-compare/SKILL.md`.
+4. Edit the code. A review note left in a comment is not a fix.
+5. Follow `.cursor/skills/test-validation/SKILL.md`.
+6. When the change alters behavior, read the CI diff-cover report and cover the lines it names.
+7. Read the diff, affected documentation, and pull request description again.
+8. Stop when the new pass finds nothing the previous pass missed.
 
 A simpler form keeps the same results and the same cost on the hot path,
 and it reads more clearly. It is not simpler if it removes a check, a
@@ -44,6 +47,7 @@ narrow `except`, or the `*` that forces a keyword argument.
 ## Review for someone else
 
 Same five questions. When the change is large, also follow `.cursor/skills/upstream-compare/SKILL.md`.
+Follow [Behavior contracts](#behavior-contracts) and `.cursor/skills/test-validation/SKILL.md`.
 Report. Edit only if the user asked you to change the code.
 
 Start with the bug that would reach users.
@@ -52,6 +56,26 @@ Skip a remark that would not change behavior or a decision.
 When the change alters behavior, name the changed lines the CI diff-cover report leaves uncovered.
 If the author is about to open a pull request, end with the behavior
 questions a reviewer will ask. Those belong in the pull request description.
+
+## Behavior contracts
+
+A diff can break a promise that none of its changed lines states.
+Find the promise, then find who relies on it.
+
+1. List each observable fact the change alters: a result, error type or message, default, order, name,
+   saved key, file, device access, dtype, shape, or how modules call each other.
+2. For every removed or replaced branch, helper, validation, and test assertion, state the behavior it provided.
+   Deleting an assertion does not prove that its contract should disappear.
+3. Search the whole repository for readers of that behavior. Search for the changed symbol, its class and module,
+   the attribute a caller reads, and words that describe the behavior. Include unchanged unit and functional tests,
+   examples, and documentation.
+4. Trace the changed value from the public input through normalization, export or storage, and execution to the
+   user-visible result. A test can observe a contract without naming the helper that implemented it.
+5. Map every changed contract to a test. Decide whether a failing test protects public behavior or only an
+   implementation detail before changing either the code or the test.
+
+Do not carry an architectural assumption from an earlier review round.
+After an amendment, repeat this inventory against the complete change.
 
 ## The five questions
 
