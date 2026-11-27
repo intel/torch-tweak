@@ -5,6 +5,7 @@
 from __future__ import annotations
 
 import contextlib
+import inspect
 import logging
 from collections.abc import Generator, Sequence
 from pathlib import Path
@@ -51,9 +52,9 @@ class OpenVINOModelConverter:
             flat_module = _FlatTensorInputs(module, args, kwargs, graph_spec.input_spec)
             with _constants_do_not_share_temporary_copies(), _root_logger_kept():
                 if self.use_dynamo:
-                    ov_model = _convert_dynamo(flat_module, graph_spec.input_spec)
+                    ov_model = _convert_dynamo(flat_module)
                 else:
-                    ov_model = _convert_trace(flat_module, graph_spec.input_spec)
+                    ov_model = _convert_trace(flat_module)
 
             _apply_graph_spec_io(ov_model, graph_spec)
             # An old IR file can be a hardlink that other processes read, and serialize writes in place.
@@ -75,16 +76,16 @@ class OpenVINOModelConverter:
             raise
 
 
-def _convert_dynamo(flat_module: _FlatTensorInputs, input_spec: SampleMetadata) -> ov.Model:
-    axis_maps = _create_dynamic_shapes_from_tensor_spec(input_spec.tensor_specs)
+def _convert_dynamo(flat_module: _FlatTensorInputs) -> ov.Model:
+    axis_maps = _create_dynamic_shapes_from_tensor_spec(flat_module.tensor_specs)
     exported: torch.export.ExportedProgram = torch.export.export(
         flat_module,
         args=flat_module.example_inputs,
-        dynamic_shapes={"flat_inputs": tuple(axis_maps[name] for name in input_spec.get_names())},
+        dynamic_shapes={"flat_inputs": tuple(axis_maps[name] for name in flat_module.input_names)},
     )
     ov_model = convert_model(exported)
     # OVC leaves out an unused input and names every other port after its placeholder.
-    input_name_by_placeholder = dict(zip(exported.graph_signature.user_inputs, input_spec.get_names(), strict=True))
+    input_name_by_placeholder = dict(zip(exported.graph_signature.user_inputs, flat_module.input_names, strict=True))
     for port in ov_model.inputs:
         placeholders = port.get_names() & input_name_by_placeholder.keys()
         if len(placeholders) != 1:
@@ -93,9 +94,9 @@ def _convert_dynamo(flat_module: _FlatTensorInputs, input_spec: SampleMetadata) 
     return ov_model
 
 
-def _convert_trace(flat_module: _FlatTensorInputs, input_spec: SampleMetadata) -> ov.Model:
+def _convert_trace(flat_module: _FlatTensorInputs) -> ov.Model:
     ov_model = convert_model(flat_module, example_input=flat_module.example_inputs, dynamo=False)
-    input_names = input_spec.get_names()
+    input_names = flat_module.input_names
     if len(ov_model.inputs) != len(input_names):
         raise RuntimeError(f"OpenVINO model has {len(ov_model.inputs)} inputs, GraphSpec has {len(input_names)}")
     for port, name in zip(ov_model.inputs, input_names, strict=True):
@@ -106,9 +107,10 @@ def _convert_trace(flat_module: _FlatTensorInputs, input_spec: SampleMetadata) -
 class _FlatTensorInputs(nn.Module):
     """Call *module* with the sample *args* and *kwargs*, taking their recorded tensors as inputs.
 
-    ``forward`` takes the tensors in ``input_spec.tensor_data`` order, whatever the signature of
-    ``module.forward``. Every non-tensor argument keeps its sample value, which ``torch.export`` would
-    specialize to anyway. Each call copies only the containers that hold a recorded tensor.
+    ``forward`` takes the positional tensors first, then the keyword tensors in the parameter order of
+    ``module.forward``, then the remaining ``**kwargs`` tensors in recorded order. Every non-tensor argument
+    keeps its sample value, which ``torch.export`` would specialize to anyway. Each call copies only the
+    containers that hold a recorded tensor.
     """
 
     def __init__(self, module: nn.Module, args: tuple, kwargs: dict, input_spec: SampleMetadata):
@@ -116,11 +118,14 @@ class _FlatTensorInputs(nn.Module):
         self.module = module
         self.training = module.training
         self._sample = (args, kwargs)
+        tensor_data = _tensor_data_in_forward_order(module, input_spec)
         # Each locator starts at the (args, kwargs) pair.
         self._locators = [
             Locator(((0 if in_args else 1, ObjectType.SEQUENCE), *locator.path_iter()))
-            for locator, in_args, _ in input_spec.tensor_data_by_root()
+            for locator, in_args, _ in tensor_data
         ]
+        self.tensor_specs = tuple(tensor_spec for _, _, tensor_spec in tensor_data)
+        self.input_names = tuple(tensor_spec.name for tensor_spec in self.tensor_specs)
         example_inputs: list[torch.Tensor] = []
         seen: set[int] = set()
         for locator in self._locators:
@@ -136,6 +141,25 @@ class _FlatTensorInputs(nn.Module):
             sample = locator.with_value(sample, tensor)
         args, kwargs = sample
         return self.module(*args, **kwargs)
+
+
+def _tensor_data_in_forward_order(
+    module: nn.Module, input_spec: SampleMetadata
+) -> list[tuple[Locator, bool, TensorSpec]]:
+    ordered: list[tuple[Locator, bool, TensorSpec]] = []
+    keyword_groups: dict[int | str, list[tuple[Locator, bool, TensorSpec]]] = {}
+    for locator, in_args, tensor_spec in input_spec.tensor_data_by_root():
+        if in_args:
+            ordered.append((locator, in_args, tensor_spec))
+        else:
+            keyword_groups.setdefault(locator.root_name, []).append((locator, in_args, tensor_spec))
+
+    for parameter in inspect.signature(module.forward).parameters.values():
+        if parameter.kind in (inspect.Parameter.POSITIONAL_OR_KEYWORD, inspect.Parameter.KEYWORD_ONLY):
+            ordered.extend(keyword_groups.pop(parameter.name, ()))
+    for group in keyword_groups.values():
+        ordered.extend(group)
+    return ordered
 
 
 @contextlib.contextmanager
