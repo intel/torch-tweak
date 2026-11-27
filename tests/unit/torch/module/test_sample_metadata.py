@@ -4,6 +4,7 @@
 # NOTE: This file has been modified by Intel Corporation.
 """Unit tests for sample metadata."""
 
+import collections
 import copy
 from dataclasses import dataclass
 
@@ -211,6 +212,38 @@ def test_from_dict_does_not_mutate_input(simple_sample):
     SampleMetadata.from_dict(data)
 
     assert data == before
+
+
+_Point = collections.namedtuple("_Point", ["a"])
+
+
+def test_make_batch_keeps_a_namedtuple():
+    with global_context:
+        global_context.set(BATCH_SIZE_KEY, 2)
+        metadata = SampleMetadata.from_inputs((_Point(torch.zeros(2, 3)),), {})
+        global_context.set(BATCH_SIZE_KEY, 3)
+        metadata.update_shapes_seen(SampleMetadata.from_inputs((_Point(torch.zeros(3, 3)),), {}))
+
+    args, _ = metadata.make_batch((_Point(torch.zeros(2, 3)),), {}, batch_size=4)
+
+    assert type(args[0]) is _Point
+
+
+@dataclass(frozen=True)
+class _FrozenBox:
+    a: torch.Tensor
+
+
+def test_make_batch_resizes_a_tensor_in_a_frozen_dataclass():
+    with global_context:
+        global_context.set(BATCH_SIZE_KEY, 2)
+        metadata = SampleMetadata.from_inputs((_FrozenBox(torch.zeros(2, 3)),), {})
+        global_context.set(BATCH_SIZE_KEY, 3)
+        metadata.update_shapes_seen(SampleMetadata.from_inputs((_FrozenBox(torch.zeros(3, 3)),), {}))
+
+    args, _ = metadata.make_batch((_FrozenBox(torch.zeros(2, 3)),), {}, batch_size=4)
+
+    assert args[0].a.shape == (4, 3)
 
 
 def test_make_batch():

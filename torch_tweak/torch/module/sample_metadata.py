@@ -230,12 +230,11 @@ class SampleMetadata:
         """
         args_names: list[str] = []
         kwargs_names: dict[str, list[Any]] = defaultdict(list)
-        for locator, tensor_spec in self._tensor_data:
-            if tensor_spec.name.startswith("args"):
+        for locator, in_args, tensor_spec in self.tensor_data_by_root():
+            if in_args:
                 args_names.append(tensor_spec.name)
             else:
-                kwarg_name = locator.root_name
-                kwargs_names[kwarg_name].append(tensor_spec.name)
+                kwargs_names[locator.root_name].append(tensor_spec.name)
 
         return args_names, dict(kwargs_names)
 
@@ -260,6 +259,20 @@ class SampleMetadata:
     def tensor_specs(self) -> list[TensorSpec]:
         """The list of tensor specs."""
         return [ts for _, ts in self._tensor_data]
+
+    def tensor_data_by_root(self) -> list[tuple[Locator, bool, TensorSpec]]:
+        """Return ``(locator, in_args, tensor_spec)`` for each tensor.
+
+        *locator* is relative to the positional arguments when *in_args* is true, else to the keyword arguments.
+
+        Example:
+            >>> metadata = SampleMetadata.from_inputs(args=(torch.zeros(1),), kwargs={"t": torch.zeros(1)})
+            >>> [(str(locator), in_args) for locator, in_args, _ in metadata.tensor_data_by_root()]
+            [('[0]', True), ("['t']", False)]
+        """
+        return [
+            (locator, tensor_spec.name.startswith("args"), tensor_spec) for locator, tensor_spec in self._tensor_data
+        ]
 
     @staticmethod
     def from_inputs(
@@ -404,11 +417,11 @@ class SampleMetadata:
         """
         args = copy.deepcopy(args)
         kwargs = copy.deepcopy(kwargs)
-        for locator, tensor_spec in self._tensor_data:
-            if tensor_spec.name.startswith("args"):
-                args = locator.set_value(args, batch_tensor(locator.get_value(args), tensor_spec, batch_size))
+        for locator, in_args, tensor_spec in self.tensor_data_by_root():
+            if in_args:
+                args = locator.with_value(args, batch_tensor(locator.get_value(args), tensor_spec, batch_size))
             else:
-                kwargs = locator.set_value(kwargs, batch_tensor(locator.get_value(kwargs), tensor_spec, batch_size))
+                kwargs = locator.with_value(kwargs, batch_tensor(locator.get_value(kwargs), tensor_spec, batch_size))
 
         return args, kwargs
 

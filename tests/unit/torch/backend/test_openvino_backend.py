@@ -5,6 +5,8 @@
 # NOTE: This file has been modified by Intel Corporation.
 """Unit tests for OpenVINOBackend."""
 
+import collections
+import dataclasses
 import gc
 import logging
 import shutil
@@ -17,6 +19,7 @@ import torch
 import torch.nn as nn
 import torch.utils._pytree as pytree
 from openvino.frontend import OpConversionFailure
+from openvino.tools.ovc import convert_model
 from transformers.modeling_outputs import BaseModelOutputWithPooling
 
 from tests.toy_models import ToyTorchModel
@@ -32,9 +35,7 @@ from torch_tweak.torch.backend.openvino.ov_model_converter import (
     OV_MODEL_BIN_NAME,
     OV_MODEL_XML_NAME,
     OpenVINOModelConverter,
-    _create_dynamic_shapes,
     _create_dynamic_shapes_from_tensor_spec,
-    _ordered_input_names_for_dynamo,
 )
 from torch_tweak.torch.backend.openvino.xpu_remote import (
     LEVEL_ZERO_INTEROP_MISSING,
@@ -55,7 +56,6 @@ from torch_tweak.torch.module.recording_module import Sample
 from torch_tweak.torch.module.sample_metadata import SampleMetadata
 from torch_tweak.torch.module.tunable_module import TunableModule
 from torch_tweak.torch.tune_strategy import NoCorrectBackendError, OneBackendStrategy
-from torch_tweak.torch.utils.module import get_arguments_names
 
 # ---------------------------------------------------------------------------
 # Pytree node without serialized_type_name - used to test the rejection path
@@ -444,6 +444,285 @@ def test_openvino_backend_keeps_the_root_logger_level_after_a_failed_conversion(
     assert logging.getLogger().level == logging.INFO
 
 
+class _VarPositionalAndKeywordOnlyModel(nn.Module):
+    def forward(self, x: torch.Tensor, *args: torch.Tensor, mask: torch.Tensor | None = None) -> torch.Tensor:
+        return x - args[0]
+
+
+def test_openvino_backend_does_not_bind_var_positional_tensor_to_keyword_only_parameter(tmp_path, torch_device):
+    sample = (
+        (torch.tensor([[5.0, 6.0]], device=torch_device), torch.tensor([[1.0, 2.0]], device=torch_device)),
+        {},
+    )
+    backend = backend_build(OpenVINOBackend(), _VarPositionalAndKeywordOnlyModel(), [sample], tmp_path, torch_device)
+
+    actual = backend.infer(*sample[0])
+
+    torch.testing.assert_close(actual.cpu(), torch.tensor([[4.0, 4.0]]))
+
+
+class _UnusedVarPositionalModel(nn.Module):
+    def forward(self, x: torch.Tensor, *args: torch.Tensor, mask: torch.Tensor | None = None) -> torch.Tensor:
+        return x + 1
+
+
+def test_openvino_backend_exports_when_var_positional_is_empty(tmp_path, torch_device):
+    sample = ((torch.tensor([[5.0, 6.0]], device=torch_device),), {})
+    backend = backend_build(OpenVINOBackend(), _UnusedVarPositionalModel(), [sample], tmp_path, torch_device)
+
+    actual = backend.infer(*sample[0])
+
+    torch.testing.assert_close(actual.cpu(), torch.tensor([[6.0, 7.0]]))
+
+
+def test_openvino_backend_keeps_the_batch_axis_of_a_var_positional_tensor(tmp_path, torch_device):
+    samples = [
+        ((torch.ones(1, 2, device=torch_device), torch.ones(1, 2, device=torch_device)), {}),
+        ((torch.ones(8, 2, device=torch_device), torch.ones(8, 2, device=torch_device)), {}),
+    ]
+    backend = _build_dynamic_backend(_VarPositionalAndKeywordOnlyModel(), samples, tmp_path, torch_device)
+
+    actual = backend.infer(torch.full((4, 2), 5.0, device=torch_device), torch.full((4, 2), 1.0, device=torch_device))
+
+    torch.testing.assert_close(actual.cpu(), torch.full((4, 2), 4.0))
+
+
+class _OnlyVarPositionalModel(nn.Module):
+    def forward(self, *args: torch.Tensor) -> torch.Tensor:
+        return args[0] - args[1]
+
+
+def test_openvino_backend_builds_forward_with_only_var_positional(tmp_path, torch_device):
+    sample = ((_tensor([[5.0, 6.0]], torch_device), _tensor([[1.0, 2.0]], torch_device)), {})
+    backend = backend_build(OpenVINOBackend(), _OnlyVarPositionalModel(), [sample], tmp_path, torch_device)
+
+    actual = backend.infer(*sample[0])
+
+    torch.testing.assert_close(actual.cpu(), torch.tensor([[4.0, 4.0]]))
+
+
+class _FlagThenVarPositionalModel(nn.Module):
+    def forward(self, x: torch.Tensor, subtract: bool, *args: torch.Tensor) -> torch.Tensor:
+        return x - args[0] if subtract else x
+
+
+def test_openvino_backend_builds_forward_with_non_tensor_before_var_positional(tmp_path, torch_device):
+    sample = ((_tensor([[5.0, 6.0]], torch_device), True, _tensor([[1.0, 2.0]], torch_device)), {})
+    backend = backend_build(OpenVINOBackend(), _FlagThenVarPositionalModel(), [sample], tmp_path, torch_device)
+
+    actual = backend.infer(*sample[0])
+
+    torch.testing.assert_close(actual.cpu(), torch.tensor([[4.0, 4.0]]))
+
+
+class _PairModel(nn.Module):
+    def forward(self, pair: tuple[torch.Tensor, torch.Tensor]) -> torch.Tensor:
+        return pair[0] - pair[1]
+
+
+def test_openvino_backend_builds_forward_with_positional_tuple_of_tensors(tmp_path, torch_device):
+    sample = (((_tensor([[5.0, 6.0]], torch_device), _tensor([[1.0, 2.0]], torch_device)),), {})
+    backend = backend_build(OpenVINOBackend(), _PairModel(), [sample], tmp_path, torch_device)
+
+    actual = backend.infer(*sample[0])
+
+    torch.testing.assert_close(actual.cpu(), torch.tensor([[4.0, 4.0]]))
+
+
+class _ScaledDifferenceModel(nn.Module):
+    def forward(self, x: torch.Tensor, y: torch.Tensor) -> torch.Tensor:
+        return 2 * x - y
+
+
+@pytest.mark.parametrize("use_dynamo", [True, False])
+def test_openvino_backend_keeps_apart_inputs_recorded_as_the_same_tensor(tmp_path, torch_device, use_dynamo):
+    x = _tensor([[1.0, 2.0]], torch_device)
+    backend = backend_build(
+        OpenVINOBackend(OpenVINOBackendConfig(use_dynamo=use_dynamo)),
+        _ScaledDifferenceModel(),
+        [((x, x), {})],
+        tmp_path,
+        torch_device,
+    )
+
+    actual = backend.infer(_tensor([[5.0, 6.0]], torch_device), _tensor([[6.0, 8.0]], torch_device))
+
+    torch.testing.assert_close(actual.cpu(), torch.tensor([[4.0, 4.0]]))
+
+
+class _UnusedFirstInputModel(nn.Module):
+    def forward(self, x: torch.Tensor, y: torch.Tensor) -> torch.Tensor:
+        return y + 1
+
+
+@pytest.mark.parametrize("use_dynamo", [True, False])
+def test_openvino_backend_feeds_the_inputs_after_an_unused_one(tmp_path, torch_device, use_dynamo):
+    sample = ((_tensor([[1.0, 1.0]], torch_device), _tensor([[1.0, 1.0]], torch_device)), {})
+    backend = backend_build(
+        OpenVINOBackend(OpenVINOBackendConfig(use_dynamo=use_dynamo)),
+        _UnusedFirstInputModel(),
+        [sample],
+        tmp_path,
+        torch_device,
+    )
+
+    actual = backend.infer(_tensor([[100.0, 100.0]], torch_device), _tensor([[3.0, 3.0]], torch_device))
+
+    torch.testing.assert_close(actual.cpu(), torch.tensor([[4.0, 4.0]]))
+
+
+@dataclasses.dataclass
+class _TensorPair:
+    a: torch.Tensor
+    b: torch.Tensor
+
+
+class _DataclassPairModel(nn.Module):
+    def forward(self, pair: _TensorPair) -> torch.Tensor:
+        return pair.a - pair.b
+
+
+@pytest.mark.parametrize("use_dynamo", [True, False])
+def test_openvino_backend_builds_forward_with_dataclass_of_tensors(tmp_path, torch_device, use_dynamo):
+    sample = ((_TensorPair(_tensor([[5.0, 6.0]], torch_device), _tensor([[1.0, 2.0]], torch_device)),), {})
+    backend = backend_build(
+        OpenVINOBackend(OpenVINOBackendConfig(use_dynamo=use_dynamo)),
+        _DataclassPairModel(),
+        [sample],
+        tmp_path,
+        torch_device,
+    )
+
+    actual = backend.infer(*sample[0])
+
+    torch.testing.assert_close(actual.cpu(), torch.tensor([[4.0, 4.0]]))
+
+
+@dataclasses.dataclass(frozen=True)
+class _FrozenTensorPair:
+    a: torch.Tensor
+    b: torch.Tensor
+
+
+class _FrozenPairModel(nn.Module):
+    def forward(self, pair: _FrozenTensorPair) -> torch.Tensor:
+        return pair.a - pair.b
+
+
+@pytest.mark.parametrize("use_dynamo", [True, False])
+def test_openvino_backend_builds_forward_with_frozen_dataclass_of_tensors(tmp_path, torch_device, use_dynamo):
+    sample = ((_FrozenTensorPair(_tensor([[5.0, 6.0]], torch_device), _tensor([[1.0, 2.0]], torch_device)),), {})
+    backend = backend_build(
+        OpenVINOBackend(OpenVINOBackendConfig(use_dynamo=use_dynamo)),
+        _FrozenPairModel(),
+        [sample],
+        tmp_path,
+        torch_device,
+    )
+
+    actual = backend.infer(*sample[0])
+
+    torch.testing.assert_close(actual.cpu(), torch.tensor([[4.0, 4.0]]))
+
+
+_NamedTensorPair = collections.namedtuple("_NamedTensorPair", ["a", "b"])
+
+
+class _NamedPairModel(nn.Module):
+    def forward(self, pair: _NamedTensorPair) -> torch.Tensor:
+        return pair.a - pair.b
+
+
+@pytest.mark.parametrize("use_dynamo", [True, False])
+def test_openvino_backend_builds_forward_with_namedtuple_of_tensors(tmp_path, torch_device, use_dynamo):
+    sample = ((_NamedTensorPair(_tensor([[5.0, 6.0]], torch_device), _tensor([[1.0, 2.0]], torch_device)),), {})
+    backend = backend_build(
+        OpenVINOBackend(OpenVINOBackendConfig(use_dynamo=use_dynamo)),
+        _NamedPairModel(),
+        [sample],
+        tmp_path,
+        torch_device,
+    )
+
+    actual = backend.infer(*sample[0])
+
+    torch.testing.assert_close(actual.cpu(), torch.tensor([[4.0, 4.0]]))
+
+
+class _PairWithTotal(tuple):
+    def __new__(cls, left, right):
+        pair = super().__new__(cls, (left, right))
+        pair.total = left + right
+        return pair
+
+
+class _TotalModel(nn.Module):
+    def forward(self, pair: _PairWithTotal) -> torch.Tensor:
+        return pair.total
+
+
+def test_openvino_backend_rejects_a_tuple_subclass_that_derives_state_from_its_items(tmp_path, torch_device):
+    sample = ((_PairWithTotal(_tensor([[1.0]], torch_device), _tensor([[2.0]], torch_device)),), {})
+
+    with pytest.raises(TypeError, match="_PairWithTotal"):
+        backend_build(OpenVINOBackend(), _TotalModel(), [sample], tmp_path, torch_device)
+
+
+def test_openvino_backend_keeps_the_batch_axis_of_a_namedtuple_of_tensors(tmp_path, torch_device):
+    samples = [
+        ((_NamedTensorPair(torch.ones(1, 2, device=torch_device), torch.ones(1, 2, device=torch_device)),), {}),
+        ((_NamedTensorPair(torch.ones(3, 2, device=torch_device), torch.ones(3, 2, device=torch_device)),), {}),
+    ]
+    backend = _build_dynamic_backend(_NamedPairModel(), samples, tmp_path, torch_device)
+
+    actual = backend.infer(
+        _NamedTensorPair(torch.full((2, 2), 5.0, device=torch_device), torch.ones(2, 2, device=torch_device))
+    )
+
+    torch.testing.assert_close(actual.cpu(), torch.full((2, 2), 4.0))
+
+
+def test_openvino_dynamo_conversion_rejects_a_port_without_its_placeholder_name(tmp_path, monkeypatch, torch_device):
+    def convert_and_rename_the_input(*args, **kwargs):
+        ov_model = convert_model(*args, **kwargs)
+        ov_model.input(0).get_tensor().set_names({"renamed"})
+        return ov_model
+
+    monkeypatch.setattr(ov_model_converter, "convert_model", convert_and_rename_the_input)
+    sample = ((_tensor([[1.0, 2.0]], torch_device),), {})
+    converter = OpenVINOModelConverter(output_dir=tmp_path, use_dynamo=True)
+
+    with pytest.raises(RuntimeError, match="matches no single torch.export input"):
+        converter.convert(_DoubleModel().to(torch_device), sample, _graph_spec(_DoubleModel(), sample))
+
+
+class _NotCopyable:
+    def __deepcopy__(self, memo):
+        raise TypeError("_NotCopyable cannot be copied")
+
+
+class _IgnoresContextModel(nn.Module):
+    def forward(self, pair: _TensorPair, context: _NotCopyable) -> torch.Tensor:
+        return pair.a - pair.b
+
+
+@pytest.mark.parametrize("use_dynamo", [True, False])
+def test_openvino_backend_does_not_copy_non_tensor_arguments(tmp_path, torch_device, use_dynamo):
+    pair = _TensorPair(_tensor([[5.0, 6.0]], torch_device), _tensor([[1.0, 2.0]], torch_device))
+    sample = ((pair,), {"context": _NotCopyable()})
+    backend = backend_build(
+        OpenVINOBackend(OpenVINOBackendConfig(use_dynamo=use_dynamo)),
+        _IgnoresContextModel(),
+        [sample],
+        tmp_path,
+        torch_device,
+    )
+
+    actual = backend.infer(*sample[0], **sample[1])
+
+    torch.testing.assert_close(actual.cpu(), torch.tensor([[4.0, 4.0]]))
+
+
 def test_openvino_backend_serialization(model, sample_data, tmp_path, torch_device):
     backend = backend_build(
         OpenVINOBackend(OpenVINOBackendConfig(use_dynamo=False)), model, sample_data, tmp_path, torch_device
@@ -583,34 +862,13 @@ def test_openvino_backend_ir_survives_checkpoint_copy_and_zip(model, sample_data
 
 
 # ---------------------------------------------------------------------------
-# Regression tests: kwargs recorded out of forward-signature order (dynamo path)
+# Regression tests: kwargs recorded out of forward-signature order
 # ---------------------------------------------------------------------------
 
 
-def test_ordered_input_names_for_dynamo_reorders_by_signature():
-    """_ordered_input_names_for_dynamo must return names in forward-signature order.
-
-    Recording inserts kwargs in "beta, alpha" order; the forward signature is "alpha, beta".
-    The helper must return ["kwargs_alpha", "kwargs_beta"] so that OV port 0 gets the
-    name belonging to alpha, not beta.
-    """
-    # Intentionally recorded in reverse order.
-    kwargs_reversed = {
-        "beta": torch.ones(2, _KWARG_DIM),
-        "alpha": torch.zeros(2, _KWARG_DIM),
-    }
-    input_spec = SampleMetadata.from_inputs((), kwargs_reversed)
-    # Key order mirrors _ordered_kwargs_for_export: signature order (alpha first).
-    names = _ordered_input_names_for_dynamo(input_spec, ["alpha", "beta"])
-
-    assert names == ["kwargs_alpha", "kwargs_beta"], (
-        f"Expected ['kwargs_alpha', 'kwargs_beta'], got {names}. "
-        "This indicates the helper is not reordering by signature."
-    )
-
-
-def test_dynamo_kwargs_order_does_not_swap_inputs(tmp_path, torch_device):
-    """Dynamo conversion must not swap input tensor names when kwargs are recorded out of order.
+@pytest.mark.parametrize("use_dynamo", [True, False])
+def test_kwargs_order_does_not_swap_inputs(tmp_path, torch_device, use_dynamo):
+    """Conversion must not swap input tensor names when kwargs are recorded out of order.
 
     The model projects alpha with weight +1 and beta with weight -1.  With alpha=ones,
     beta=zeros the expected output is positive.  If conversion transposes the names the
@@ -632,21 +890,8 @@ def test_dynamo_kwargs_order_does_not_swap_inputs(tmp_path, torch_device):
     output_spec = SampleMetadata.from_outputs(output_ref)
     graph_spec = GraphSpec(name="two_kwarg", input_spec=input_spec, output_spec=output_spec)
 
-    xml_path = OpenVINOModelConverter(output_dir=tmp_path / "ov", use_dynamo=True).convert(
-        module=model, sample=sample, graph_spec=graph_spec
-    )
-
-    # Verify OV port names are in forward-signature order (alpha=0, beta=1).
-    ov_model = ov.Core().read_model(xml_path)
-    assert len(ov_model.inputs) == 2
-    assert ov_model.input(0).any_name == "kwargs_alpha"
-    assert ov_model.input(1).any_name == "kwargs_beta"
-
-    # Verify end-to-end inference produces the correct (positive) output.
-    be_cache = tmp_path / "be"
-    be_cache.mkdir()
-    backend = OpenVINOBackend(config=OpenVINOBackendConfig(use_dynamo=True))
-    backend = backend.build(model, graph_spec=graph_spec, data=[sample], device=torch_device, cache_dir=be_cache)
+    backend = OpenVINOBackend(config=OpenVINOBackendConfig(use_dynamo=use_dynamo))
+    backend = backend.build(model, graph_spec=graph_spec, data=[sample], device=torch_device, cache_dir=tmp_path)
     ov_output = backend.infer(**kwargs_reversed)
     assert (ov_output > 0).all(), (
         "Output is not positive; alpha and beta inputs were likely swapped during OV inference."
@@ -755,7 +1000,7 @@ def test_dynamic_shapes_shares_dim_object_for_correlated_batch_axes(_shared_batc
     )
 
 
-# --- Integration tests: OpenVINOModelConverter._convert_dynamo ---
+# --- Integration tests: OpenVINOModelConverter with use_dynamo=True ---
 
 
 def test_dynamo_converter_succeeds_for_shared_batch_model(tmp_path, torch_device, _shared_batch_artifacts):
@@ -794,11 +1039,7 @@ def test_dynamo_converter_succeeds_for_shared_batch_model(tmp_path, torch_device
 
 
 class _PositionalOnlyModel(nn.Module):
-    """``_SharedBatchModel`` whose first input is declared positional-only.
-
-    ``a`` can only be passed positionally, so ``_create_dynamic_shapes`` has to derive its
-    dynamic-shape key from the signature rather than from the recorded kwargs.
-    """
+    """``_SharedBatchModel`` whose first input is declared positional-only."""
 
     def __init__(self):
         super().__init__()
@@ -836,49 +1077,10 @@ def _graph_spec_over_batch_sizes(
     return graph_spec, samples
 
 
-def test_dynamic_shapes_keys_positional_only_parameters_by_name():
-    """A tensor bound to a positional-only parameter must still get its dynamic batch axis.
-
-    ``_create_inputs_mapping`` keys positionally recorded tensors by index, so they must be
-    rekeyed to signature names. Skipping positional-only parameters silently drops their entry:
-    torch.export then either bakes in a static shape or rejects the incomplete dict.
-    """
-    model = _PositionalOnlyModel().eval()
-    graph_spec, _ = _graph_spec_over_batch_sizes(model, [1, 8], device="cpu")
-
-    shapes = _create_dynamic_shapes(graph_spec.input_spec, get_arguments_names(model.forward))
-
-    assert sorted(shapes) == ["a", "b"], (
-        f"Expected dynamic shapes for both forward parameters, got {sorted(shapes)}. "
-        "The positional-only parameter was likely dropped."
-    )
-    assert shapes["a"][0] is shapes["b"][0], "Both inputs must share one batch Dim object."
-
-
-def test_var_positional_forward_is_rejected():
-    """A ``*args`` forward exposes no parameter names, so conversion must fail loudly.
-
-    Returning empty name lists would leave ``dynamic_shapes`` empty and drop every kwarg,
-    making ``torch.export`` bake in static shapes instead of reporting the problem. The
-    tuning strategies catch build failures, so raising only skips this backend.
-    """
-
-    class _VarArgsModel(nn.Module):
-        def forward(self, *args: torch.Tensor) -> torch.Tensor:
-            return args[0] * 2
-
-    model = _VarArgsModel().eval()
-
-    with pytest.raises(ValueError, match="has no named parameters"):
-        get_arguments_names(model.forward)
-
-
 def test_dynamo_converter_handles_positional_only_mixed_with_kwarg(tmp_path, torch_device):
     """End-to-end conversion of a forward mixing a positional-only arg and a keyword arg.
 
-    ``torch.export`` requires a dict ``dynamic_shapes`` to cover *every* argument name. Dropping
-    the positional-only entry leaves ``{"b": ...}`` and export rejects it outright. Inference then
-    runs at batch size 2, which was never recorded, so the batch axis must have stayed dynamic.
+    Inference runs at batch size 2, which was never recorded, so the batch axis must have stayed dynamic.
     """
     torch.manual_seed(0)
     model = _PositionalOnlyModel().to(torch_device).eval()
@@ -1045,12 +1247,16 @@ def test_openvino_xpu_second_infer_with_the_same_shape_keeps_the_first_result(tm
 
 
 @requires_leo
-def test_openvino_xpu_compiles_an_ir_whose_scalar_input_has_a_dynamic_rank(tmp_path, monkeypatch):
-    # The IR keeps the dynamic rank `[...]` that OVC gives `scale`, as in a checkpoint written without
-    # the converter workaround.
-    monkeypatch.setattr(ov_model_converter, "staticize_extra_openvino_inputs", lambda inputs, names: [])
+@pytest.mark.parametrize("use_dynamo", [True, False])
+def test_openvino_xpu_compiles_a_forward_with_a_scalar_keyword_argument(tmp_path, use_dynamo):
     x = torch.tensor([[1.0, 2.0, 3.0]], device="xpu")
-    backend = backend_build(OpenVINOBackend(), _ScaleModel(), [((x,), {"scale": 3.0})], tmp_path, torch.device("xpu"))
+    backend = backend_build(
+        OpenVINOBackend(OpenVINOBackendConfig(use_dynamo=use_dynamo)),
+        _ScaleModel(),
+        [((x,), {"scale": 3.0})],
+        tmp_path,
+        torch.device("xpu"),
+    )
 
     actual = backend.infer(x, scale=3.0)
 
