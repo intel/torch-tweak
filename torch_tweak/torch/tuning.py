@@ -6,9 +6,10 @@
 """Main tune function."""
 
 import shutil
-from collections.abc import Callable
+from collections.abc import Callable, Iterable
 from logging import getLogger
 from pathlib import Path
+from typing import Any
 
 import torch
 
@@ -87,9 +88,7 @@ def tune(
     with libraries_logging(disable_external_logging):
         record_and_tune_registered_modules(
             func,
-            dataset,
-            validate_and_normalize_batch_sizes(batch_sizes),
-            max_num_batches_per_batch_size,
+            samples_generator(dataset, validate_and_normalize_batch_sizes(batch_sizes), max_num_batches_per_batch_size),
             validate_device(device),
             dry_run=dry_run,
             ignore_failing_modules=ignore_failing_modules,
@@ -99,17 +98,15 @@ def tune(
 
 def record_and_tune_registered_modules(
     func: Callable,
-    dataset: DatasetLike | DataLoaderFactory | torch.Tensor,
-    batch_sizes: list[int],
-    max_num_batches_per_batch_size: int | None,
+    samples: Iterable[tuple[int, list[Any], dict[str, Any]]],
     device: torch.device | None,
     *,
     dry_run: bool,
     ignore_failing_modules: bool,
     offload: bool,
 ) -> None:
-    """Record samples by calling `func`, then tune and activate every module in MODULE_REGISTRY."""
-    for batch_size, args, kwargs in samples_generator(dataset, batch_sizes, max_num_batches_per_batch_size):
+    """Record by calling `func` on every sample, then tune and activate every module in MODULE_REGISTRY."""
+    for batch_size, args, kwargs in samples:
         with global_context:
             global_context.set(BATCH_SIZE_KEY, batch_size)
             with torch.no_grad():

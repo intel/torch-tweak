@@ -8,6 +8,7 @@
 import time
 from collections.abc import Callable
 from logging import getLogger
+from typing import NamedTuple
 
 import torch
 
@@ -23,6 +24,15 @@ LOG_FORMAT = "%(asctime)s - %(levelname)s - %(message)s"
 
 DEFAULT_INSPECT_ITERATIONS = 10
 DEFAULT_WARMUP_ITERATIONS = 5
+
+
+class Inspection(NamedTuple):
+    """Result of `run_inspection`."""
+
+    inspector: ModuleInspector
+    """The inspector with forward methods already restored."""
+    total_execution_time: float
+    """Total execution time of the inspected runs in seconds."""
 
 
 def inspect(
@@ -89,12 +99,8 @@ def run_inspection(
     number_of_iterations: int,
     warmup_iterations: int,
     depth: int,
-) -> tuple[ModuleInspector, float]:
-    """Run `obj` under a ModuleInspector and measure it.
-
-    Returns:
-        The inspector with forward methods already restored, and the total execution time in seconds.
-    """
+) -> Inspection:
+    """Run `obj` under a ModuleInspector and measure it."""
     logger.info("Inspecting object searching for executed nn.Module members.")
     model_inspector = ModuleInspector(depth=depth)
     try:
@@ -124,7 +130,7 @@ def run_inspection(
     finally:
         model_inspector.restore_forward_methods()
 
-    return model_inspector, total_execution_time
+    return Inspection(model_inspector, total_execution_time)
 
 
 def modules_info_for(

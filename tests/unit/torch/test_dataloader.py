@@ -440,6 +440,15 @@ def test_ensure_enough_samples_dataloader_factory():
     assert all("labels" in s for s in dataset)
 
 
+def test_ensure_enough_samples_leaves_the_dataloader_factory_unchanged():
+    dataset = [torch.zeros(2), torch.ones(2), torch.full((2,), 2.0)]
+    factory = DataLoaderFactory(dataset)
+
+    ensure_enough_samples(factory, 1)
+
+    assert factory.dataset is dataset
+
+
 def test_ensure_enough_samples_empty_dataset():
     dataset = []
 

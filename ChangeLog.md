@@ -8,6 +8,9 @@ SPDX-License-Identifier: Apache-2.0
 ## Unreleased
 
 - feat: `tweak` is the main entry point. It tunes a model at every depth up to `max_depth` and keeps the fastest cut (#56)
+- fix: `inspect` leaves the dataset of a `DataLoaderFactory` as it was. It trimmed it to the inspected samples
+- fix: a module with buffers and no parameters has the device of its buffers.
+  `TunableModule` tuned it on CPU, and `OnlineTunedModule` required `device` for it
 - feat (breaking): a module without a strategy is tuned with `tt.default_strategy(device)`.
   It measures every backend that runs on the device and keeps the fastest (#55)
 - fix (breaking): `profile` returns `ProfilingResult` with measured throughput per batch size (#64)

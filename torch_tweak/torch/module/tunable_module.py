@@ -268,6 +268,14 @@ class TunableModule(wrapt.CallableObjectProxy):
         """Makes the wrapped module run its original forward. Tuning results are kept."""
         self.__wrapped__.forward = self._self_orig_forward
 
+    def restore_device(self):
+        """Moves the wrapped module to the device it had when wrapped.
+
+        `TorchAOBackend` moves the module to CPU on every activation.
+        """
+        if self._self_device is not None:
+            self.__wrapped__.to(self._self_device)
+
     def offload_after_tuning(self):
         """Moves the wrapped module to `device_after_tuning` when no tuned backend needs it."""
         if self._self_state == ModuleState.TUNED:

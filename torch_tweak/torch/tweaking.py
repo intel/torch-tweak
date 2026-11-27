@@ -2,6 +2,7 @@
 # SPDX-License-Identifier: Apache-2.0
 """Tune a model at several cut depths and keep the fastest one."""
 
+import copy
 import math
 import statistics
 import time
@@ -79,12 +80,15 @@ class TweakResult:
     """Median latency per sample in seconds before tuning."""
     depths: list[DepthResult]
 
-    def best_depth_per_sample(self) -> dict[SampleKey, int]:
-        """The fastest depth for each sample, ignoring the tie tolerance."""
+    def best_depth_per_sample(self) -> dict[SampleKey, int | None]:
+        """The fastest depth for each sample, ignoring the tie tolerance. None when the untuned model is faster."""
         measured = [result for result in self.depths if result.error is None and result.latencies]
         if not measured:
             return {}
-        return {key: min(measured, key=lambda result: result.latencies[key]).depth for key in measured[0].latencies}
+        best = {key: min(measured, key=lambda result: result.latencies[key]) for key in measured[0].latencies}
+        return {
+            key: result.depth if result.latencies[key] < self.baseline[key] else None for key, result in best.items()
+        }
 
     def __str__(self) -> str:
         """The latency of every depth and the winner, as a table."""
@@ -106,7 +110,8 @@ class TweakResult:
             lines.append(f"{result.depth:>6}  {len(result.module_paths):>10}  {total:>20}  {speedup:>8}  {status:<20}")
         lines.append("-" * 80)
         for (batch_size, index), depth in self.best_depth_per_sample().items():
-            lines.append(f"Fastest depth for batch size {batch_size}, batch {index}: {depth}")
+            fastest = "untuned" if depth is None else f"depth {depth}"
+            lines.append(f"Fastest for batch size {batch_size}, batch {index}: {fastest}")
         lines.append("=" * 80)
         return "\n".join(line.rstrip() for line in lines)
 
@@ -139,9 +144,9 @@ def tweak(
     on `dataset`. A module tuned at one depth is reused at deeper depths where it appears again.
     The untuned model is measured before and after the search, and the lower latency is the baseline.
     The second measurement is skipped when no depth was measured.
-    Only depths faster than the untuned model are candidates. The winner has the lowest sum of median
-    latencies over all samples. A shallower candidate wins when it is within `tie_tolerance` of the
-    fastest one. The model is left untuned when no depth is faster than the untuned model.
+    Only depths faster than the untuned model by more than `tie_tolerance` are candidates. The winner has the
+    lowest sum of median latencies over all samples. A shallower candidate wins when it is within `tie_tolerance`
+    of the fastest one. The model is left untuned when there is no candidate.
 
     This is the main entry point. `inspect`, `wrap`, and `tune` tune one cut at a chosen depth and take less time.
 
@@ -151,6 +156,7 @@ def tweak(
         inference_function: Function that runs inference on `obj`, `obj` is called by default.
         strategy: Strategy for every wrapped module. When None, `default_strategy(device)` without the search
             for the maximum batch size is used: every backend for the device is measured and the fastest wins.
+            A given strategy searches the maximum batch size unless `enable_find_max_batch_size(False)` was called.
         min_depth: Shallowest depth to try.
         max_depth: Deepest depth to try.
         batch_sizes: Batch sizes for tuning and measurement.
@@ -163,7 +169,7 @@ def tweak(
         measure_iterations: Number of timed runs per sample at every depth.
         warmup_iterations: Number of untimed runs before inspection and before every measurement.
         tie_tolerance: Relative latency difference treated as a tie.
-        time_budget: Seconds after which no new depth is started. The depth in progress finishes.
+        time_budget: Seconds from the call after which no new depth is started. The depth in progress finishes.
         dry_run: If True, only report the modules of each cut.
         disable_external_logging: If True, libraries logging will be suppressed.
         clear_cache: If True, the cache will be cleared before tuning.
@@ -172,9 +178,14 @@ def tweak(
         The result. Use `result.obj` for inference and for `save`: when the whole model wins, `result.obj` is a
         `TunableModule` around `obj`, and saving `obj` stores no tuning. `print(result)` shows the latency of every
         depth.
+
+    Raises:
+        ValueError: When `min_depth` is negative or above `max_depth`, `measure_iterations` is below 1,
+            or `tie_tolerance` is negative.
     """
     start = time.monotonic()
     setup_logging(format_string=LOG_FORMAT)
+    _validate_search(min_depth, max_depth, measure_iterations, tie_tolerance)
     if clear_cache:
         remove_cache_dir()
 
@@ -197,17 +208,21 @@ def tweak(
             logger.info("Depth %d cuts the model into %d modules: %s", depth, len(modules), _paths(modules))
         if not cuts:
             logger.warning(
-                "No executed module passes min_execution_percentage=%s. The model is left untuned.",
+                "No executed module at depths %d to %d passes min_execution_percentage=%s. The model is left untuned.",
+                min_depth,
+                max_depth,
                 min_execution_percentage,
             )
             return TweakResult(obj, None, {}, [])
         if dry_run:
             return TweakResult(obj, None, {}, [DepthResult(depth, _paths(modules)) for depth, modules in cuts])
 
+        # Every depth is tuned and measured on the same batches, even when `dataset` shuffles or draws random samples.
+        # Every call gets a copy, because a call can change its arguments in place, as a KV cache does.
+        samples = _keyed_samples(dataset, batch_sizes, max_num_batches_per_batch_size)
+
         def measure() -> dict[SampleKey, float]:
-            return _measure(
-                func, dataset, batch_sizes, max_num_batches_per_batch_size, warmup_iterations, measure_iterations
-            )
+            return _measure(func, samples, warmup_iterations, measure_iterations)
 
         logger.info("Measuring the model before tuning.")
         baseline = measure()
@@ -215,26 +230,26 @@ def tweak(
         tuned: dict[str, TunableModule] = {}
 
         def tune_depth(depth: int, modules: list[ModuleInfo]) -> DepthResult:
-            return _tune_and_measure_depth(
-                obj,
-                func,
-                depth,
-                modules,
-                tuned,
-                strategy,
-                measure,
-                dataset,
-                batch_sizes,
-                max_num_batches_per_batch_size,
-                device,
-            )
+            return _tune_and_measure_depth(obj, func, depth, modules, tuned, strategy, measure, samples, device)
 
-        results = _tune_every_depth(cuts, tune_depth, start, time_budget)
-        if any(result.latencies for result in results):
-            # The first measurement can run before the device reaches its full clock, which favors every depth.
-            logger.info("Measuring the model before tuning again.")
-            baseline = _faster(baseline, measure())
+        try:
+            results = _tune_every_depth(cuts, tune_depth, start, time_budget)
+            if any(result.latencies for result in results):
+                # The first measurement can run before the device reaches its full clock, which favors every depth.
+                logger.info("Measuring the model before tuning again.")
+                baseline = _faster(baseline, measure())
+        finally:
+            MODULE_REGISTRY.clear()
         return _install_best(obj, cuts, tuned, baseline, results, tie_tolerance)
+
+
+def _validate_search(min_depth: int, max_depth: int, measure_iterations: int, tie_tolerance: float) -> None:
+    if not 0 <= min_depth <= max_depth:
+        raise ValueError(f"Expected 0 <= min_depth <= max_depth, got min_depth={min_depth}, max_depth={max_depth}")
+    if measure_iterations < 1:
+        raise ValueError(f"measure_iterations must be at least 1, got {measure_iterations}")
+    if not tie_tolerance >= 0:
+        raise ValueError(f"tie_tolerance must be non-negative, got {tie_tolerance}")
 
 
 def _install_best(
@@ -245,19 +260,24 @@ def _install_best(
     results: list[DepthResult],
     tie_tolerance: float,
 ) -> TweakResult:
-    """Install the best depth among those faster than `baseline`, otherwise leave `obj` untuned."""
-    MODULE_REGISTRY.clear()
+    """Install the best depth faster than `baseline` by more than `tie_tolerance`, otherwise leave `obj` untuned.
+
+    A depth that fails to install gets an error, and the next best depth is installed.
+    """
     if all(math.isinf(result.total_latency) for result in results):
         logger.warning("No depth was tuned successfully. The model is left untuned.")
         return TweakResult(obj, None, baseline, results)
-    baseline_latency = sum(baseline.values())
-    best = _pick_best([result for result in results if result.total_latency < baseline_latency], tie_tolerance)
-    if best is None:
-        logger.warning("No depth is faster than the untuned model. The model is left untuned.")
-        return TweakResult(obj, None, baseline, results)
-    logger.info("Selected depth %d.", best.depth)
-    best_modules = next(modules for depth, modules in cuts if depth == best.depth)
-    return TweakResult(_install(obj, best_modules, tuned), best.depth, baseline, results)
+    threshold = sum(baseline.values()) / (1 + tie_tolerance)
+    while best := _pick_best([r for r in results if r.total_latency < threshold], tie_tolerance):
+        logger.info("Selected depth %d.", best.depth)
+        best_modules = next(modules for depth, modules in cuts if depth == best.depth)
+        try:
+            return TweakResult(_install(obj, best_modules, tuned), best.depth, baseline, results)
+        except Exception as e:
+            logger.exception("Depth %d failed to install.", best.depth)
+            best.error = f"{type(e).__name__}: {e}"
+    logger.warning("No depth is faster than the untuned model by more than tie_tolerance. The model is left untuned.")
+    return TweakResult(obj, None, baseline, results)
 
 
 def _distinct_cuts(
@@ -311,9 +331,7 @@ def _tune_and_measure_depth(
     tuned: dict[str, TunableModule],
     strategy: TuneStrategy,
     measure: Callable[[], dict[SampleKey, float]],
-    dataset: DatasetLike | DataLoaderFactory | torch.Tensor,
-    batch_sizes: list[int],
-    max_num_batches_per_batch_size: int | None,
+    samples: dict[SampleKey, tuple[list[Any], dict[str, Any]]],
     device: torch.device,
 ) -> DepthResult:
     """Tune the modules of one cut that are not in `tuned`, measure the model, and detach every wrapper.
@@ -330,9 +348,7 @@ def _tune_and_measure_depth(
             installed.update(zip(_paths(new_modules), MODULE_REGISTRY.modules.values(), strict=True))
             record_and_tune_registered_modules(
                 func,
-                dataset,
-                batch_sizes,
-                max_num_batches_per_batch_size,
+                ((batch_size, *_copy(sample)) for (batch_size, _), sample in samples.items()),
                 device,
                 dry_run=False,
                 ignore_failing_modules=True,
@@ -356,33 +372,51 @@ def _tune_and_measure_depth(
         logger.exception("Depth %d failed.", depth)
         result.error = f"{type(e).__name__}: {e}"
     finally:
-        for module_info in modules:
-            wrapper = installed.get(_path(module_info))
-            if wrapper is not None:
-                wrapper.deactivate()
-                _detach(module_info, wrapper)
+        _detach_and_deactivate([(m, installed[_path(m)]) for m in modules if _path(m) in installed])
     return result
+
+
+def _keyed_samples(
+    dataset: DatasetLike | DataLoaderFactory | torch.Tensor,
+    batch_sizes: list[int],
+    max_num_batches_per_batch_size: int | None,
+) -> dict[SampleKey, tuple[list[Any], dict[str, Any]]]:
+    """Every batch produced from `dataset`, as positional and keyword arguments."""
+    samples: dict[SampleKey, tuple[list[Any], dict[str, Any]]] = {}
+    batch_index: defaultdict[int, int] = defaultdict(int)
+    for batch_size, args, kwargs in samples_generator(dataset, batch_sizes, max_num_batches_per_batch_size):
+        samples[batch_size, batch_index[batch_size]] = (args, kwargs)
+        batch_index[batch_size] += 1
+    return samples
+
+
+def _copy(sample: tuple[list[Any], dict[str, Any]]) -> tuple[list[Any], dict[str, Any]]:
+    try:
+        return copy.deepcopy(sample)
+    except torch.OutOfMemoryError:
+        raise
+    except RuntimeError as e:
+        raise RuntimeError(
+            f"Cannot copy a sample: {e} A sample that is part of an autograd graph needs `x.detach()`."
+        ) from e
 
 
 def _measure(
     func: Callable,
-    dataset: DatasetLike | DataLoaderFactory | torch.Tensor,
-    batch_sizes: list[int],
-    max_num_batches_per_batch_size: int | None,
+    samples: dict[SampleKey, tuple[list[Any], dict[str, Any]]],
     warmup_iterations: int,
     iterations: int,
 ) -> dict[SampleKey, float]:
-    """Median latency of `func` in seconds for every batch produced from `dataset`."""
+    """Median latency of `func` in seconds for every sample."""
     latencies: dict[SampleKey, float] = {}
-    batch_index: defaultdict[int, int] = defaultdict(int)
-    for batch_size, args, kwargs in samples_generator(dataset, batch_sizes, max_num_batches_per_batch_size):
-        key = (batch_size, batch_index[batch_size])
-        batch_index[batch_size] += 1
+    for key, sample in samples.items():
         times = []
         with torch.no_grad():
             for _ in range(warmup_iterations):
+                args, kwargs = _copy(sample)
                 func(*args, **kwargs)
             for _ in range(iterations):
+                args, kwargs = _copy(sample)
                 synchronize()
                 start = time.perf_counter()
                 func(*args, **kwargs)
@@ -408,20 +442,26 @@ def _pick_best(results: list[DepthResult], tie_tolerance: float) -> DepthResult 
 def _install(obj: Any, modules: list[ModuleInfo], tuned: dict[str, TunableModule]) -> Any:
     """Attach and activate the tuned wrappers of `modules`, then offload what they no longer need.
 
-    Modules that failed to tune keep their original forward.
+    Modules that failed to tune keep their original forward. When a wrapper fails to activate, every wrapper
+    is detached and deactivated, and the error is raised. Nothing is offloaded before every wrapper is active.
+    A failed offload is logged, and the wrapper stays installed.
     """
-    result = obj
-    for module_info in modules:
-        wrapper = tuned[_path(module_info)]
-        if wrapper.state != ModuleState.TUNED:
-            continue
-        _attach(module_info, wrapper)
-        MODULE_REGISTRY.register(wrapper.name, wrapper)
-        wrapper.activate()
-        wrapper.offload_after_tuning()
-        if module_info.parent is None:
-            result = wrapper
-    return result
+    attached = [(m, tuned[_path(m)]) for m in modules if tuned[_path(m)].state == ModuleState.TUNED]
+    try:
+        for module_info, wrapper in attached:
+            _attach(module_info, wrapper)
+            MODULE_REGISTRY.register(wrapper.name, wrapper)
+            wrapper.activate()
+    except Exception:
+        MODULE_REGISTRY.clear()
+        _detach_and_deactivate(attached)
+        raise
+    for _, wrapper in attached:
+        try:
+            wrapper.offload_after_tuning()
+        except Exception:
+            logger.exception("Offloading module %s failed. Its weights may stay on the device.", wrapper.name)
+    return next((wrapper for module_info, wrapper in attached if module_info.parent is None), obj)
 
 
 def _attach(module_info: ModuleInfo, wrapper: TunableModule) -> None:
@@ -434,6 +474,22 @@ def _detach(module_info: ModuleInfo, wrapper: TunableModule) -> None:
     wrapper.detach_forward()
     if module_info.parent is not None:
         module_info.parent.set_wrapped(module_info.name, module_info.module)
+
+
+def _detach_and_deactivate(attached: list[tuple[ModuleInfo, TunableModule]]) -> None:
+    """Detach every wrapper, then deactivate every backend, then move every module back to its device.
+
+    A failing `deactivate` or device move leaves the model detached. Moves run after `deactivate` frees the backends,
+    and also when `deactivate` fails, because a backend may have moved a module on activation.
+    """
+    for module_info, wrapper in attached:
+        _detach(module_info, wrapper)
+    try:
+        for _, wrapper in attached:
+            wrapper.deactivate()
+    finally:
+        for _, wrapper in attached:
+            wrapper.restore_device()
 
 
 def _path(module_info: ModuleInfo) -> str:

@@ -36,7 +36,7 @@ from torch_tweak.torch.tune_strategy import (
     default_strategy,
 )
 from torch_tweak.torch.tuning import load, save, tune
-from torch_tweak.torch.tweaking import TweakResult, tweak
+from torch_tweak.torch.tweaking import DepthResult, TweakResult, tweak
 
 __all__ = [
     "torch_tweak_cache_dir",
@@ -46,6 +46,7 @@ __all__ = [
     "tune",
     "tweak",
     "TweakResult",
+    "DepthResult",
     "load",
     "save",
     "TunableModule",
