@@ -22,3 +22,13 @@ Apply the fixes. Then read the diff again.
 Stop when a second pass finds nothing new.
 
 Editing tests also follows `.cursor/rules/unit-tests.mdc`.
+
+## Group review
+
+When the user asks for a group review, follow `.cursor/skills/group-review/SKILL.md`.
+
+## Language models
+
+Language models are a niche use of Torch Tweak.
+vLLM and other frameworks built for them serve them better.
+When support for a language model alone would make the code much more complex, weaker support for it is acceptable.
