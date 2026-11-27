@@ -9,6 +9,20 @@ NOTE: This file has been modified by Intel Corporation.
 
 This directory contains practical examples demonstrating how to use Torch Tweak to tune different types of AI models for inference performance.
 
+## Tweak
+
+### Finding the fastest cut depth
+
+Runs `tweak` on a transformer encoder: a dry run, the search over cut depths, and a save and load of the winner.
+
+- **Location**: [`Tweak`](./Tweak/README.md)
+- **Model**: a four-layer `nn.TransformerEncoder` defined in the script
+- **Use Case**: Letting Torch Tweak decide which modules to tune
+- **Key Features**:
+  - Dry run that shows the cost of every depth
+  - Latency table of every depth against the untuned model
+  - Time budget for the search
+
 ## Minimal
 
 ### Smallest tuning demo

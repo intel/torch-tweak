@@ -59,7 +59,7 @@ def test_tune(mocker, dry_run):
 
     # then
     assert mock_module.call_count > 0
-    mock_module.tune.assert_called_once_with(dry_run=dry_run, device=torch.device("xpu:0"))
+    mock_module.tune.assert_called_once_with(dry_run=dry_run, device=torch.device("xpu:0"), offload=True)
 
     batch_size_counter = Counter()
     for args, _ in mock_module.call_args_list:
@@ -121,7 +121,7 @@ def test_tune_with_cache_clear(mocker, clear_cache):
 
     mocker.patch.dict(MODULE_REGISTRY.modules, {"test_module": mock_module}, clear=True)
     mocker.patch("torch_tweak.torch.tuning._describe_module")
-    spy_clear_cache = mocker.spy(tuning, "_clear_cache")
+    spy_clear_cache = mocker.spy(tuning, "remove_cache_dir")
 
     # when
     tune(
@@ -136,7 +136,7 @@ def test_tune_with_cache_clear(mocker, clear_cache):
 
     # then
     assert mock_module.call_count > 0
-    mock_module.tune.assert_called_once_with(dry_run=False, device=torch.device("cpu"))
+    mock_module.tune.assert_called_once_with(dry_run=False, device=torch.device("cpu"), offload=True)
 
     assert spy_clear_cache.call_count == (1 if clear_cache else 0)
 
